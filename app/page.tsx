@@ -244,7 +244,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-slate-200 dark:border-midnight-border py-12">
         <div className="mx-auto max-w-7xl px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-400">© {new Date().getFullYear()} NaijaClimaGuard · Built at NCAIR, Nigeria</p>
+          <p className="text-xs text-slate-400">© {new Date().getFullYear()} NaijaClimaGuard · Built by Bello Muhammad Mustapha</p>
           <p className="text-xs text-slate-400">Data: NASA GPM IMERG · ECMWF GloFAS · USGS</p>
         </div>
       </footer>
