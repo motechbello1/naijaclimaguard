@@ -237,12 +237,33 @@ export default function LandingPage() {
                     <li key={f} className="flex items-start gap-3"><Check className="h-4 w-4 shrink-0 text-radar mt-0.5" /><span className="text-sm">{f}</span></li>
                   ))}
                 </ul>
-                <Link
-                  href="/register"
-                  className={`mt-8 block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all ${tier.highlighted ? "bg-radar text-white hover:bg-radar/90 shadow-lg shadow-radar/20" : "border border-slate-200 dark:border-midnight-border hover:border-radar/40"}`}
+                <button
+                  onClick={() => {
+                    if (tier.name === "Explorer") {
+                      window.location.href = "/register";
+                    } else if (tier.name === "Professional") {
+                      const email = prompt("Enter your email to start your Professional plan:");
+                      if (email) {
+                        fetch("/api/payment/initialize", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email, plan: "professional" }),
+                        })
+                          .then((r) => r.json())
+                          .then((data) => {
+                            if (data.authorization_url) window.location.href = data.authorization_url;
+                            else alert("Error: " + (data.error || "Payment failed"));
+                          })
+                          .catch(() => alert("Could not connect to payment service"));
+                      }
+                    } else {
+                      window.location.href = "/contact";
+                    }
+                  }}
+                  className={`mt-8 block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all cursor-pointer ${tier.highlighted ? "bg-radar text-white hover:bg-radar/90 shadow-lg shadow-radar/20" : "border border-slate-200 dark:border-midnight-border hover:border-radar/40"}`}
                 >
                   {tier.cta}
-                </Link>
+                </button>
               </div>
             ))}
           </div>
@@ -256,6 +277,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
             <Link href="/about" className="text-xs text-slate-400 hover:text-radar transition-colors">About</Link>
             <Link href="/how-to-use" className="text-xs text-slate-400 hover:text-radar transition-colors">How to Use</Link>
+            <Link href="/contact" className="text-xs text-slate-400 hover:text-radar transition-colors">Contact Sales</Link>
             <span className="text-xs text-slate-400">Data: NASA GPM IMERG · ECMWF GloFAS · USGS</span>
           </div>
         </div>
