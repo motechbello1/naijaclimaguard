@@ -2,8 +2,8 @@
 
 import AppShell from "@/components/shared/AppShell";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { Activity, TrendingUp, CloudRain, Bell, MapPin, ArrowRight, Plus, Trash2, Crown } from "lucide-react";
 import Link from "next/link";
 import { getRiskLevel } from "@/lib/data";
@@ -18,23 +18,24 @@ const PLAN_COLORS: Record<string, string> = {
   ENTERPRISE: "bg-amber/10 text-amber",
 };
 
-// Simulated risk scores per state
 const STATE_RISK: Record<string, number> = {
   Kogi: 67, Anambra: 52, Lagos: 48, Rivers: 63, Bayelsa: 71, Delta: 58, Niger: 61, Benue: 55,
 };
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [limit, setLimit] = useState(3);
   const [plan, setPlan] = useState("FREE");
   const [showAdd, setShowAdd] = useState(false);
   const [newLoc, setNewLoc] = useState({ name: "", state: "", latitude: "", longitude: "" });
 
+  const paymentStatus = searchParams.get("payment");
+
   useEffect(() => {
-    // SECURITY FIX: Changed from push to replace to prevent the back-arrow exploit
-    if (status === "unauthenticated") router.replace("/login");
+    if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
   useEffect(() => {
@@ -92,6 +93,54 @@ export default function DashboardPage() {
             Open Prediction Map <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
+
+        {/* Payment success message */}
+        {paymentStatus === "success" && (
+          <div className="rounded-xl bg-radar/10 border border-radar/20 p-4 text-sm text-radar flex items-center gap-2">
+            <Crown className="h-4 w-4" /> Payment successful! Your plan has been upgraded. Please log out and log back in to see changes.
+          </div>
+        )}
+
+        {paymentStatus === "failed" && (
+          <div className="rounded-xl bg-crimson/10 border border-crimson/20 p-4 text-sm text-crimson">
+            Payment was not completed. Please try again or contact support.
+          </div>
+        )}
+
+        {/* Upgrade banner for FREE users */}
+        {plan === "FREE" && (
+          <div className="glass-card rounded-xl p-6 border-2 border-radar/20 bg-gradient-to-r from-radar/5 to-cyan/5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-display text-lg font-bold">Upgrade to Professional</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Get 50 locations, hourly updates, 72-hour forecasts, full API access, and PDF reports — ₦15,000/month
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const email = prompt("Enter your email to upgrade:");
+                  if (email) {
+                    fetch("/api/payment/initialize", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ email, plan: "professional" }),
+                    })
+                      .then((r) => r.json())
+                      .then((data) => {
+                        if (data.authorization_url) window.location.href = data.authorization_url;
+                        else alert("Error: " + (data.error || "Payment failed"));
+                      })
+                      .catch(() => alert("Could not connect to payment service"));
+                  }
+                }}
+                className="shrink-0 rounded-xl bg-radar px-6 py-3 text-sm font-semibold text-white hover:bg-radar/90 shadow-lg shadow-radar/20 transition-all"
+              >
+                Upgrade Now
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -190,5 +239,13 @@ export default function DashboardPage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<AppShell><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-2 border-radar border-t-transparent rounded-full" /></div></AppShell>}>
+      <DashboardContent />
+    </Suspense>
   );
 }
