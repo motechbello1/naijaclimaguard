@@ -2,11 +2,12 @@
 
 import AppShell from "@/components/shared/AppShell";
 import { useState, useEffect } from "react";
-import { AlertTriangle, Droplets, Waves, CloudRain } from "lucide-react";
+import { AlertTriangle, Droplets, Waves, CloudRain, Wifi, WifiOff } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { getRiskLevel } from "@/lib/data";
+import { ML_API_URL } from "@/lib/config";
 
-function generateForecast(surge?: string) {
+function generateMockForecast(surge?: string) {
   const base = 67;
   const points = [];
   const mult = surge === "monsoon" ? 1.6 : surge === "dam" ? 1.4 : 1.0;
@@ -38,11 +39,38 @@ function CustomTooltip({ active, payload }: any) {
 
 export default function PredictPage() {
   const [surge, setSurge] = useState("");
-  const [forecast, setForecast] = useState(generateForecast());
+  const [forecast, setForecast] = useState(generateMockForecast());
   const [showAlert, setShowAlert] = useState(false);
+  const [riskScore, setRiskScore] = useState<number | null>(null);
+  const [riskLevel, setRiskLevel] = useState("");
+  const [apiOnline, setApiOnline] = useState(false);
+  const [factors, setFactors] = useState({ rainfall: 0.3, discharge: 0.44, soil: 0.51 });
+
+  // Check if ML API is online and fetch real prediction
+  useEffect(() => {
+    async function fetchPrediction() {
+      try {
+        const res = await fetch(`${ML_API_URL}/v1/risk?latitude=7.73&longitude=6.69`);
+        if (res.ok) {
+          const data = await res.json();
+          setApiOnline(true);
+          setRiskScore(data.risk_assessment.current_score);
+          setRiskLevel(data.risk_assessment.level);
+          setFactors({
+            rainfall: data.contributing_factors.rainfall_intensity,
+            discharge: data.contributing_factors.river_discharge,
+            soil: data.contributing_factors.soil_saturation,
+          });
+        }
+      } catch {
+        setApiOnline(false);
+      }
+    }
+    fetchPrediction();
+  }, []);
 
   useEffect(() => {
-    setForecast(generateForecast(surge || undefined));
+    setForecast(generateMockForecast(surge || undefined));
     if (surge) {
       setShowAlert(true);
       const t = setTimeout(() => setShowAlert(false), 5000);
@@ -60,16 +88,44 @@ export default function PredictPage() {
             <h1 className="font-display text-2xl font-bold">Layer 1: Predict</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Hydrological Map & 72-Hour Forecast</p>
           </div>
-          <select
-            value={surge}
-            onChange={(e) => setSurge(e.target.value)}
-            className="rounded-lg border border-slate-200 dark:border-midnight-border bg-white dark:bg-midnight-light px-4 py-2 text-sm focus:border-radar focus:outline-none"
-          >
-            <option value="">Normal Conditions</option>
-            <option value="monsoon">Monsoon Surge Event</option>
-            <option value="dam">Dam Release Scenario</option>
-          </select>
+          <div className="flex items-center gap-4">
+            <div className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border ${
+              apiOnline
+                ? "text-radar border-radar/20 bg-radar/5"
+                : "text-slate-400 border-slate-200 dark:border-midnight-border"
+            }`}>
+              {apiOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+              {apiOnline ? "ML Model: Live" : "ML Model: Mock"}
+            </div>
+            <select
+              value={surge}
+              onChange={(e) => setSurge(e.target.value)}
+              className="rounded-lg border border-slate-200 dark:border-midnight-border bg-white dark:bg-midnight-light px-4 py-2 text-sm focus:border-radar focus:outline-none"
+            >
+              <option value="">Normal Conditions</option>
+              <option value="monsoon">Monsoon Surge Event</option>
+              <option value="dam">Dam Release Scenario</option>
+            </select>
+          </div>
         </div>
+
+        {/* Live risk score from ML model */}
+        {riskScore !== null && (
+          <div className="glass-card rounded-xl p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-400">Live Prediction — Lokoja, Kogi State</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">From your trained XGBoost model (ROC-AUC 0.9928)</p>
+            </div>
+            <div className="text-right">
+              <span className="text-3xl font-display font-bold" style={{ color: getRiskLevel(riskScore).color }}>
+                {riskScore}/100
+              </span>
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: getRiskLevel(riskScore).color }}>
+                {riskLevel}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Alert */}
         {showAlert && (
@@ -89,9 +145,9 @@ export default function PredictPage() {
         {/* Contributing factors */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { icon: CloudRain, label: "Rainfall Intensity", value: "72%", color: "text-cyan dark:text-cyan text-sky-600" },
-            { icon: Waves, label: "River Discharge", value: "85%", color: "text-radar" },
-            { icon: Droplets, label: "Soil Saturation", value: "61%", color: "text-amber" },
+            { icon: CloudRain, label: "Rainfall Intensity", value: `${Math.round(factors.rainfall * 100)}%`, color: "text-cyan dark:text-cyan text-sky-600" },
+            { icon: Waves, label: "River Discharge", value: `${Math.round(factors.discharge * 100)}%`, color: "text-radar" },
+            { icon: Droplets, label: "Soil Saturation", value: `${Math.round(factors.soil * 100)}%`, color: "text-amber" },
           ].map((stat) => (
             <div key={stat.label} className="glass-card rounded-xl p-5">
               <div className="flex items-center gap-3 mb-3">
