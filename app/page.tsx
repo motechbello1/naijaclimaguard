@@ -28,8 +28,11 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Link href="#pricing" className="rounded-lg bg-radar px-4 py-2 text-sm font-semibold text-white hover:bg-radar/90 transition-all shadow-lg shadow-radar/20">
-              Get Started
+            <Link href="/login" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              Sign In
+            </Link>
+            <Link href="/register" className="rounded-lg bg-radar px-4 py-2 text-sm font-semibold text-white hover:bg-radar/90 transition-all shadow-lg shadow-radar/20">
+              Get Started Free
             </Link>
           </div>
         </div>
@@ -54,11 +57,11 @@ export default function LandingPage() {
             Africa&apos;s first physical risk intelligence API. We fuse NASA satellite rainfall and GloFAS river discharge to deliver 48-hour advance flood warnings with 99.28% accuracy.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="#validation" className="group flex items-center gap-2 rounded-xl bg-radar px-7 py-3.5 text-base font-semibold text-white hover:bg-radar/90 transition-all shadow-xl shadow-radar/20">
-              See the Proof <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            <Link href="/register" className="group flex items-center gap-2 rounded-xl bg-radar px-7 py-3.5 text-base font-semibold text-white hover:bg-radar/90 transition-all shadow-xl shadow-radar/20">
+              Start Free <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
-            <Link href="#api" className="rounded-xl border border-slate-200 dark:border-midnight-border px-7 py-3.5 text-base font-medium hover:border-radar/40 transition-all">
-              View API Docs
+            <Link href="#validation" className="rounded-xl border border-slate-200 dark:border-midnight-border px-7 py-3.5 text-base font-medium hover:border-radar/40 transition-all">
+              See the Proof
             </Link>
           </div>
         </div>
@@ -232,9 +235,12 @@ export default function LandingPage() {
                     <li key={f} className="flex items-start gap-3"><Check className="h-4 w-4 shrink-0 text-radar mt-0.5" /><span className="text-sm">{f}</span></li>
                   ))}
                 </ul>
-                <button className={`mt-8 block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all ${tier.highlighted ? "bg-radar text-white hover:bg-radar/90 shadow-lg shadow-radar/20" : "border border-slate-200 dark:border-midnight-border hover:border-radar/40"}`}>
+                <Link
+                  href="/register"
+                  className={`mt-8 block w-full rounded-xl py-3 text-center text-sm font-semibold transition-all ${tier.highlighted ? "bg-radar text-white hover:bg-radar/90 shadow-lg shadow-radar/20" : "border border-slate-200 dark:border-midnight-border hover:border-radar/40"}`}
+                >
                   {tier.cta}
-                </button>
+                </Link>
               </div>
             ))}
           </div>
