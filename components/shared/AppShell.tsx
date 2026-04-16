@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { signOut, useSession } from "next-auth/react";
 import {
   Shield, LayoutDashboard, Map, Zap, BarChart3,
-  FileText, Code, History, Settings, LogOut,
-  ChevronLeft, ChevronRight,
+  LogOut, ChevronLeft, ChevronRight, User,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
@@ -21,6 +21,32 @@ const nav = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  // Back/forward protection: if not authenticated, redirect to login
+  // This runs on every render inside the app shell
+  useEffect(() => {
+    const handlePopState = () => {
+      // When user presses back/forward, check if still authenticated
+      if (!session) {
+        router.replace("/login");
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [session, router]);
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    // Replace history so back button can't return to dashboard
+    router.replace("/login");
+    // Clear browser history entry for dashboard
+    window.history.pushState(null, "", "/login");
+  };
+
+  const userPlan = (session?.user as any)?.plan || "FREE";
+  const userName = session?.user?.name || session?.user?.email || "User";
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -79,12 +105,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Bottom */}
-        <div className="px-3 py-4 border-t border-slate-100 dark:border-midnight-border">
-          <Link href="/" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-            <LogOut className="h-[18px] w-[18px] shrink-0" />
-            {!collapsed && <span>Back to Site</span>}
+        {/* User section + Logout */}
+        <div className="px-3 py-4 border-t border-slate-100 dark:border-midnight-border space-y-1">
+          {/* Profile link */}
+          <Link
+            href="/profile"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+              pathname === "/profile"
+                ? "bg-radar/10 text-radar border border-radar/20"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent"
+            }`}
+          >
+            <User className="h-[18px] w-[18px] shrink-0" />
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{userName}</p>
+                <p className="text-[10px] text-slate-400 uppercase">{userPlan}</p>
+              </div>
+            )}
           </Link>
+
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-crimson hover:bg-crimson/5 transition-colors border border-transparent"
+          >
+            <LogOut className="h-[18px] w-[18px] shrink-0" />
+            {!collapsed && <span>Sign Out</span>}
+          </button>
         </div>
       </aside>
 

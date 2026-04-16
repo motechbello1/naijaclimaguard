@@ -33,7 +33,8 @@ export default function DashboardPage() {
   const [newLoc, setNewLoc] = useState({ name: "", state: "", latitude: "", longitude: "" });
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
+    // SECURITY FIX: Changed from push to replace to prevent the back-arrow exploit
+    if (status === "unauthenticated") router.replace("/login");
   }, [status, router]);
 
   useEffect(() => {

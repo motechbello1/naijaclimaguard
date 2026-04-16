@@ -25,6 +25,8 @@ export default function LandingPage() {
             <a href="#validation" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Validation</a>
             <a href="#api" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">API</a>
             <a href="#pricing" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Pricing</a>
+            <Link href="/how-to-use" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">How to Use</Link>
+            <Link href="/about" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">About</Link>
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
@@ -250,8 +252,12 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-slate-200 dark:border-midnight-border py-12">
         <div className="mx-auto max-w-7xl px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-400">© {new Date().getFullYear()} NaijaClimaGuard · Built by Bello Muhammad</p>
-          <p className="text-xs text-slate-400">Data: NASA GPM IMERG · ECMWF GloFAS · USGS</p>
+          <p className="text-xs text-slate-400">© {new Date().getFullYear()} NaijaClimaGuard · Built by Bello Muhammad Mustapha</p>
+          <div className="flex items-center gap-4">
+            <Link href="/about" className="text-xs text-slate-400 hover:text-radar transition-colors">About</Link>
+            <Link href="/how-to-use" className="text-xs text-slate-400 hover:text-radar transition-colors">How to Use</Link>
+            <span className="text-xs text-slate-400">Data: NASA GPM IMERG · ECMWF GloFAS · USGS</span>
+          </div>
         </div>
       </footer>
     </main>
