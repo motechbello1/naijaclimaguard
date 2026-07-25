@@ -6,14 +6,18 @@ import { useState, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   Shield, LayoutDashboard, Map, Zap, BarChart3,
-  LogOut, ChevronLeft, ChevronRight, User,
+  LogOut, ChevronLeft, ChevronRight, User, Radar, Home, Megaphone, Telescope,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
 
 const nav = [
+  { href: "/my-area", label: "My Area", icon: Home, badge: "Simple" },
+  { href: "/report", label: "Report Flood", icon: Megaphone },
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/intelligence", label: "Intelligence", icon: Radar, badge: "Live" },
   { href: "/predict", label: "Predict", icon: Map, badge: "Layer 1" },
+  { href: "/outlook", label: "Outlook", icon: Telescope, badge: "2-6 wks" },
   { href: "/action", label: "Action", icon: Zap, badge: "Layer 2" },
   { href: "/prove", label: "Prove", icon: BarChart3, badge: "Layer 3" },
 ];

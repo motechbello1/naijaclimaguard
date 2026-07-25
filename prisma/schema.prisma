@@ -18,6 +18,7 @@ model User {
   updatedAt    DateTime @updatedAt
   locations    Location[]
   alerts       Alert[]
+  reports      Report[]
 }
 
 model Location {
@@ -33,7 +34,8 @@ model Location {
 }
 
 model Alert {
-  id         String   @id @default(cuid())
+  id             String   @id @default(cuid())
+  lastNotifiedAt DateTime?
   threshold  Int
   channels   String
   active     Boolean  @default(true)
@@ -43,4 +45,18 @@ model Alert {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   locationId String
   location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}
+model Report {
+  id          String   @id @default(cuid())
+  latitude    Float
+  longitude   Float
+  area        String
+  waterLevel  String   // ANKLE | KNEE | WAIST | ABOVE_HEAD
+  description String?
+  status      String   @default("PENDING") // PENDING | VERIFIED | REJECTED
+  createdAt   DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
 }
