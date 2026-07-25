@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { MapPin, RefreshCw, Megaphone, ShieldCheck, ShieldAlert, Loader2, UserPlus } from "lucide-react";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -71,6 +72,7 @@ function deriveScore(daily: any): { score: number; rain7: number } {
 }
 
 export default function MyAreaPage() {
+  const { data: session } = useSession();
   const [state, setState] = useState<"locating" | "loading" | "ready" | "no-location" | "error">("locating");
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [rain7, setRain7] = useState<number | null>(null);
@@ -114,9 +116,15 @@ export default function MyAreaPage() {
         </Link>
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <Link href="/login" className="flex items-center gap-1.5 text-xs font-semibold text-radar hover:underline">
-            <UserPlus className="h-3.5 w-3.5" /> Sign in for alerts
-          </Link>
+          {!session ? (
+            <Link href="/login" className="flex items-center gap-1.5 text-xs font-semibold text-radar hover:underline">
+              <UserPlus className="h-3.5 w-3.5" /> Sign in for alerts
+            </Link>
+          ) : (
+            <Link href="/dashboard" className="flex items-center gap-1.5 text-xs font-semibold text-radar hover:underline">
+              Dashboard →
+            </Link>
+          )}
         </div>
       </header>
 
@@ -198,15 +206,22 @@ export default function MyAreaPage() {
               </a>
             </div>
 
-            {/* Sign up CTA */}
-            <div className="rounded-2xl border border-radar/20 bg-radar/5 p-5 text-center">
-              <p className="text-sm font-semibold">Want alerts before the risk rises?</p>
-              <p className="mt-1 text-xs text-slate-500">Create a free account to set up email and SMS alerts for your area.</p>
-              <Link href="/register"
-                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-radar px-5 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98]">
-                <UserPlus className="h-4 w-4" /> Create free account
+            {/* CTA — adapts to login state */}
+            {!session ? (
+              <div className="rounded-2xl border border-radar/20 bg-radar/5 p-5 text-center">
+                <p className="text-sm font-semibold">Want alerts before the risk rises?</p>
+                <p className="mt-1 text-xs text-slate-500">Create a free account to set up email and SMS alerts for your area.</p>
+                <Link href="/register"
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-radar px-5 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98]">
+                  <UserPlus className="h-4 w-4" /> Create free account
+                </Link>
+              </div>
+            ) : (
+              <Link href="/action"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-radar/20 bg-radar/5 px-4 py-4 font-semibold text-radar transition-all hover:bg-radar/10 active:scale-[0.98]">
+                <Megaphone className="h-4 w-4" /> Set up flood alerts for your area
               </Link>
-            </div>
+            )}
 
             {/* Report flooding */}
             <Link href="/report"
