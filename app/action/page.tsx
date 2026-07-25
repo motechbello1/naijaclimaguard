@@ -1,167 +1,231 @@
 "use client";
 
+/**
+ * Layer 2: Action — the REAL alert console. Nothing scripted.
+ *  · Lists your real saved locations and real alert rules (Prisma).
+ *  · Create / pause / delete alert rules — real CRUD.
+ *  · "Run live check" evaluates every rule against LIVE Open-Meteo data
+ *    via /api/alerts/check and renders the actual results.
+ *  · Email channel is live once RESEND_API_KEY is set; SMS is partner-ready
+ *    and shown disabled — never simulated.
+ */
+
 import AppShell from "@/components/shared/AppShell";
-import { useState, useEffect, useRef } from "react";
-import { Zap, ShieldCheck, Terminal, AlertOctagon } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import {
+  Zap, Plus, Trash2, Play, Loader2, MailCheck, MessageSquareOff,
+  BellRing, BellOff, CheckCircle2, AlertTriangle, MapPin,
+} from "lucide-react";
 
-const SMS_LOGS = [
-  { time: "14:32:01", msg: "[DISPATCH] SMS batch initiated → Lokoja LGA flood zone", type: "info" },
-  { time: "14:32:02", msg: "[GATEWAY] Connecting to NCC emergency broadcast network...", type: "info" },
-  { time: "14:32:03", msg: '[SENT] +234 803 *** 2841 → "FLOOD WARNING: Evacuate low-lying areas"', type: "success" },
-  { time: "14:32:04", msg: '[SENT] +234 806 *** 1192 → "FLOOD WARNING: Move to higher ground"', type: "success" },
-  { time: "14:32:05", msg: '[SENT] +234 701 *** 5563 → "FLOOD WARNING: 48hr flood probability 94%"', type: "success" },
-  { time: "14:32:06", msg: "[QUEUE] 2,847 remaining recipients in batch...", type: "info" },
-  { time: "14:32:07", msg: '[SENT] +234 809 *** 7741 → "FLOOD WARNING: Evacuate immediately"', type: "success" },
-  { time: "14:32:08", msg: "[GRID] Checking micro-grid asset status in flood zone...", type: "warning" },
-  { time: "14:32:09", msg: "[GRID] 240 solar installations identified in risk perimeter", type: "warning" },
-  { time: "14:32:10", msg: "[GRID] Awaiting TRIGGER GRID PROTECTION command...", type: "warning" },
-  { time: "14:32:11", msg: '[SENT] +234 812 *** 3356 → "FLOOD WARNING: Move valuables upstairs"', type: "success" },
-  { time: "14:32:12", msg: "[DISPATCH] Batch progress: 1,204 / 4,051 delivered", type: "info" },
-];
-
-const GRID_LOGS = [
-  { time: "14:33:01", msg: "[GRID] ⚡ GRID PROTECTION TRIGGERED", type: "danger" },
-  { time: "14:33:02", msg: "[GRID] Sending disconnect signal to Lokoja micro-grid cluster...", type: "danger" },
-  { time: "14:33:03", msg: "[GRID] Node KG-SOL-001 → ISLAND MODE ✓", type: "success" },
-  { time: "14:33:04", msg: "[GRID] Node KG-SOL-002 → ISLAND MODE ✓", type: "success" },
-  { time: "14:33:05", msg: "[GRID] Node KG-SOL-003 → ISLAND MODE ✓", type: "success" },
-  { time: "14:33:06", msg: "[GRID] Cluster disconnect complete. 240 assets secured.", type: "success" },
-  { time: "14:33:07", msg: "[GRID] ✅ ALL SOLAR ASSETS IN SAFE MODE", type: "success" },
-];
+interface Loc { id: string; name: string; state: string; latitude: number; longitude: number; }
+interface AlertRule {
+  id: string; threshold: number; active: boolean; channels: string[];
+  location: { id: string; name: string; state: string };
+}
+interface CheckResult {
+  location: string; score?: number; threshold?: number;
+  status: string; emailStatus?: string;
+}
 
 export default function ActionPage() {
-  const [logs, setLogs] = useState<typeof SMS_LOGS>([]);
-  const [logIndex, setLogIndex] = useState(0);
-  const [gridTriggered, setGridTriggered] = useState(false);
-  const [gridComplete, setGridComplete] = useState(false);
-  const [screenFlash, setScreenFlash] = useState(false);
-  const termRef = useRef<HTMLDivElement>(null);
+  const [locations, setLocations] = useState<Loc[]>([]);
+  const [alerts, setAlerts] = useState<AlertRule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [newLoc, setNewLoc] = useState("");
+  const [newThreshold, setNewThreshold] = useState(60);
+  const [checking, setChecking] = useState(false);
+  const [checkResults, setCheckResults] = useState<CheckResult[] | null>(null);
+  const [channels, setChannels] = useState<{email:string;sms:string} | null>(null);
+  const [err, setErr] = useState("");
 
-  useEffect(() => {
-    if (gridTriggered || logIndex >= SMS_LOGS.length) return;
-    const t = setTimeout(() => {
-      setLogs((prev) => [...prev, SMS_LOGS[logIndex]]);
-      setLogIndex((i) => i + 1);
-    }, 800);
-    return () => clearTimeout(t);
-  }, [logIndex, gridTriggered]);
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [locRes, alertRes] = await Promise.all([fetch("/api/locations"), fetch("/api/alerts")]);
+      const locData = await locRes.json();
+      const alertData = await alertRes.json();
+      setLocations(locData.locations ?? locData ?? []);
+      setAlerts(alertData.alerts ?? []);
+    } catch { setErr("Could not load your alerts — check your connection."); }
+    setLoading(false);
+  }, []);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
-  useEffect(() => {
-    if (termRef.current) termRef.current.scrollTop = termRef.current.scrollHeight;
-  }, [logs]);
-
-  const triggerGrid = () => {
-    setScreenFlash(true);
-    setTimeout(() => setScreenFlash(false), 600);
-    setGridTriggered(true);
-    GRID_LOGS.forEach((entry, i) => {
-      setTimeout(() => {
-        setLogs((prev) => [...prev, entry]);
-        if (i === GRID_LOGS.length - 1) setGridComplete(true);
-      }, (i + 1) * 700);
-    });
+  const createAlert = async () => {
+    if (!newLoc) return;
+    setCreating(true); setErr("");
+    try {
+      const res = await fetch("/api/alerts", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locationId: newLoc, threshold: newThreshold, channels: ["EMAIL"] }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Create failed");
+      setNewLoc(""); await loadAll();
+    } catch (e: any) { setErr(e.message); }
+    setCreating(false);
   };
 
-  const typeColors: Record<string, string> = {
-    info: "text-cyan",
-    success: "text-radar",
-    warning: "text-amber",
-    danger: "text-crimson",
+  const toggleAlert = async (a: AlertRule) => {
+    await fetch("/api/alerts", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: a.id, active: !a.active }),
+    });
+    loadAll();
+  };
+
+  const deleteAlert = async (id: string) => {
+    await fetch(`/api/alerts?id=${id}`, { method: "DELETE" });
+    loadAll();
+  };
+
+  const runCheck = async () => {
+    setChecking(true); setCheckResults(null); setErr("");
+    try {
+      const res = await fetch("/api/alerts/check");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Check failed");
+      setCheckResults(data.results);
+      setChannels(data.channels);
+    } catch (e: any) { setErr(e.message); }
+    setChecking(false);
+  };
+
+  const statusRow = (r: CheckResult) => {
+    if (r.status === "feed_unreachable")
+      return { icon: AlertTriangle, cls: "text-slate-400", text: "Live feed unreachable — no score" };
+    if (r.status === "triggered")
+      return { icon: BellRing, cls: "text-crimson", text: `TRIGGERED — ${r.score}/100 ≥ threshold ${r.threshold}` };
+    if (r.status === "already_notified")
+      return { icon: CheckCircle2, cls: "text-amber", text: `${r.score}/100 above threshold — already notified in last 12h` };
+    return { icon: CheckCircle2, cls: "text-radar", text: `${r.score}/100 — below threshold ${r.threshold}` };
   };
 
   return (
     <AppShell>
-      <div className={`space-y-6 ${screenFlash ? "animate-flash" : ""}`}>
-        <div>
-          <h1 className="font-display text-2xl font-bold">Layer 2: Action</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Early Warning Dispatch & Grid Protection</p>
+      <div className="space-y-6 max-w-4xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-bold flex items-center gap-2">
+              <Zap className="h-6 w-6 text-radar" /> Layer 2: Action
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Real alert rules · evaluated against live data · nothing simulated
+            </p>
+          </div>
+          <button onClick={runCheck} disabled={checking || alerts.length === 0}
+            className="flex items-center gap-2 rounded-lg bg-radar px-5 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40">
+            {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            {checking ? "Checking live data…" : "Run live check now"}
+          </button>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Terminal */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Terminal className="h-4 w-4 text-radar" />
-              <h2 className="text-sm font-bold">Telemetry Terminal</h2>
-            </div>
-            <div
-              ref={termRef}
-              className="rounded-xl p-5 h-[480px] overflow-y-auto font-mono text-xs leading-relaxed"
-              style={{ background: "#0a0a0a", border: "1px solid #262626", color: "#10B981" }}
-            >
-              <div className="text-slate-600 mb-3">─── NaijaClimaGuard Emergency Dispatch v2.1 ───</div>
-              {logs.map((entry, i) => (
-                <div key={i} className={typeColors[entry.type] || "text-radar"}>
-                  <span style={{ color: "#4a5568" }}>{entry.time}</span> {entry.msg}
-                </div>
-              ))}
-              <span className="inline-block w-2 h-4 bg-radar animate-pulse" />
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="space-y-6">
-            <div className="glass-card rounded-xl p-6">
-              <h3 className="text-sm font-bold mb-4">SMS Dispatch Status</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/30 p-4">
-                  <p className="text-xs text-slate-400">Sent</p>
-                  <p className="text-2xl font-display font-bold text-radar">
-                    {Math.min(logs.filter((l) => l.type === "success").length * 312, 4051).toLocaleString()}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/30 p-4">
-                  <p className="text-xs text-slate-400">Total</p>
-                  <p className="text-2xl font-display font-bold">4,051</p>
-                </div>
-              </div>
-              <div className="mt-4 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-radar transition-all duration-500"
-                  style={{ width: `${Math.min((logs.filter((l) => l.type === "success").length / 12) * 100, 100)}%` }}
-                />
+        {/* Live check results — real output */}
+        {checkResults && (
+          <div className="glass-card rounded-2xl p-5 animate-slide-up">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold">Live evaluation results</h2>
+        <div className="flex flex-col gap-1 items-end">
+                <span className={`flex items-center gap-1.5 text-xs font-mono ${channels?.email === "live" ? "text-radar" : "text-cyan"}`}>
+                  <MailCheck className="h-3.5 w-3.5" /> Email: {channels?.email === "live" ? "✓ live" : "add RESEND_API_KEY"}
+                </span>
+                <span className={`flex items-center gap-1.5 text-xs font-mono ${channels?.sms === "live" ? "text-radar" : "text-slate-400"}`}>
+                  <MessageSquareOff className="h-3.5 w-3.5" /> SMS: {channels?.sms === "live" ? "✓ live" : "add TERMII_API_KEY"}
+                </span>
               </div>
             </div>
-
-            <div className="glass-card rounded-xl p-6">
-              <h3 className="text-sm font-bold mb-2">Micro-Grid Asset Protection</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
-                240 solar installations in flood risk perimeter. Trigger Island Mode to prevent electrical damage.
-              </p>
-              {!gridComplete ? (
-                <button
-                  onClick={triggerGrid}
-                  disabled={gridTriggered}
-                  className={`w-full rounded-xl py-4 text-base font-bold flex items-center justify-center gap-3 transition-all ${
-                    gridTriggered
-                      ? "bg-amber/20 text-amber border border-amber/30 cursor-wait"
-                      : "bg-gradient-to-r from-crimson to-amber text-white shadow-xl shadow-crimson/20 hover:shadow-crimson/30"
-                  }`}
-                >
-                  <Zap className="h-5 w-5" />
-                  {gridTriggered ? "Securing Assets..." : "Trigger Grid Protection"}
-                </button>
-              ) : (
-                <div className="w-full rounded-xl py-4 bg-radar/10 border border-radar/30 flex items-center justify-center gap-3">
-                  <ShieldCheck className="h-5 w-5 text-radar" />
-                  <span className="text-base font-bold text-radar">240 Solar Assets Secured</span>
-                </div>
+            <div className="space-y-2">
+              {checkResults.map((r, i) => {
+                const s = statusRow(r);
+                return (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-slate-100 dark:border-midnight-border px-4 py-3">
+                    <span className="text-sm font-semibold">{r.location}</span>
+                    <span className={`flex items-center gap-2 text-xs font-mono ${s.cls}`}>
+                      <s.icon className="h-4 w-4" /> {s.text}
+                    </span>
+                  </div>
+                );
+              })}
+              {checkResults.length === 0 && (
+                <p className="text-sm text-slate-500">No active alert rules to evaluate.</p>
               )}
             </div>
-
-            <div className="glass-card rounded-xl p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <AlertOctagon className="h-5 w-5 text-crimson" />
-                <h3 className="text-sm font-bold">Threat Level</h3>
-              </div>
-              <div className="flex gap-1.5">
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className={`flex-1 h-3 rounded-full ${i <= 2 ? "bg-gradient-to-r from-amber to-crimson" : "bg-slate-200 dark:bg-slate-700"}`} />
-                ))}
-              </div>
-              <p className="text-xs font-bold text-crimson mt-2 uppercase tracking-wider">HIGH — Active flood warning</p>
-            </div>
           </div>
+        )}
+
+        {err && (
+          <div className="rounded-lg border border-crimson/20 bg-crimson/5 p-3 text-sm text-crimson flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" /> {err}
+          </div>
+        )}
+
+        {/* Create rule */}
+        <div className="glass-card rounded-2xl p-6">
+          <h2 className="text-sm font-semibold mb-4">Create an alert rule</h2>
+          {locations.length === 0 && !loading ? (
+            <p className="text-sm text-slate-500">
+              You have no saved locations yet. <Link href="/dashboard" className="text-radar font-semibold">Add one on your Overview</Link> first — alerts watch your saved locations.
+            </p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto] items-end">
+              <div>
+                <label className="text-xs text-slate-500 block mb-1.5">Location</label>
+                <select value={newLoc} onChange={(e) => setNewLoc(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 dark:border-midnight-border bg-white dark:bg-midnight-light px-3 py-2.5 text-sm focus:border-radar focus:outline-none">
+                  <option value="">Select a saved location…</option>
+                  {locations.map((l) => <option key={l.id} value={l.id}>{l.name} · {l.state}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1.5">Alert at risk ≥ <strong className="text-radar">{newThreshold}</strong></label>
+                <input type="range" min={30} max={90} step={5} value={newThreshold}
+                  onChange={(e) => setNewThreshold(+e.target.value)} className="w-36 accent-radar" />
+              </div>
+              <button onClick={createAlert} disabled={!newLoc || creating}
+                className="flex items-center gap-2 rounded-lg border border-radar/40 text-radar px-4 py-2.5 text-sm font-semibold transition-all hover:bg-radar/5 active:scale-[0.98] disabled:opacity-40">
+                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Create
+              </button>
+            </div>
+          )}
+          <p className="mt-4 text-xs text-slate-500 flex items-center gap-2">
+            <MessageSquareOff className="h-3.5 w-3.5" />
+            Channels: Email (Resend) + SMS (Termii). Add API keys in Vercel env vars to activate. Never simulated.
+          </p>
+        </div>
+
+        {/* Existing rules — real data */}
+        <div className="glass-card rounded-2xl p-6">
+          <h2 className="text-sm font-semibold mb-4">Your alert rules</h2>
+          {loading ? (
+            <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/50" />)}</div>
+          ) : alerts.length === 0 ? (
+            <p className="text-sm text-slate-500">No rules yet — create your first above. When live risk crosses your threshold, the engine records it and notifies you.</p>
+          ) : (
+            <div className="space-y-2">
+              {alerts.map((a) => (
+                <div key={a.id} className="flex items-center justify-between rounded-lg border border-slate-100 dark:border-midnight-border px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-4 w-4 text-slate-400" />
+                    <div>
+                      <p className="text-sm font-semibold">{a.location.name} <span className="text-slate-400 font-normal">· {a.location.state}</span></p>
+                      <p className="text-xs text-slate-500 font-mono">threshold ≥ {a.threshold} · {a.channels.join(", ")}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => toggleAlert(a)} title={a.active ? "Pause" : "Resume"}
+                      className={`rounded-lg border p-2 transition-all ${a.active ? "border-radar/30 text-radar" : "border-slate-200 dark:border-midnight-border text-slate-400"}`}>
+                      {a.active ? <BellRing className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+                    </button>
+                    <button onClick={() => deleteAlert(a.id)} title="Delete"
+                      className="rounded-lg border border-slate-200 dark:border-midnight-border p-2 text-slate-400 transition-all hover:border-crimson/40 hover:text-crimson">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </AppShell>
