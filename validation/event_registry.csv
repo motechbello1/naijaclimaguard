@@ -1,5 +1,5 @@
 event_id,location,latitude,longitude,observed_by_date,event_end_date,source,source_url,evidence_note,include_in_benchmark
-makurdi-2017-08-27,Makurdi,7.7322,8.5391,2017-08-27,,The Guardian Nigeria,https://guardian.ng/news/downpour-submerges-houses-markets-in-makurdi/,Heavy overnight rainfall left settlements houses markets and Radio Benue facilities submerged in Makurdi.,true
+makurdi-2017-08-27,Makurdi,7.7322,8.5391,2017-08-27,,The Guardian Nigeria,https://guardian.ng/news/downpour-submerges-houses-markets-in-makurdi/,Heavy overnight rainfall left settlements houses markets and Radio Benue facilities submerged in Makurdi.,false
 lokoja-2018-09-10,Lokoja,7.8023,6.7333,2018-09-10,,The Guardian Nigeria,https://guardian.ng/news/flood-disaster-in-kogi-may-be-worse-than-2012-experience-nema-warns/,NEMA described the Kogi flood situation as devastating and advised floodplain residents to relocate.,true
 yenagoa-2018-09-17,Yenagoa,4.9247,6.2642,2018-09-17,,Punch Newspapers,https://punchng.com/flooding-bayelsa-urges-fg-to-intervene/,Houses in Yenagoa were reported submerged after two days of torrential rain.,true
 onitsha-2018-09-20,Onitsha,6.1407,6.7869,2018-09-20,,Punch Newspapers,https://punchng.com/osinbajo-visits-anambra-delta-sympathises-with-flood-victims/,Vice President flood assessment reported visibly rising flood conditions including Onitsha.,true
