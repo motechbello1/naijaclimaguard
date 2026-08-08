@@ -1,10 +1,9 @@
 "use client";
 
 /**
- * Overview — real live-risk command view of YOUR saved locations.
- * Each location's score is fetched live from our own public API
- * (/api/v1/risk) — the dashboard is the first consumer of the product.
- * No hardcoded state risk table. No invented numbers.
+ * Overview — live view of the user's saved locations.
+ * Each score is fetched from /api/v1/risk, which currently serves the disclosed
+ * derived-v2 Open-Meteo risk index. Validation v2 XGBoost is not a live model.
  */
 
 import AppShell from "@/components/shared/AppShell";
@@ -26,7 +25,7 @@ const PLAN_COLORS: Record<string, string> = {
   ENTERPRISE: "bg-amber/10 text-amber",
 };
 
-// Quick-add presets: the six monitored flood-prone stations
+// Quick-add presets for commonly monitored flood-prone locations.
 const PRESETS = [
   { name: "Lokoja", state: "Kogi", latitude: 7.8023, longitude: 6.7333 },
   { name: "Makurdi", state: "Benue", latitude: 7.7322, longitude: 8.5391 },
@@ -111,7 +110,6 @@ function DashboardContent() {
 
   const scored = Object.values(risks).filter((r): r is LiveRisk => typeof r === "object");
   const peak = scored.length ? Math.max(...scored.map((r) => r.score)) : null;
-  const usingML = scored.some((r) => r.model === "xgboost-v2");
 
   return (
     <AppShell>
@@ -128,7 +126,7 @@ function DashboardContent() {
               Welcome back{session.user?.name ? `, ${session.user.name.split(" ")[0]}` : ""}
             </h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Live risk for your saved locations — powered by our own public API
+              Current risk index for your saved locations — served by the public derived-v2 API
             </p>
           </div>
           <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${PLAN_COLORS[plan] ?? PLAN_COLORS.FREE}`}>
@@ -136,10 +134,9 @@ function DashboardContent() {
           </span>
         </div>
 
-        {/* Live summary strip */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div className="glass-card rounded-xl p-4">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Your peak risk</p>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Highest saved-location index</p>
             <p className="mt-1 font-mono text-xl font-bold" style={peak !== null ? { color: getRiskLevel(peak).color } : {}}>
               {peak !== null ? `${peak}/100` : "—"}
             </p>
@@ -149,10 +146,8 @@ function DashboardContent() {
             <p className="mt-1 font-mono text-xl font-bold">{locations.length} <span className="text-xs text-slate-500">/ {limit}</span></p>
           </div>
           <div className="glass-card rounded-xl p-4">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Risk engine</p>
-            <p className={`mt-1 font-mono text-sm font-bold ${usingML ? "text-radar" : "text-cyan"}`}>
-              {usingML ? "XGBoost · live" : "Derived · live data"}
-            </p>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Current risk engine</p>
+            <p className="mt-1 font-mono text-sm font-bold text-cyan">Derived-v2 · Open-Meteo</p>
           </div>
           <Link href="/action" className="glass-card rounded-xl p-4 transition-all hover:border-radar/30">
             <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Alerts</p>
@@ -162,10 +157,9 @@ function DashboardContent() {
           </Link>
         </div>
 
-        {/* Location cards with LIVE risk */}
         <div className="glass-card rounded-2xl p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Your locations — live risk</h2>
+            <h2 className="text-sm font-semibold">Your locations — current risk index</h2>
             <button onClick={() => setShowAdd((s) => !s)}
               className="flex items-center gap-1.5 rounded-lg border border-radar/40 px-3 py-1.5 text-xs font-semibold text-radar transition-all hover:bg-radar/5">
               <Plus className="h-3.5 w-3.5" /> Add location
@@ -174,7 +168,7 @@ function DashboardContent() {
 
           {showAdd && (
             <div className="mb-5 rounded-xl border border-slate-100 p-4 dark:border-midnight-border animate-slide-down">
-              <p className="mb-2 text-xs text-slate-500">Quick add a monitored station:</p>
+              <p className="mb-2 text-xs text-slate-500">Quick add a location:</p>
               <div className="mb-4 flex flex-wrap gap-2">
                 {PRESETS.map((p) => (
                   <button key={p.name} onClick={() => addLocation(p)}
@@ -201,7 +195,7 @@ function DashboardContent() {
 
           {locations.length === 0 ? (
             <p className="py-8 text-center text-sm text-slate-500">
-              No locations yet. Add one above — live risk appears instantly.
+              No locations yet. Add one above to retrieve the current risk index.
             </p>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
@@ -230,7 +224,7 @@ function DashboardContent() {
                           <p className="font-mono text-[10px] uppercase" style={{ color: getRiskLevel(r.score).color }}>{r.level}</p>
                         </div>
                       )}
-                      <button onClick={() => fetchRisk(loc)} title="Refresh live risk"
+                      <button onClick={() => fetchRisk(loc)} title="Refresh current risk index"
                         className="rounded-lg border border-slate-200 p-2 text-slate-400 transition-all hover:border-radar/40 hover:text-radar dark:border-midnight-border">
                         <RefreshCw className="h-3.5 w-3.5" />
                       </button>
@@ -244,6 +238,11 @@ function DashboardContent() {
               })}
             </div>
           )}
+
+          <p className="mt-4 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-midnight-border">
+            These scores come from the current derived-v2 Open-Meteo heuristic. They are not Validation v2 XGBoost
+            probabilities and should be used alongside official flood/weather guidance and local observations.
+          </p>
         </div>
       </div>
     </AppShell>

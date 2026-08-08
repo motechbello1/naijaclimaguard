@@ -1,26 +1,27 @@
 "use client";
 
 /**
- * Layer 1: Predict — honest data states throughout.
- *  · Chart: REAL daily precipitation from Open-Meteo (10 days past + 4 forecast).
- *  · Risk score: from the trained ML API when reachable; otherwise derived
- *    transparently from the same live Open-Meteo inputs (disclosed formula).
- *  · Scenario dropdown: clearly labeled SIMULATION — never mixed with live data.
+ * Layer 1: Predict — transparent live-data demo.
+ *  · Chart: Open-Meteo daily precipitation (10 days past + 4 forecast).
+ *  · Risk score: current public derived-v2 endpoint; daily-only local fallback
+ *    if that endpoint is unavailable.
+ *  · Validation v2 XGBoost is intentionally not presented as the live model
+ *    until the independent benchmark is complete.
+ *  · Scenario dropdown: clearly labeled simulation.
  */
 
 import AppShell from "@/components/shared/AppShell";
 import { useState, useEffect, useCallback } from "react";
 import { AlertTriangle, Droplets, Waves, CloudRain, Wifi, WifiOff, FlaskConical } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { getRiskLevel } from "@/lib/data";
-import { ML_API_URL } from "@/lib/config";
 
 const LOKOJA = { lat: 7.8023, lon: 6.7333 };
 
 interface DayPoint { day: string; precip: number; isForecast: boolean; simulated?: number; }
 
-function deriveFactors(daily: any) {
-  const idx = daily.time.length - 5; // today (past_days=10, forecast_days=4)
+function deriveFallback(daily: any) {
+  const idx = daily.time.length - 5;
   const p: number[] = daily.precipitation_sum ?? [];
   const et0: number[] = daily.et0_fao_evapotranspiration ?? [];
   const sum = (arr: number[], a: number, b: number) => arr.slice(Math.max(0, a), b).reduce((x, y) => x + (y || 0), 0);
@@ -29,9 +30,9 @@ function deriveFactors(daily: any) {
   const balance7 = precip7 - sum(et0, idx - 6, idx + 1);
   const rainfall = Math.min(1, precip7 / 200);
   const burst = Math.min(1, precip3 / 120);
-  const saturation = Math.min(1, Math.max(0, (balance7 + 40) / 160));
-  const score = Math.round((rainfall * 0.45 + burst * 0.3 + saturation * 0.25) * 100);
-  return { score, rainfall, burst, saturation };
+  const wetness = Math.min(1, Math.max(0, (balance7 + 40) / 160));
+  const score = Math.round((rainfall * 0.45 + burst * 0.3 + wetness * 0.25) * 100);
+  return { score, rainfall, burst, wetness };
 }
 
 function CustomTooltip({ active, payload }: any) {
@@ -54,17 +55,16 @@ export default function PredictPage() {
   const [dataState, setDataState] = useState<"loading" | "live" | "error">("loading");
   const [riskScore, setRiskScore] = useState<number | null>(null);
   const [riskLevel, setRiskLevel] = useState("");
-  const [riskSource, setRiskSource] = useState<"ml" | "derived" | null>(null);
-  const [factors, setFactors] = useState({ rainfall: 0, discharge: 0, soil: 0 });
+  const [riskSource, setRiskSource] = useState<"api" | "fallback" | null>(null);
+  const [factors, setFactors] = useState({ rainfall: 0, burst: 0, wetness: 0 });
 
   const load = useCallback(async () => {
     setDataState("loading");
-    // 1) Real weather series — the chart's single source of truth.
     try {
-      const url =
+      const weatherUrl =
         `https://api.open-meteo.com/v1/forecast?latitude=${LOKOJA.lat}&longitude=${LOKOJA.lon}` +
         `&daily=precipitation_sum,et0_fao_evapotranspiration&past_days=10&forecast_days=4&timezone=Africa%2FLagos`;
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch(weatherUrl, { cache: "no-store" });
       if (!res.ok) throw new Error("weather fetch failed");
       const json = await res.json();
       const daily = json.daily;
@@ -76,30 +76,29 @@ export default function PredictPage() {
       }));
       setSeries(pts);
 
-      // 2) Risk score: prefer the trained ML API; fall back to the disclosed derived model.
-      let usedML = false;
+      let usedApi = false;
       try {
-        const ml = await fetch(`${ML_API_URL}/v1/risk?latitude=${LOKOJA.lat}&longitude=${LOKOJA.lon}`, { cache: "no-store" });
-        if (ml.ok) {
-          const d = await ml.json();
-          setRiskScore(d.risk_assessment.current_score);
-          setRiskLevel(d.risk_assessment.level);
+        const risk = await fetch(`/api/v1/risk?latitude=${LOKOJA.lat}&longitude=${LOKOJA.lon}`, { cache: "no-store" });
+        if (risk.ok) {
+          const d = await risk.json();
+          setRiskScore(d.risk.score);
+          setRiskLevel(d.risk.level);
           setFactors({
-            rainfall: d.contributing_factors.rainfall_intensity,
-            discharge: d.contributing_factors.river_discharge,
-            soil: d.contributing_factors.soil_saturation,
+            rainfall: d.factors.rainfall_7d,
+            burst: d.factors.burst_intensity,
+            wetness: d.factors.soil_saturation,
           });
-          setRiskSource("ml");
-          usedML = true;
+          setRiskSource("api");
+          usedApi = true;
         }
-      } catch { /* fall through to derived */ }
+      } catch { /* use transparent daily-only fallback */ }
 
-      if (!usedML) {
-        const f = deriveFactors(daily);
+      if (!usedApi) {
+        const f = deriveFallback(daily);
         setRiskScore(f.score);
         setRiskLevel(getRiskLevel(f.score).label.toUpperCase());
-        setFactors({ rainfall: f.rainfall, discharge: f.burst, soil: f.saturation });
-        setRiskSource("derived");
+        setFactors({ rainfall: f.rainfall, burst: f.burst, wetness: f.wetness });
+        setRiskSource("fallback");
       }
       setDataState("live");
     } catch {
@@ -109,7 +108,6 @@ export default function PredictPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Scenario overlay — pure simulation, drawn as a separate labeled series.
   useEffect(() => {
     setSeries((prev) =>
       prev.map((p) => {
@@ -126,18 +124,18 @@ export default function PredictPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-bold">Layer 1: Predict</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Lokoja station · live precipitation &amp; flood risk</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Lokoja · live precipitation and current risk index</p>
           </div>
           <div className="flex items-center gap-4">
             <div className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border ${
-              riskSource === "ml"
+              riskSource === "api"
                 ? "text-radar border-radar/20 bg-radar/5"
-                : riskSource === "derived"
+                : riskSource === "fallback"
                 ? "text-cyan border-cyan/20 bg-cyan/5"
                 : "text-slate-400 border-slate-200 dark:border-midnight-border"
             }`}>
               {riskSource ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {riskSource === "ml" ? "XGBoost API: Live" : riskSource === "derived" ? "Derived model: Live data" : "Connecting…"}
+              {riskSource === "api" ? "Derived-v2 API: Live" : riskSource === "fallback" ? "Daily fallback: Live data" : "Connecting…"}
             </div>
             <select
               value={scenario}
@@ -151,27 +149,25 @@ export default function PredictPage() {
           </div>
         </div>
 
-        {/* Simulation banner — impossible to mistake for live data */}
         {scenario && (
           <div className="rounded-xl border-2 border-amber/50 bg-amber/5 dark:bg-amber/10 p-4 flex items-center gap-3 animate-slide-up">
             <FlaskConical className="h-5 w-5 text-amber shrink-0" />
             <p className="text-sm text-slate-600 dark:text-slate-300">
               <strong className="text-amber">Simulation mode.</strong> The dashed overlay is an illustrative
               {scenario === "monsoon" ? " monsoon-surge" : " dam-release"} scenario — not live data. Live
-              measurements remain the solid series.
+              weather values remain the solid series.
             </p>
           </div>
         )}
 
-        {/* Risk score card */}
         {riskScore !== null && (
           <div className="glass-card rounded-xl p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-400">Current flood risk — Lokoja, Kogi State</p>
+              <p className="text-xs text-slate-400">Current risk index — Lokoja, Kogi State</p>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                {riskSource === "ml"
-                  ? "From the trained XGBoost model, on live Open-Meteo inputs"
-                  : "Disclosed multi-factor formula on live Open-Meteo inputs (ML API offline)"}
+                {riskSource === "api"
+                  ? "From the disclosed derived-v2 live API; this is not the Validation v2 XGBoost model"
+                  : "Daily-only disclosed fallback on live Open-Meteo inputs"}
               </p>
             </div>
             <div className="text-right">
@@ -185,12 +181,11 @@ export default function PredictPage() {
           </div>
         )}
 
-        {/* Contributing factors — live values */}
         <div className="grid grid-cols-3 gap-4">
           {[
             { icon: CloudRain, label: "Rainfall load (7d)", value: factors.rainfall, color: "text-cyan" },
-            { icon: Waves, label: "Burst intensity (3d)", value: factors.discharge, color: "text-radar" },
-            { icon: Droplets, label: "Soil saturation", value: factors.soil, color: "text-amber" },
+            { icon: Waves, label: "Rainfall burst", value: factors.burst, color: "text-radar" },
+            { icon: Droplets, label: "Wetness proxy", value: factors.wetness, color: "text-amber" },
           ].map((stat) => (
             <div key={stat.label} className="glass-card rounded-xl p-5">
               <div className="flex items-center gap-3 mb-3">
@@ -207,7 +202,6 @@ export default function PredictPage() {
           ))}
         </div>
 
-        {/* Real precipitation chart */}
         <div className="glass-card rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-base font-bold">Daily Precipitation — Lokoja (10 days past · 4 days forecast)</h2>
@@ -237,7 +231,6 @@ export default function PredictPage() {
                   <XAxis dataKey="day" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={{ stroke: "#334155" }} tickLine={false} />
                   <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} unit="mm" />
                   <Tooltip content={<CustomTooltip />} />
-                  <ReferenceLine y={64} stroke="#EF4444" strokeDasharray="6 4" label={{ value: "Heavy-rain threshold (64mm/day)", fill: "#EF4444", fontSize: 10, position: "insideTopLeft" }} />
                   <Area type="monotone" dataKey="precip" stroke="#06B6D4" strokeWidth={2} fill="url(#precipGrad)" dot={false} name="Measured / forecast" />
                   {scenario && (
                     <Area type="monotone" dataKey="simulated" stroke="#F59E0B" strokeWidth={2} strokeDasharray="6 4" fill="none" dot={false} name="Simulated scenario" />
@@ -247,9 +240,8 @@ export default function PredictPage() {
             </div>
           )}
           <p className="mt-3 text-[11px] text-slate-500 border-l-2 border-slate-200 dark:border-midnight-border pl-3 leading-relaxed">
-            Solid series: real Open-Meteo measurements and forecast for this coordinate. The 64mm/day
-            reference is the WMO heavy-rainfall threshold. Simulated overlays are always dashed, amber,
-            and labeled.
+            Solid series: Open-Meteo measurements and forecast values for this coordinate. No universal flood or
+            heavy-rain threshold is asserted on this chart. Simulated overlays are always dashed, amber, and labeled.
           </p>
         </div>
       </div>
