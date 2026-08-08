@@ -1,0 +1,5 @@
+Model v5 full operational-native development trigger.
+Triggered: 2026-08-08 Africa/Lagos.
+Protocol was frozen before source retrieval and scoring.
+Sources: NASA GPM IMERG Early V07 + Copernicus CEMS GloFAS reforecasts.
+Target: independently documented flood strictly in the next 1-3 days.
