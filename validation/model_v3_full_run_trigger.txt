@@ -1,11 +1,16 @@
-Model v3 full development trigger — final pre-score protocol
+Model v3 full development trigger — synchronized final protocol
 
-Trigger refreshed after all pre-score safeguards were committed:
-- canonical Validation v2 evidence is machine-verified;
-- Model v3 registry is frozen at 16 development events / 12 OOF events;
-- scientific sanity review is fixed;
-- development threshold policy is predeclared;
-- freeze-candidate serialization is gated;
-- untouched/prospective acceptance policy and one-shot evaluator are predeclared.
+This trigger is intentionally the shared path for both:
+- Model v3 Development Protocol Check
+- Model v3 Full Development — 2018-2021 Only
 
-Execute only 2018-01-01 through 2021-12-31 development data. Production must remain derived-v2.
+Pre-score safeguards already committed:
+- canonical Validation v2 evidence machine-verification;
+- frozen 16 development events / 12 OOF events;
+- scientific sanity review;
+- predeclared development threshold policy;
+- gated freeze-candidate serialization;
+- predeclared untouched/prospective acceptance policy;
+- one-shot untouched evaluator.
+
+Execute only 2018-01-01 through 2021-12-31 development data. Production remains derived-v2.
