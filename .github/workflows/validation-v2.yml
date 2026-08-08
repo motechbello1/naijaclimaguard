@@ -15,7 +15,7 @@ on:
       end_date:
         description: "Historical end date"
         required: false
-        default: "2023-12-31"
+        default: "2024-12-31"
       cutoff:
         description: "Chronological train/test cutoff"
         required: false
@@ -26,7 +26,7 @@ permissions:
 
 env:
   START_DATE: ${{ github.event.inputs.start_date || '2018-01-01' }}
-  END_DATE: ${{ github.event.inputs.end_date || '2023-12-31' }}
+  END_DATE: ${{ github.event.inputs.end_date || '2024-12-31' }}
   CUTOFF: ${{ github.event.inputs.cutoff || '2022-01-01' }}
   EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
 
@@ -56,6 +56,10 @@ jobs:
           python validation/fetch_glofas.py \
             --start "$START_DATE" \
             --end "$END_DATE"
+
+      - name: Compare GloFAS with Nigerian ground observations
+        run: |
+          python validation/compare_glofas_ground.py
 
       - name: Fetch ERA5-Land surface state
         run: |
@@ -113,6 +117,7 @@ jobs:
           Validation v2 source ingestion is PARTIAL.
 
           GloFAS v4 discharge: attempted
+          GloFAS vs Nigerian ground-observation calibration: attempted
           ERA5-Land surface state: attempted
           NASA GPM IMERG Final V07: not run because EARTHDATA_TOKEN is not configured
           Fused model benchmark: intentionally not run
@@ -134,4 +139,7 @@ jobs:
             validation/validation_results.json
             validation/validation_status.txt
             validation/event_registry.csv
+            validation/ground_observations.csv
+            validation/glofas_ground_comparison.csv
+            validation/glofas_ground_summary.json
             validation/SOURCES.md
