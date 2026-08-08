@@ -1,0 +1,35 @@
+name: Model v3 Development Protocol Check
+
+on:
+  push:
+    branches: [model-v3-dev]
+    paths:
+      - "validation/model_v3_dev.py"
+      - "validation/tests/test_model_v3_dev.py"
+      - ".github/workflows/model-v3-dev-check.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "validation/model_v3_dev.py"
+      - "validation/tests/test_model_v3_dev.py"
+      - ".github/workflows/model-v3-dev-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  protocol-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install modelling test dependencies
+        run: pip install "numpy>=1.26,<3" "pandas>=2.2,<3" "scikit-learn>=1.5,<2" "xgboost>=2.1,<4"
+      - name: Compile Model v3 harness
+        run: python -m py_compile validation/model_v3_dev.py
+      - name: Run protocol guard tests
+        run: python -m unittest validation/tests/test_model_v3_dev.py
