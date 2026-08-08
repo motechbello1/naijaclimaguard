@@ -1,65 +1,62 @@
-# Model v4 Development Protocol
+# Model v4 Full-History Forward Forecast Protocol
 
-Status: preregistered before Model v4 scoring.
+Status: development protocol for the final pre-prospective candidate generation.
 
-## Goal
-Build a stronger hydrological flood-risk candidate without reusing 2022-2024 for model, feature, hyperparameter, or threshold selection.
+## Objective
+Train an ML model to estimate whether an independently documented flood event will occur in the next 1-3 days at each pilot location. This is a forward-warning target, not a same-day flood classifier.
 
-## Development data
+## Historical development data
+All already-consumed historical evidence may be used for development because none of it will be represented as untouched evidence again.
+
+- Period: 2018-01-01 through 2024-12-31.
 - Locations: Lokoja, Makurdi, Onitsha, Yenagoa, Hadejia.
-- Development period: 2018-01-01 through 2021-12-31 only.
-- Inputs: fused NASA GPM IMERG precipitation, GloFAS river discharge, ERA5-Land soil moisture / surface state, plus rolling and lagged hydrological features already generated from those sources.
-- 2022-2024 remains previously observed evidence and is permanently ineligible as an untouched holdout.
+- 12,785 fused location-days.
+- 35 independently documented flood-event anchors.
+- Inputs: NASA GPM IMERG precipitation, GloFAS discharge, ERA5-Land surface state, and lagged/rolling hydrological features derived only from information at or before each prediction date.
 
-## Outcome registry
-The existing independent documentary event anchors remain the initial v4 labels. Any future expansion of the event registry must be performed under a documented source-search protocol that does not inspect Model v4 scores while selecting events; an expanded registry creates a new generation and invalidates prior v4 scores.
+2022-2024 is explicitly DEVELOPMENT data in this generation. It must never again be described as an untouched holdout.
 
-## Target
-- Positive: anchor-3 days through the independent observed event anchor date.
-- No post-event positive days.
-- Exclude non-positive rows within +/-14 days of a known event anchor from negative training/evaluation.
+## Forward target
+For an event with observed anchor date D:
+- positive prediction dates are D-3, D-2 and D-1;
+- D itself is not a positive prediction row;
+- no post-event day is a positive;
+- non-positive rows within +/-14 days of an event anchor are excluded from negative training/evaluation to reduce documentary date uncertainty.
+
+This target asks: `Will a documented flood occur within the next 72 hours?`
 
 ## Leakage controls
-- Expanding temporal CV only: 2018->2019, 2018-2019->2020, 2018-2020->2021.
-- Every location/reach statistic, quantile, percentile transform, imputation value and scaling parameter is fit inside the training fold only.
-- Raw month and day_of_year are forbidden from eligible candidates.
-- A cyclic-season model remains diagnostic only and cannot win.
-- No 2022-2024 result may alter v4 candidate design or threshold.
+- Expanding temporal validation: train on all years before Y, validate on Y for Y=2019..2024.
+- NASA/GloFAS/ERA5 rolling and lagged fields may only use values dated at or before the prediction issue date.
+- Any location normalization, imputation, scaling or calibration parameter is fit on the training fold only.
+- Raw month and day_of_year are forbidden from eligible models.
+- No future operational forecast or later reanalysis value may be inserted into a historical issue-time row.
 
-## Predeclared feature engineering
-In addition to the hydrological source variables already used by v3, v4 may derive, training-fold-only:
-- location-relative robust z-scores and ratios;
-- empirical percentile ranks for discharge, 3/7/14/30-day rainfall, soil-moisture profile and 7-day water balance;
-- exceedance ratios to training-fold location q90 and q95 levels;
-- normalized discharge changes and rainfall acceleration;
-- antecedent rainfall concentration ratios (3d/14d and 7d/30d);
-- hydrological interactions: discharge percentile x soil percentile, rainfall percentile x soil percentile, and discharge percentile x rainfall percentile;
-- one-hot location indicators.
+## Candidate search
+The development search may compare regularized logistic regression, random forest, XGBoost, CatBoost/LightGBM where reproducibly available, and simple ensembles. Hyperparameters are selected only from the historical development corpus using expanding temporal validation.
 
-## Hard-negative weighting
-Training only. Negative rows that are hydrologically active (top training-fold quintile of discharge percentile or 7-day rainfall percentile) receive 3x negative weight; other negatives receive baseline weight. Positives receive class-balancing weight. Evaluation rows are never resampled or reweighted.
+Primary ranking:
+1. robust temporal PR-AUC / PR lift across validation years;
+2. every validation year should beat its own prevalence baseline where possible;
+3. pooled PR-AUC and Brier score as secondary diagnostics;
+4. simpler models are preferred when performance is materially similar.
 
-## Predeclared eligible candidates
-1. `xgboost_hydro_interactions`
-2. `random_forest_hydro_interactions`
-3. `logistic_hydro_interactions`
+Because the next evidence phase is genuinely prospective, historical development may be iterated before freeze. Once the prospective freeze commit is created, no model, feature, calibration or threshold change is allowed for that prospective generation.
 
-A cyclic-season XGBoost variant and season-only logistic model may be computed as diagnostics but are not eligible winners.
+## Historical operating threshold
+A fixed shadow threshold is selected before prospective collection. The threshold-selection rule and resulting threshold must be written into the freeze manifest. Historical threshold performance is development evidence only; it is not a claim of operational accuracy.
 
-## Candidate ranking and operating gate
-For every candidate, pooled out-of-fold probabilities are produced for 2019-2021. Threshold frontier is evaluated from 0.01 to 0.99 in 0.01 steps.
+## Full-source inference contract
+The prospective full-source model must record at issue time:
+- NASA IMERG near-real-time rainfall product/version and timestamps;
+- GloFAS operational forecast / current discharge product, model version, issue time and lead time;
+- available surface-state / soil-moisture product and timestamp;
+- all feature values or a content hash;
+- model hash, threshold, probability and decision.
 
-A candidate/threshold pair is operationally eligible only if all are true:
-- independent event-window detection >= 75% (at least 9/12 OOF anchors);
-- false-positive location-days <= 10 per 1,000 negative OOF location-days;
-- precision >= 10%;
-- every temporal fold PR-AUC exceeds its own prevalence baseline;
-- every pilot location with positive OOF rows has PR-AUC above its own prevalence baseline;
-- pooled PR-AUC exceeds the season-only diagnostic by > 0.01 absolute.
+A degraded-source prediction may be produced for continuity, but it is marked `degraded` and cannot count toward the full-source replacement evidence unless a separate protocol predeclares that mode.
 
-If no pair qualifies, Model v4 fails and is not frozen. Criteria are not relaxed after scoring.
+## Freeze and production rule
+After final historical development, fit the chosen model on all permitted 2018-2024 development rows, serialize the exact artifact, record SHA-256 hashes, and freeze the operating threshold and feature contract.
 
-If one or more pairs qualify, choose the candidate with the highest mean temporal-fold PR-AUC; tie-break by lower pooled Brier score, then lower false-positive burden. For that candidate choose the highest qualifying threshold.
-
-## Production rule
-Passing development permits creation of a frozen shadow candidate only. It does not authorize public warnings or replacement of `derived-v2`.
+The frozen model may immediately issue future predictions in SHADOW mode. It does not replace `derived-v2` until the prospective acceptance protocol passes.
