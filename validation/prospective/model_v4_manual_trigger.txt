@@ -1,0 +1,4 @@
+First post-freeze prospective Model v4 shadow issue trigger.
+Freeze manifest commit: ae24c3e2edb2408c8e7723cba70332b58ce92f81
+Production engine remains derived-v2.
+This trigger changes no model, feature, calibration, or threshold state.
