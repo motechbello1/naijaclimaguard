@@ -3,9 +3,8 @@
 /**
  * My Area — public, zero-login rainfall-based risk check.
  *
- * The live score is a disclosed heuristic from Open-Meteo precipitation,
- * rainfall intensity, and an antecedent-wetness proxy. It is decision support,
- * not an official warning or a complete hydraulic/local-drainage assessment.
+ * The score comes from /api/v1/risk so public geolocation checks, saved-location
+ * dashboards and alerts all share one production risk engine.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -80,43 +79,18 @@ export default function MyAreaPage() {
   const load = useCallback(async (lat: number, lon: number) => {
     setState("loading");
     try {
-      const [dailyRes, hourlyRes] = await Promise.all([
-        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=precipitation_sum,et0_fao_evapotranspiration&past_days=10&forecast_days=4&timezone=Africa%2FLagos`, { cache: "no-store" }),
-        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=precipitation&past_hours=48&forecast_hours=0&timezone=Africa%2FLagos`, { cache: "no-store" }),
-      ]);
-      if (!dailyRes.ok) throw new Error();
-      const daily = (await dailyRes.json()).daily;
-      let hourlyData: number[] = [];
-      if (hourlyRes.ok) {
-        const h = (await hourlyRes.json()).hourly;
-        hourlyData = h?.precipitation ?? [];
-      }
+      const res = await fetch(`/api/v1/risk?latitude=${lat}&longitude=${lon}`, { cache: "no-store" });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
 
-      const idx = daily.time.length - 5;
-      const p: number[] = daily.precipitation_sum ?? [];
-      const et0: number[] = daily.et0_fao_evapotranspiration ?? [];
-      const sum = (a: number[], x: number, y: number) => a.slice(Math.max(0, x), y).reduce((m: number, n: number) => m + (n || 0), 0);
-      const rain7 = sum(p, idx - 6, idx + 1);
-      const rain3 = sum(p, idx - 2, idx + 1);
-      const bal7 = rain7 - sum(et0, idx - 6, idx + 1);
-      const rainfallNorm = Math.min(1, rain7 / 200);
-      const burstDaily = Math.min(1, rain3 / 120);
-      const wetnessProxy = Math.min(1, Math.max(0, (bal7 + 40) / 160));
-
-      const maxHourly = hourlyData.length ? Math.max(0, ...hourlyData.map((v: number) => v ?? 0)) : 0;
-      let hourlyBurst = Math.min(1, maxHourly / 30);
-      let max3h = 0;
-      for (let i = 2; i < hourlyData.length; i++) {
-        max3h = Math.max(max3h, (hourlyData[i] ?? 0) + (hourlyData[i - 1] ?? 0) + (hourlyData[i - 2] ?? 0));
-      }
-      hourlyBurst = Math.max(hourlyBurst, Math.min(1, max3h / 60));
-
-      const effectiveBurst = Math.max(burstDaily, hourlyBurst);
-      const floodType = hourlyBurst > burstDaily + 0.1 ? "urban" : burstDaily > hourlyBurst + 0.1 ? "riverine" : "mixed";
-      const score = Math.round((rainfallNorm * 0.40 + effectiveBurst * 0.35 + wetnessProxy * 0.25) * 100);
-      const clamped = Math.max(0, Math.min(100, score));
-
-      setVerdict(verdictFor(clamped, floodType, +maxHourly.toFixed(1), +rain7.toFixed(1)));
+      setVerdict(
+        verdictFor(
+          data.risk.score,
+          data.risk.flood_type,
+          data.hourly.max_mm_per_hour,
+          data.raw_weather.precipitation_7d_mm
+        )
+      );
       setChecked(new Date());
       setState("ready");
     } catch {
@@ -155,7 +129,7 @@ export default function MyAreaPage() {
           <div className="flex flex-col items-center gap-4 pt-24 text-slate-500">
             <Loader2 className="h-8 w-8 animate-spin text-radar" />
             <p className="text-sm">{state === "locating" ? "Finding your area…" : "Checking live conditions…"}</p>
-            <p className="text-xs text-slate-400">Open-Meteo weather + recent hourly rainfall intensity · no account needed</p>
+            <p className="text-xs text-slate-400">Canonical derived-v2 API · live Open-Meteo inputs · no account needed</p>
           </div>
         )}
 
@@ -172,7 +146,7 @@ export default function MyAreaPage() {
           <div className="mt-12 rounded-2xl border border-slate-200 dark:border-midnight-border p-8 text-center">
             <ShieldAlert className="mx-auto h-10 w-10 text-slate-400" />
             <h1 className="mt-4 font-display text-xl font-bold">Live check unavailable</h1>
-            <p className="mt-2 text-sm text-slate-500">Weather feed didn&apos;t respond. Try again.</p>
+            <p className="mt-2 text-sm text-slate-500">The live risk service didn&apos;t respond. Try again.</p>
             <button onClick={locate} className="mt-6 rounded-lg border border-slate-200 dark:border-midnight-border px-6 py-3 font-semibold transition-all hover:border-radar/40">Retry</button>
           </div>
         )}
@@ -194,7 +168,7 @@ export default function MyAreaPage() {
                 </p>
               )}
               <p className="mt-1 text-xs text-slate-500">
-                Live Open-Meteo inputs for your position
+                Same derived-v2 engine as dashboard and alerts
                 {verdict.floodType === "urban" && " · short-duration rainfall burst is the stronger signal"}
                 {checked ? ` · checked ${checked.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
               </p>
@@ -249,7 +223,7 @@ export default function MyAreaPage() {
             </Link>
 
             <p className="text-center text-[11px] text-slate-400">
-              Live source: Open-Meteo · rainfall + ET0 heuristic · not an official warning
+              Live source: derived-v2 API over Open-Meteo · not an official warning
             </p>
           </div>
         )}
