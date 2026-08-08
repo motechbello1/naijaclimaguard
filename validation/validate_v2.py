@@ -6,7 +6,9 @@ Independent-event, chronological XGBoost benchmark using:
 - Copernicus/ECMWF GloFAS v4 river discharge
 - ERA5-Land surface-state variables
 
-Ground truth is never generated from predictor thresholds.
+Ground truth is never generated from predictor thresholds. Positive event days
+always override uncertainty buffers, including when two genuine events at the
+same location are close enough for their buffers to overlap.
 """
 from __future__ import annotations
 
@@ -18,7 +20,15 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from sklearn.metrics import average_precision_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import (
+    average_precision_score,
+    brier_score_loss,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_EVENTS = HERE / "event_registry.csv"
@@ -54,8 +64,9 @@ def attach_independent_labels(
 ) -> pd.DataFrame:
     x = features.copy()
     x["label"] = 0
-    x["excluded"] = False
     x["event_id"] = ""
+    positive_any = pd.Series(False, index=x.index)
+    uncertain_any = pd.Series(False, index=x.index)
 
     for _, e in events.iterrows():
         same = x["location"].eq(e["location"])
@@ -67,29 +78,35 @@ def attach_independent_labels(
         uncertain = same & x["date"].between(
             t0 - pd.Timedelta(days=exclusion_days),
             t0 + pd.Timedelta(days=exclusion_days),
-        ) & ~positive
+        )
+        positive_any |= positive
+        uncertain_any |= uncertain
         x.loc[positive, "label"] = 1
-        x.loc[positive, "event_id"] = e["event_id"]
-        x.loc[uncertain, "excluded"] = True
+        existing = x.loc[positive, "event_id"].astype(str)
+        x.loc[positive, "event_id"] = np.where(
+            existing.eq(""), e["event_id"], existing + ";" + str(e["event_id"])
+        )
 
+    # A genuine event-positive day must never be removed merely because it falls
+    # inside another event's ambiguity window.
+    x["excluded"] = uncertain_any & ~positive_any
     return x[~x["excluded"]].copy()
 
 
 def feature_columns(df: pd.DataFrame) -> List[str]:
     candidates = [
-        # NASA IMERG observed rainfall
         "nasa_imerg_precip_mm_day",
         "nasa_rain_3d_sum", "nasa_rain_7d_sum", "nasa_rain_14d_sum", "nasa_rain_30d_sum",
-        # GloFAS hydrology
         "river_discharge_m3s", "discharge_lag1", "discharge_lag3", "discharge_lag7",
         "discharge_3d_mean", "discharge_7d_mean", "discharge_3d_change", "discharge_7d_change",
-        # ERA5-Land antecedent surface state
         "soil_moisture_0_to_7cm", "soil_moisture_7_to_28cm", "soil_moisture_28_to_100cm",
         "soil_moisture_profile_mean", "soil_moisture_7d_mean",
         "et0_fao_evapotranspiration", "nasa_rain_minus_et0", "water_balance_7d",
         "temperature_2m_max", "temperature_2m_min", "precipitation_hours",
         "month", "day_of_year",
-        # Reserved for true archived forecast/reforecast evaluation
+        # Reserved for a true forecast-time benchmark when archived forecast
+        # features are assembled. Historical/reanalysis validation must not
+        # silently masquerade as this forecast benchmark.
         "forecast_precip_24h", "forecast_precip_48h", "forecast_precip_72h",
         "forecast_discharge_24h", "forecast_discharge_48h", "forecast_discharge_72h",
     ]
@@ -128,27 +145,58 @@ def event_lead_time_table(test: pd.DataFrame, events: pd.DataFrame, threshold: f
             "first_threshold_crossing": None if pd.isna(first) else str(first.date()),
             "hindcast_detection_lead_hours": lead_hours,
             "detected_before_or_on_event": lead_hours is not None and lead_hours >= 0,
-            "warning": "This is observational hindcast timing unless archived forecast columns were used.",
+            "warning": "Observational hindcast timing only unless archived forecast-time features were used.",
         })
     return rows
+
+
+def binary_metrics(y_true, probability, prediction) -> Dict[str, object]:
+    y_true = np.asarray(y_true, dtype=int)
+    probability = np.asarray(probability, dtype=float)
+    prediction = np.asarray(prediction, dtype=int)
+    tn, fp, fn, tp = confusion_matrix(y_true, prediction, labels=[0, 1]).ravel()
+    out: Dict[str, object] = {
+        "precision": float(precision_score(y_true, prediction, zero_division=0)),
+        "recall": float(recall_score(y_true, prediction, zero_division=0)),
+        "f1": float(f1_score(y_true, prediction, zero_division=0)),
+        "brier_score": float(brier_score_loss(y_true, probability)),
+        "confusion_matrix": {"tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp)},
+        "false_alarm_ratio": float(fp / (tp + fp)) if (tp + fp) else None,
+        "miss_rate": float(fn / (tp + fn)) if (tp + fn) else None,
+    }
+    if np.unique(y_true).size == 2:
+        out["roc_auc"] = float(roc_auc_score(y_true, probability))
+        out["pr_auc"] = float(average_precision_score(y_true, probability))
+    else:
+        out["roc_auc"] = None
+        out["pr_auc"] = None
+    return out
+
+
+def per_location_metrics(scored: pd.DataFrame) -> Dict[str, object]:
+    out: Dict[str, object] = {}
+    for location, g in scored.groupby("location"):
+        out[location] = {
+            "rows": int(len(g)),
+            "positive_rows": int(g["label"].sum()),
+            **binary_metrics(g["label"], g["probability"], g["prediction"]),
+        }
+    return out
 
 
 def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: float) -> Dict:
     cols = feature_columns(df)
     train, test = chronological_split(df, cutoff)
-
     X_train = train[cols].replace([np.inf, -np.inf], np.nan)
     X_test = test[cols].replace([np.inf, -np.inf], np.nan)
     y_train = train["label"].astype(int)
     y_test = test["label"].astype(int)
-
     if y_train.nunique() < 2:
         raise ValueError("Training period does not contain both classes")
 
     positives = int(y_train.sum())
     negatives = int((y_train == 0).sum())
     scale_pos_weight = max(1.0, negatives / max(1, positives))
-
     model = xgb.XGBClassifier(
         n_estimators=350,
         max_depth=4,
@@ -171,8 +219,11 @@ def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: flo
     scored["probability"] = p
     scored["prediction"] = pred
 
-    test_event_count = events[events["observed_by_date"] >= pd.Timestamp(cutoff)]["event_id"].nunique()
+    test_events = events[events["observed_by_date"] >= pd.Timestamp(cutoff)].copy()
+    test_event_count = int(test_events["event_id"].nunique())
     publishable = test_event_count >= MIN_EVENTS_FOR_HEADLINE_METRICS
+    event_rows = event_lead_time_table(scored, events, threshold)
+    detected_events = sum(bool(r["detected_before_or_on_event"]) for r in event_rows)
 
     result: Dict[str, object] = {
         "status": "publishable" if publishable else "exploratory_only",
@@ -181,6 +232,7 @@ def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: flo
             f"{MIN_EVENTS_FOR_HEADLINE_METRICS}. Do not use these metrics as pitch headline claims."
         ),
         "model": "XGBoost",
+        "validation_type": "historical independent-event hindcast; not yet a true issue-time 48/72h forecast benchmark",
         "source_stack": [
             "NASA GPM IMERG Final V07 precipitation",
             "Copernicus/ECMWF GloFAS v4 river discharge",
@@ -193,19 +245,14 @@ def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: flo
         "test_rows": int(len(test)),
         "train_positive_rows": positives,
         "test_positive_rows": int(y_test.sum()),
-        "independent_test_events": int(test_event_count),
-        "precision": float(precision_score(y_test, pred, zero_division=0)),
-        "recall": float(recall_score(y_test, pred, zero_division=0)),
+        "independent_test_events": test_event_count,
+        **binary_metrics(y_test, p, pred),
+        "event_detection_rate": float(detected_events / len(event_rows)) if event_rows else None,
+        "detected_test_events": int(detected_events),
+        "evaluated_test_events": int(len(event_rows)),
+        "per_location": per_location_metrics(scored),
+        "events": event_rows,
     }
-
-    if y_test.nunique() == 2:
-        result["roc_auc"] = float(roc_auc_score(y_test, p))
-        result["pr_auc"] = float(average_precision_score(y_test, p))
-    else:
-        result["roc_auc"] = None
-        result["pr_auc"] = None
-
-    result["events"] = event_lead_time_table(scored, events, threshold)
     return result
 
 
