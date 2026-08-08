@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stream/extract NASA GPM IMERG Final V07 daily precipitation for validation sites.
+"""Extract NASA GPM IMERG Final V07 daily precipitation for validation sites.
 
 Source: NASA GES DISC, GPM_3IMERGDF Version 07.
 Requires a free NASA Earthdata Login.
@@ -8,8 +8,10 @@ Authentication is deliberately non-interactive for reproducibility:
 set EARTHDATA_TOKEN (preferred for CI), or EARTHDATA_USERNAME/EARTHDATA_PASSWORD.
 Never commit credentials to Git.
 
-The script streams remote HDF5 files through earthaccess/fsspec in small batches
-instead of downloading years of full global IMERG granules to disk.
+GES DISC on-prem HTTPS granules require authenticated range requests. We use
+Earthaccess' explicit authenticated HTTPS filesystem rather than the generic
+`earthaccess.open()` path so the bearer/cookie session is attached to each
+HDF5 range read.
 """
 from __future__ import annotations
 
@@ -34,8 +36,7 @@ LOCATIONS = {
 
 SHORT_NAME = "GPM_3IMERGDF"
 VERSION = "07"
-# west, south, east, north — covers all five sites with margin.
-NIGERIA_BBOX = (3.0, 3.0, 12.0, 14.0)
+NIGERIA_BBOX = (3.0, 3.0, 12.0, 14.0)  # west, south, east, north
 
 
 def find_dataset(f: h5py.File):
@@ -78,7 +79,6 @@ def read_lat_lon(f: h5py.File):
 
 
 def infer_date(f: h5py.File, source_name: str = "") -> str:
-    # Prefer authoritative in-file metadata.
     for key in ("FileHeader", "FileInfo"):
         if key in f.attrs:
             txt = str(f.attrs[key])
@@ -89,7 +89,6 @@ def infer_date(f: h5py.File, source_name: str = "") -> str:
             if m:
                 return pd.to_datetime(m.group(1), format="%Y%m%d").strftime("%Y-%m-%d")
 
-    # Fallback to the remote object name / granule identifier.
     m = re.search(r"(20\d{6})", source_name)
     if not m:
         raise ValueError(f"Could not infer IMERG date from metadata or {source_name!r}")
@@ -97,13 +96,11 @@ def infer_date(f: h5py.File, source_name: str = "") -> str:
 
 
 def extract_file(file_obj: BinaryIO, source_name: str = "") -> list[dict]:
-    # h5py supports seekable file-like objects; earthaccess.open provides one.
     with h5py.File(file_obj, "r") as f:
         ds = find_dataset(f)
         lat, lon = read_lat_lon(f)
         date = infer_date(f, source_name)
 
-        # Resolve dimensions without materialising the entire global precip grid.
         shape = tuple(ds.shape)
         squeezed_shape = tuple(d for d in shape if d != 1)
         if squeezed_shape == (len(lon), len(lat)):
@@ -111,14 +108,13 @@ def extract_file(file_obj: BinaryIO, source_name: str = "") -> list[dict]:
         elif squeezed_shape == (len(lat), len(lon)):
             orientation = "lat_lon"
         else:
-            raise ValueError(f"Unexpected precipitation shape {shape}")
+            raise ValueError(f"Unexpected precipitation shape {shape}; lat={len(lat)}, lon={len(lon)}")
 
         rows = []
         for name, (qlat, qlon) in LOCATIONS.items():
             iy = int(np.argmin(np.abs(lat - qlat)))
             ix = int(np.argmin(np.abs(lon - qlon)))
 
-            # Slice one grid cell only. Handle optional singleton time dimension.
             if len(shape) == 3 and shape[0] == 1:
                 val = ds[0, ix, iy] if orientation == "lon_lat" else ds[0, iy, ix]
             elif len(shape) == 3 and shape[-1] == 1:
@@ -157,12 +153,26 @@ def year_ranges(start: str, end: str):
         yield year, y0.strftime("%Y-%m-%d"), y1.strftime("%Y-%m-%d")
 
 
+def external_granule_url(granule) -> str:
+    links = granule.data_links(access="external")
+    data_links = [
+        u for u in links
+        if u.lower().endswith((".nc4", ".nc", ".h5", ".hdf5"))
+        and "data.gesdisc.earthdata.nasa.gov" in u
+    ]
+    if not data_links:
+        data_links = [u for u in links if u.lower().endswith((".nc4", ".nc", ".h5", ".hdf5"))]
+    if not data_links:
+        raise RuntimeError(f"No downloadable NetCDF/HDF link found for granule: {links}")
+    return data_links[0]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", default="2018-01-01")
     ap.add_argument("--end", default="2023-12-31")
     ap.add_argument("--out", default="validation/raw/nasa_imerg_daily.csv")
-    ap.add_argument("--batch-size", type=int, default=25)
+    ap.add_argument("--batch-size", type=int, default=20, help="Progress-log interval")
     args = ap.parse_args()
 
     if not (os.getenv("EARTHDATA_TOKEN") or (os.getenv("EARTHDATA_USERNAME") and os.getenv("EARTHDATA_PASSWORD"))):
@@ -171,6 +181,7 @@ def main() -> None:
         )
 
     earthaccess.login(strategy="environment")
+    fs = earthaccess.get_fsspec_https_session()
     rows: list[dict] = []
 
     for year, y0, y1 in year_ranges(args.start, args.end):
@@ -185,22 +196,20 @@ def main() -> None:
             raise RuntimeError(f"NASA Earthdata search returned no IMERG granules for {year}")
         print(f"Found {len(results):,} granules for {year}")
 
-        for start_idx in range(0, len(results), args.batch_size):
-            batch = results[start_idx:start_idx + args.batch_size]
-            remote_files = earthaccess.open(batch)
-            for offset, (granule, fobj) in enumerate(zip(batch, remote_files), start=1):
-                source_name = ""
-                try:
-                    source_name = granule["meta"]["native-id"]
-                except Exception:
-                    source_name = str(getattr(fobj, "path", granule))
-                rows.extend(extract_file(fobj, source_name))
-                try:
-                    fobj.close()
-                except Exception:
-                    pass
-            done = min(start_idx + len(batch), len(results))
-            print(f"  streamed {done}/{len(results)} granules for {year}")
+        for i, granule in enumerate(results, start=1):
+            url = external_granule_url(granule)
+            source_name = url.rsplit("/", 1)[-1]
+            try:
+                # Authenticated HTTPFileSystem supplied by earthaccess. A small
+                # block size limits network transfer because we read only the
+                # coordinate arrays and five precipitation cells per granule.
+                with fs.open(url, "rb", block_size=2 * 1024 * 1024, cache_type="blockcache") as fobj:
+                    rows.extend(extract_file(fobj, source_name))
+            except Exception as exc:
+                raise RuntimeError(f"Failed authenticated IMERG read for {source_name}: {exc}") from exc
+
+            if i % args.batch_size == 0 or i == len(results):
+                print(f"  streamed {i}/{len(results)} authenticated granules for {year}")
 
     out = pd.DataFrame(rows)
     out["date"] = pd.to_datetime(out["date"])
