@@ -58,61 +58,40 @@ jobs:
           pip install -r validation/requirements.txt
 
       - name: Fetch GloFAS v4 historical discharge
-        run: |
-          python validation/fetch_glofas.py \
-            --start "$START_DATE" \
-            --end "$END_DATE"
+        run: python validation/fetch_glofas.py --start "$START_DATE" --end "$END_DATE"
 
       - name: Compare GloFAS with Nigerian ground observations
         run: python validation/compare_glofas_ground.py
 
       - name: Fetch ERA5-Land surface state
-        run: |
-          python validation/fetch_era5_land.py \
-            --start "$START_DATE" \
-            --end "$END_DATE"
+        run: python validation/fetch_era5_land.py --start "$START_DATE" --end "$END_DATE"
 
       - name: Source credential preflight
         id: source_preflight
         shell: bash
         run: |
-          if [ -n "$EARTHDATA_TOKEN" ]; then
-            echo "nasa=true" >> "$GITHUB_OUTPUT"
-            echo "NASA Earthdata token detected."
-          else
-            echo "nasa=false" >> "$GITHUB_OUTPUT"
-            echo "NASA Earthdata token is not configured."
-          fi
-
-          if [ -n "$EWDS_API_KEY" ]; then
-            echo "ewds=true" >> "$GITHUB_OUTPUT"
-            echo "EWDS API key detected."
-          else
-            echo "ewds=false" >> "$GITHUB_OUTPUT"
-            echo "EWDS API key is not configured."
-          fi
+          if [ -n "$EARTHDATA_TOKEN" ]; then echo "nasa=true" >> "$GITHUB_OUTPUT"; else echo "nasa=false" >> "$GITHUB_OUTPUT"; fi
+          if [ -n "$EWDS_API_KEY" ]; then echo "ewds=true" >> "$GITHUB_OUTPUT"; else echo "ewds=false" >> "$GITHUB_OUTPUT"; fi
+          echo "NASA configured: $([ -n "$EARTHDATA_TOKEN" ] && echo yes || echo no)"
+          echo "EWDS configured: $([ -n "$EWDS_API_KEY" ] && echo yes || echo no)"
 
       - name: Stream NASA GPM IMERG Final V07
+        id: nasa_final
         if: steps.source_preflight.outputs.nasa == 'true'
-        run: |
-          python validation/fetch_nasa_imerg.py \
-            --start "$START_DATE" \
-            --end "$END_DATE" \
-            --batch-size 20
+        continue-on-error: true
+        run: python validation/fetch_nasa_imerg.py --start "$START_DATE" --end "$END_DATE" --batch-size 20
 
       - name: Check source coverage and provenance
-        if: steps.source_preflight.outputs.nasa == 'true'
-        run: |
-          python validation/check_sources.py \
-            --start "$START_DATE" \
-            --end "$END_DATE"
+        if: steps.nasa_final.outcome == 'success'
+        run: python validation/check_sources.py --start "$START_DATE" --end "$END_DATE"
 
       - name: Build fused historical feature table
-        if: steps.source_preflight.outputs.nasa == 'true'
+        if: steps.nasa_final.outcome == 'success'
         run: python validation/build_features.py
 
       - name: Run chronological independent-event benchmark
-        if: steps.source_preflight.outputs.nasa == 'true'
+        id: benchmark
+        if: steps.nasa_final.outcome == 'success'
         run: |
           python validation/validate_v2.py \
             --features validation/features_daily.csv \
@@ -122,14 +101,18 @@ jobs:
             --output validation/validation_results.json
 
       - name: Stream NASA IMERG Early V06 for Lokoja 2022 operational replay
-        if: steps.source_preflight.outputs.nasa == 'true'
+        id: nasa_early
+        if: always() && steps.source_preflight.outputs.nasa == 'true'
+        continue-on-error: true
         run: |
           python validation/fetch_nasa_imerg_early_2022.py \
             --start "2022-09-20T00:00:00Z" \
             --end "2022-10-07T23:59:59Z"
 
       - name: Fetch archived operational GloFAS forecasts for Lokoja 2022
-        if: steps.source_preflight.outputs.ewds == 'true'
+        id: glofas_ops
+        if: always() && steps.source_preflight.outputs.ewds == 'true'
+        continue-on-error: true
         run: |
           python validation/fetch_glofas_operational_forecasts.py \
             --location Lokoja \
@@ -138,23 +121,23 @@ jobs:
             --lead-hours 24 48 72
 
       - name: Build Lokoja 2022 operational replay evidence table
-        if: steps.source_preflight.outputs.nasa == 'true' && steps.source_preflight.outputs.ewds == 'true'
+        id: lokoja_replay
+        if: always() && steps.nasa_early.outcome == 'success' && steps.glofas_ops.outcome == 'success'
         run: python validation/reconstruct_lokoja_2022.py
 
-      - name: Write validation credential/status report
+      - name: Write validation status report
         if: always()
         shell: bash
         run: |
           {
-            echo "Validation v2 credential status"
+            echo "Validation v2 execution status"
             echo "NASA Earthdata configured: ${{ steps.source_preflight.outputs.nasa }}"
             echo "CEMS EWDS configured: ${{ steps.source_preflight.outputs.ewds }}"
-            if [ "${{ steps.source_preflight.outputs.nasa }}" != "true" ]; then
-              echo "NASA-dependent historical fusion and IMERG operational replay were skipped."
-            fi
-            if [ "${{ steps.source_preflight.outputs.ewds }}" != "true" ]; then
-              echo "Archived operational GloFAS T-24/T-48/T-72 replay was skipped."
-            fi
+            echo "NASA IMERG Final: ${{ steps.nasa_final.outcome }}"
+            echo "Historical XGBoost benchmark: ${{ steps.benchmark.outcome }}"
+            echo "NASA IMERG Early replay source: ${{ steps.nasa_early.outcome }}"
+            echo "GloFAS operational archive: ${{ steps.glofas_ops.outcome }}"
+            echo "Lokoja combined replay: ${{ steps.lokoja_replay.outcome }}"
           } > validation/validation_status.txt
 
       - name: Upload validation evidence
