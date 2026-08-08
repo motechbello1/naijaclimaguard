@@ -145,6 +145,26 @@ jobs:
           print('freeze gate:', r['freeze_gate'])
           PY
 
+      - name: Run scientific sanity review
+        run: |
+          python validation/review_model_v3_results.py \
+            --results validation/model_v3_development_results.json \
+            --output validation/model_v3_scientific_review.json
+
+      - name: Confirm review cannot auto-freeze the model
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          review = json.loads(Path('validation/model_v3_scientific_review.json').read_text())
+          assert review['ready_to_freeze_for_new_holdout'] is False
+          print('minimum scientific sanity pass:', review['minimum_scientific_sanity_pass'])
+          print('seasonality check:', review['seasonality_check'])
+          print('freeze blockers:')
+          for blocker in review['freeze_blockers']:
+              print('-', blocker)
+          PY
+
       - name: Write immutable development status
         run: |
           {
@@ -154,6 +174,7 @@ jobs:
             echo "Frozen development events: 16"
             echo "Frozen OOF event anchors: 12"
             echo "Threshold status: provisional OOF F1 diagnostic only"
+            echo "Scientific review auto-freeze: disabled"
             echo "Validation v2 canonical gate confirmed at dispatch: ${{ inputs.validation_v2_canonical_confirmed }}"
             echo "Production engine remains: derived-v2"
             echo "Model v3 deployment: false"
@@ -182,4 +203,5 @@ jobs:
             validation/model_v3_source_requirements.txt
             validation/MODEL_V3_PROTOCOL.md
             validation/model_v3_development_results.json
+            validation/model_v3_scientific_review.json
             validation/model_v3_development_status.txt
