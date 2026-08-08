@@ -3,9 +3,28 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+enum IntelligenceSourceKind {
+  SATELLITE
+  WEATHER
+  HYDROLOGICAL_MODEL
+  OFFICIAL_GAUGE
+  IOT_SENSOR
+  DAM_OPERATION
+  CITIZEN_REPORT
+  OFFICIAL_ADVISORY
+}
+
+enum ObservationQuality {
+  GOOD
+  SUSPECT
+  STALE
+  MISSING
+  UNKNOWN
 }
 
 model User {
@@ -36,16 +55,17 @@ model Location {
 model Alert {
   id             String   @id @default(cuid())
   lastNotifiedAt DateTime?
-  threshold  Int
-  channels   String
-  active     Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locationId String
-  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  threshold      Int
+  channels       String
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId     String
+  location       Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 }
+
 model Report {
   id          String   @id @default(cuid())
   latitude    Float
@@ -59,4 +79,54 @@ model Report {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
+}
+
+/// A registered external evidence source. This is intentionally provider-agnostic:
+/// NASA products, GloFAS, official gauges, partner IoT devices, dam-operation feeds,
+/// citizen-report streams and official advisories can all be represented here.
+model IntelligenceSource {
+  id                      String                 @id @default(cuid())
+  slug                    String                 @unique
+  provider                String
+  name                    String
+  sourceKind              IntelligenceSourceKind
+  description             String?
+  active                  Boolean                @default(true)
+  defaultFreshnessMinutes Int
+  config                  Json?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  observations            IntelligenceObservation[]
+}
+
+/// Immutable normalized evidence record. Raw provider identity, original field/unit,
+/// time, location and quality are retained so later decisions remain auditable.
+model IntelligenceObservation {
+  id               String              @id @default(cuid())
+  sourceId         String
+  source           IntelligenceSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  variable         String
+  value            Json
+  unit             String
+  observedAt       DateTime
+  receivedAt       DateTime
+  latitude         Float
+  longitude        Float
+  locationName     String?
+  state            String?
+  country          String?
+  qualityStatus    ObservationQuality  @default(UNKNOWN)
+  confidence       Float?
+  flags            Json?
+  sourceVersion    String?
+  externalRecordId String?
+  originalUnit     String?
+  originalVariable String?
+  metadata         Json?
+  dedupeKey        String              @unique
+  createdAt        DateTime            @default(now())
+
+  @@index([sourceId, observedAt])
+  @@index([variable, observedAt])
+  @@index([latitude, longitude, observedAt])
 }
