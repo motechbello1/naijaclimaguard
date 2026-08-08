@@ -1,0 +1,137 @@
+name: Validation v2 — NASA + GloFAS + ERA5-Land
+
+on:
+  push:
+    branches: [validation-v2]
+    paths:
+      - "validation/**"
+      - ".github/workflows/validation-v2.yml"
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "Historical start date"
+        required: false
+        default: "2018-01-01"
+      end_date:
+        description: "Historical end date"
+        required: false
+        default: "2023-12-31"
+      cutoff:
+        description: "Chronological train/test cutoff"
+        required: false
+        default: "2022-01-01"
+
+permissions:
+  contents: read
+
+env:
+  START_DATE: ${{ github.event.inputs.start_date || '2018-01-01' }}
+  END_DATE: ${{ github.event.inputs.end_date || '2023-12-31' }}
+  CUTOFF: ${{ github.event.inputs.cutoff || '2022-01-01' }}
+  EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+
+    steps:
+      - name: Checkout validation branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/requirements.txt
+
+      - name: Install validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r validation/requirements.txt
+
+      - name: Fetch GloFAS v4 historical discharge
+        run: |
+          python validation/fetch_glofas.py \
+            --start "$START_DATE" \
+            --end "$END_DATE"
+
+      - name: Fetch ERA5-Land surface state
+        run: |
+          python validation/fetch_era5_land.py \
+            --start "$START_DATE" \
+            --end "$END_DATE"
+
+      - name: NASA Earthdata preflight
+        id: nasa_preflight
+        shell: bash
+        run: |
+          if [ -n "$EARTHDATA_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "NASA Earthdata token detected. IMERG extraction will run."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "NASA Earthdata token is not configured."
+            echo "GloFAS and ERA5-Land have still been fetched; NASA/fusion/model steps will be skipped."
+          fi
+
+      - name: Stream NASA GPM IMERG Final V07
+        if: steps.nasa_preflight.outputs.available == 'true'
+        run: |
+          python validation/fetch_nasa_imerg.py \
+            --start "$START_DATE" \
+            --end "$END_DATE" \
+            --batch-size 20
+
+      - name: Check source coverage and provenance
+        if: steps.nasa_preflight.outputs.available == 'true'
+        run: |
+          python validation/check_sources.py \
+            --start "$START_DATE" \
+            --end "$END_DATE"
+
+      - name: Build fused historical feature table
+        if: steps.nasa_preflight.outputs.available == 'true'
+        run: python validation/build_features.py
+
+      - name: Run chronological independent-event benchmark
+        if: steps.nasa_preflight.outputs.available == 'true'
+        run: |
+          python validation/validate_v2.py \
+            --features validation/features_daily.csv \
+            --events validation/event_registry.csv \
+            --cutoff "$CUTOFF" \
+            --threshold 0.50 \
+            --output validation/validation_results.json
+
+      - name: Write incomplete-run status when NASA secret is absent
+        if: steps.nasa_preflight.outputs.available != 'true'
+        shell: bash
+        run: |
+          cat > validation/validation_status.txt <<'EOF'
+          Validation v2 source ingestion is PARTIAL.
+
+          GloFAS v4 discharge: attempted
+          ERA5-Land surface state: attempted
+          NASA GPM IMERG Final V07: not run because EARTHDATA_TOKEN is not configured
+          Fused model benchmark: intentionally not run
+
+          Add repository Actions secret EARTHDATA_TOKEN and rerun this workflow.
+          EOF
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-v2-evidence-${{ github.run_number }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            validation/raw/*.csv
+            validation/features_daily.csv
+            validation/source_quality.json
+            validation/validation_results.json
+            validation/validation_status.txt
+            validation/event_registry.csv
+            validation/SOURCES.md
