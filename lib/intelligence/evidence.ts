@@ -28,7 +28,7 @@ function latestBySource(observations: CanonicalObservation[]) {
     const current = latest.get(key);
     if (!current || new Date(obs.observedAt) > new Date(current.observedAt)) latest.set(key, obs);
   }
-  return [...latest.values()];
+  return Array.from(latest.values());
 }
 
 export function buildSourceHealth(
