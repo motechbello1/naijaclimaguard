@@ -1,3 +1,7 @@
 numpy>=1.26,<3
 pandas>=2.2,<3
 scikit-learn>=1.5,<2
+xgboost>=2.1,<4
+requests>=2.32,<3
+earthaccess>=0.12,<1
+h5py>=3.11,<4
