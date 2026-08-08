@@ -1,0 +1,5 @@
+NaijaClimaGuard production rebuild marker — 2026-08-08
+Live engine: derived-v2
+Canonical risk single-source cleanup: merged
+Validation v2 audit/security cleanup: merged
+Model v3 production deployment: false
