@@ -2,12 +2,10 @@ name: Model v3 Full Development — 2018-2021 Only
 
 on:
   workflow_dispatch:
-    inputs:
-      validation_v2_canonical_confirmed:
-        description: "Confirm Validation v2 CI has established the canonical frozen benchmark"
-        required: true
-        default: false
-        type: boolean
+  push:
+    branches: [model-v3-dev]
+    paths:
+      - "validation/model_v3_full_run_trigger.txt"
 
 permissions:
   contents: read
@@ -24,17 +22,35 @@ jobs:
     timeout-minutes: 240
 
     steps:
-      - name: Enforce Validation v2 gate
-        env:
-          V2_CONFIRMED: ${{ inputs.validation_v2_canonical_confirmed }}
-        run: |
-          test "$V2_CONFIRMED" = "true" || {
-            echo "Refusing Model v3 full development run until Validation v2 CI is canonical."
-            exit 1
-          }
-
       - name: Checkout Model v3 branch
         uses: actions/checkout@v4
+
+      - name: Machine-verify canonical Validation v2 evidence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('validation/evidence/historical_benchmark_2018_2024.json')
+          assert p.exists(), 'Canonical Validation v2 evidence file is missing'
+          r = json.loads(p.read_text())
+          assert r['status'] == 'historical_benchmark_complete_model_not_production_ready'
+          assert r['data_qa']['fused_location_days'] == 12785
+          assert r['data_qa']['date_start'] == '2018-01-01'
+          assert r['data_qa']['date_end'] == '2024-12-31'
+          assert r['protocol']['cutoff'] == '2022-01-01'
+          assert r['protocol']['independent_feature_covered_train_events'] == 11
+          assert r['protocol']['independent_test_events'] == 20
+          t = r['chronological_test']
+          assert abs(t['roc_auc'] - 0.7147814596462696) < 1e-12
+          assert abs(t['pr_auc'] - 0.0572282380431264) < 1e-12
+          assert t['confusion_matrix'] == {'tn': 4890, 'fp': 29, 'fn': 97, 'tp': 3}
+          assert t['event_detection_at_0_5'] == {'detected': 1, 'evaluated': 20, 'rate': 0.05}
+          assert r['features']['top_gain_features_diagnostic'][:2] == ['day_of_year', 'month']
+          print('Canonical Validation v2 benchmark verified from committed evidence.')
+          print('ROC-AUC:', t['roc_auc'])
+          print('PR-AUC:', t['pr_auc'])
+          print('Event detection:', t['event_detection_at_0_5'])
+          PY
 
       - name: Set up frozen Python
         uses: actions/setup-python@v5
@@ -122,15 +138,14 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          p = Path('validation/model_v3_development_results.json')
-          r = json.loads(p.read_text())
+          r = json.loads(Path('validation/model_v3_development_results.json').read_text())
           assert r['status'] == 'development_only_not_production_validated'
           assert r['hard_development_cutoff'] == '2022-01-01'
           assert r['production']['engine_remains'] == 'derived-v2'
           assert r['production']['model_v3_deployed'] is False
           assert r['freeze_gate']['ready_to_freeze_for_new_holdout'] is False
-          assert r['data']['development_events'] == 16, r['data']['development_events']
-          assert r['data']['oof_event_anchors'] == 12, r['data']['oof_event_anchors']
+          assert r['data']['development_events'] == 16
+          assert r['data']['oof_event_anchors'] == 12
           selected = r['selected_candidate']
           assert selected['threshold_status'] == 'provisional_oof_f1_diagnostic_not_operational_policy'
           assert selected['calendar_features_allowed_in_winner'] is False
@@ -138,11 +153,8 @@ jobs:
           expected_locations = {'Lokoja', 'Makurdi', 'Onitsha', 'Yenagoa', 'Hadejia'}
           assert set(selected['per_location_at_provisional_threshold']) == expected_locations
           print('selected development candidate:', selected['candidate'])
-          print('provisional development threshold:', selected['development_threshold'])
+          print('provisional diagnostic threshold:', selected['development_threshold'])
           print('mean temporal-fold PR-AUC:', selected['mean_fold_pr_auc'])
-          print('per-location diagnostics:', sorted(selected['per_location_at_provisional_threshold']))
-          print('threshold frontier points:', len(selected['threshold_frontier']))
-          print('freeze gate:', r['freeze_gate'])
           PY
 
       - name: Run scientific sanity review
@@ -151,38 +163,57 @@ jobs:
             --results validation/model_v3_development_results.json \
             --output validation/model_v3_scientific_review.json
 
-      - name: Confirm review cannot auto-freeze the model
+      - name: Apply predeclared threshold policy
+        run: |
+          python validation/select_model_v3_threshold.py \
+            --results validation/model_v3_development_results.json \
+            --review validation/model_v3_scientific_review.json \
+            --output validation/model_v3_threshold_decision.json
+
+      - name: Fit freeze candidate only if every development gate passes
+        run: |
+          python validation/fit_model_v3_freeze_candidate.py \
+            --features validation/features_daily.csv \
+            --events validation/model_v3_event_registry.csv \
+            --results validation/model_v3_development_results.json \
+            --review validation/model_v3_scientific_review.json \
+            --threshold-decision validation/model_v3_threshold_decision.json \
+            --artifact validation/model_v3_freeze_candidate.joblib \
+            --manifest validation/model_v3_freeze_manifest.json
+
+      - name: Summarize development / freeze decision
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           review = json.loads(Path('validation/model_v3_scientific_review.json').read_text())
-          assert review['ready_to_freeze_for_new_holdout'] is False
+          threshold = json.loads(Path('validation/model_v3_threshold_decision.json').read_text())
+          freeze = json.loads(Path('validation/model_v3_freeze_manifest.json').read_text())
           print('minimum scientific sanity pass:', review['minimum_scientific_sanity_pass'])
-          print('seasonality check:', review['seasonality_check'])
-          print('freeze blockers:')
-          for blocker in review['freeze_blockers']:
-              print('-', blocker)
+          print('threshold decision:', threshold['status'])
+          print('chosen threshold:', threshold['chosen_threshold'])
+          print('freeze status:', freeze['status'])
+          print('ready for new untouched holdout:', freeze['ready_for_new_untouched_holdout'])
+          for blocker in freeze.get('blockers', []):
+              print('BLOCKER:', blocker)
           PY
 
       - name: Write immutable development status
         run: |
           {
             echo "Model v3 full development run"
+            echo "Canonical Validation v2 gate: machine-verified committed evidence"
             echo "Development period: 2018-01-01 through 2021-12-31"
             echo "Hard cutoff: 2022-01-01"
             echo "Frozen development events: 16"
             echo "Frozen OOF event anchors: 12"
-            echo "Threshold status: provisional OOF F1 diagnostic only"
-            echo "Scientific review auto-freeze: disabled"
-            echo "Validation v2 canonical gate confirmed at dispatch: ${{ inputs.validation_v2_canonical_confirmed }}"
+            echo "Threshold policy: predeclared 75% event detection / <=10 FP location-days per 1000 negatives / >=10% precision"
             echo "Production engine remains: derived-v2"
             echo "Model v3 deployment: false"
-            echo "Final new-holdout freeze: false"
             echo "Commit: $GITHUB_SHA"
           } > validation/model_v3_development_status.txt
 
-      - name: Upload Model v3 development evidence
+      - name: Upload Model v3 development and freeze evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -197,11 +228,16 @@ jobs:
             validation/raw/era5_land_daily.csv
             validation/features_daily.csv
             validation/source_quality.json
+            validation/evidence/historical_benchmark_2018_2024.json
             validation/model_v3_event_registry.csv
             validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md
+            validation/MODEL_V3_PROTOCOL.md
+            validation/MODEL_V3_THRESHOLD_POLICY.md
             validation/model_v3_requirements.txt
             validation/model_v3_source_requirements.txt
-            validation/MODEL_V3_PROTOCOL.md
             validation/model_v3_development_results.json
             validation/model_v3_scientific_review.json
+            validation/model_v3_threshold_decision.json
+            validation/model_v3_freeze_manifest.json
+            validation/model_v3_freeze_candidate.joblib
             validation/model_v3_development_status.txt
