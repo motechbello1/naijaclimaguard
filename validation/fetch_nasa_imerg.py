@@ -4,14 +4,15 @@
 Source: NASA GES DISC, GPM_3IMERGDF Version 07.
 Requires a free NASA Earthdata Login token in EARTHDATA_TOKEN.
 
-The CMR catalogue search is public. Granule reads use the Earthdata token
-DIRECTLY as an Authorization: Bearer header. This avoids depending on a
-separate URS /profile network call from CI while still using authenticated
-GES DISC HTTPS range reads.
+CMR catalogue discovery is public. File reads use the Earthdata token directly
+as an Authorization: Bearer header. Granules are processed in bounded parallel
+worker processes so a full year does not require hundreds of serial remote HDF5
+reads. Output is deterministic after sorting and duplicate removal.
 """
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import os
 import re
 import time
@@ -34,7 +35,7 @@ LOCATIONS = {
 
 SHORT_NAME = "GPM_3IMERGDF"
 VERSION = "07"
-NIGERIA_BBOX = (3.0, 3.0, 12.0, 14.0)  # west, south, east, north
+NIGERIA_BBOX = (3.0, 3.0, 12.0, 14.0)
 
 
 def find_dataset(f: h5py.File):
@@ -54,12 +55,14 @@ def find_dataset(f: h5py.File):
 def read_lat_lon(f: h5py.File):
     for lat_name in ("Grid/lat", "lat"):
         if lat_name in f:
-            lat = np.asarray(f[lat_name][:]).squeeze(); break
+            lat = np.asarray(f[lat_name][:]).squeeze()
+            break
     else:
         raise KeyError("Latitude array not found")
     for lon_name in ("Grid/lon", "lon"):
         if lon_name in f:
-            lon = np.asarray(f[lon_name][:]).squeeze(); break
+            lon = np.asarray(f[lon_name][:]).squeeze()
+            break
     else:
         raise KeyError("Longitude array not found")
     return lat, lon
@@ -149,7 +152,7 @@ def search_with_retry(y0: str, y1: str, attempts: int = 5):
             if attempt == attempts:
                 break
             delay = min(30, 2 ** attempt)
-            print(f"CMR search retry {attempt}/{attempts - 1}: {type(exc).__name__}; sleeping {delay}s")
+            print(f"CMR search retry {attempt}/{attempts - 1}: {type(exc).__name__}; sleeping {delay}s", flush=True)
             time.sleep(delay)
     raise RuntimeError(f"NASA CMR search failed after {attempts} attempts: {last}")
 
@@ -164,54 +167,79 @@ def external_granule_url(granule) -> str:
     return chosen[0]
 
 
-def read_granule(fs, url: str, source_name: str, attempts: int = 5):
+def read_url_with_token(url: str, token: str, attempts: int = 5) -> list[dict]:
+    source_name = url.rsplit("/", 1)[-1]
     last = None
     for attempt in range(1, attempts + 1):
         try:
+            fs = fsspec.filesystem(
+                "http",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "User-Agent": "NaijaClimaGuard-Validation-v2/1.0",
+                },
+            )
             with fs.open(url, "rb", block_size=2 * 1024 * 1024, cache_type="blockcache") as fobj:
                 return extract_file(fobj, source_name)
         except Exception as exc:
             last = exc
             if attempt == attempts:
                 break
-            delay = min(30, 2 ** attempt)
-            print(f"  granule retry {attempt}/{attempts - 1} for {source_name}: {type(exc).__name__}; sleeping {delay}s")
-            time.sleep(delay)
+            time.sleep(min(20, 2 ** attempt))
     raise RuntimeError(f"Authenticated IMERG read failed for {source_name}: {last}")
+
+
+def process_urls(urls: list[str], token: str, workers: int, progress_every: int) -> list[dict]:
+    if workers <= 1:
+        rows = []
+        for i, url in enumerate(urls, 1):
+            rows.extend(read_url_with_token(url, token))
+            if i % progress_every == 0 or i == len(urls):
+                print(f"  processed {i}/{len(urls)} granules", flush=True)
+        return rows
+
+    rows: list[dict] = []
+    failures: list[str] = []
+    completed = 0
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        future_to_url = {pool.submit(read_url_with_token, url, token): url for url in urls}
+        for future in as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                rows.extend(future.result())
+            except Exception as exc:
+                failures.append(f"{url.rsplit('/', 1)[-1]}: {exc}")
+            completed += 1
+            if completed % progress_every == 0 or completed == len(urls):
+                print(f"  processed {completed}/{len(urls)} granules with {workers} workers", flush=True)
+    if failures:
+        sample = "\n".join(failures[:5])
+        raise RuntimeError(f"{len(failures)} IMERG granules failed after retries. First failures:\n{sample}")
+    return rows
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", default="2018-01-01")
-    ap.add_argument("--end", default="2023-12-31")
+    ap.add_argument("--end", default="2024-12-31")
     ap.add_argument("--out", default="validation/raw/nasa_imerg_daily.csv")
-    ap.add_argument("--batch-size", type=int, default=20)
+    ap.add_argument("--batch-size", type=int, default=20, help="Progress logging interval")
+    ap.add_argument("--workers", type=int, default=6, help="Parallel granule worker processes")
     args = ap.parse_args()
 
     token = os.getenv("EARTHDATA_TOKEN")
     if not token:
         raise RuntimeError("EARTHDATA_TOKEN is required for NASA GES DISC access")
 
-    # NASA/GES DISC supports EDL bearer-token downloads. Using the token directly
-    # avoids earthaccess.login() performing a separate URS /profile request.
-    fs = fsspec.filesystem(
-        "http",
-        headers={"Authorization": f"Bearer {token}", "User-Agent": "NaijaClimaGuard-Validation-v2/1.0"},
-    )
     rows: list[dict] = []
-
     for year, y0, y1 in year_ranges(args.start, args.end):
-        print(f"Searching NASA IMERG Final V07 for {year}: {y0} -> {y1}")
+        print(f"Searching NASA IMERG Final V07 for {year}: {y0} -> {y1}", flush=True)
         results = search_with_retry(y0, y1)
         if not results:
             raise RuntimeError(f"NASA CMR returned no IMERG granules for {year}")
-        print(f"Found {len(results):,} granules for {year}")
-        for i, granule in enumerate(results, start=1):
-            url = external_granule_url(granule)
-            source_name = url.rsplit("/", 1)[-1]
-            rows.extend(read_granule(fs, url, source_name))
-            if i % args.batch_size == 0 or i == len(results):
-                print(f"  streamed {i}/{len(results)} bearer-authenticated granules for {year}")
+        urls = [external_granule_url(g) for g in results]
+        print(f"Found {len(urls):,} granules for {year}; processing with {args.workers} workers", flush=True)
+        rows.extend(process_urls(urls, token, args.workers, args.batch_size))
 
     out = pd.DataFrame(rows)
     out["date"] = pd.to_datetime(out["date"])
@@ -223,7 +251,7 @@ def main() -> None:
     path = Path(args.out)
     path.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(path, index=False)
-    print(f"Wrote {len(out):,} NASA IMERG location-days to {path}")
+    print(f"Wrote {len(out):,} NASA IMERG location-days to {path}", flush=True)
 
 
 if __name__ == "__main__":
