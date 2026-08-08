@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 
 /**
  * GET /api/v1/risk?latitude=..&longitude=..
- * Public Risk API — now with HOURLY intensity for urban flash-flood detection.
- * Dual-signal: daily accumulation (riverine) + hourly burst (urban drainage).
+ * Public live-risk endpoint.
+ *
+ * CURRENT MODEL: disclosed rainfall / antecedent-wetness heuristic using
+ * Open-Meteo weather data. It does not currently ingest NASA IMERG directly,
+ * GloFAS river discharge, or the Validation v2 XGBoost model.
+ *
+ * The hourly signal improves sensitivity to short-duration rainfall bursts, but
+ * this endpoint must not be described as an independently validated 48/72-hour
+ * flood forecast until Validation v2 produces that evidence.
  */
 
 export const dynamic = "force-dynamic";
@@ -26,14 +33,14 @@ export async function GET(req: Request) {
     if (!dailyRes.ok) throw new Error("upstream unavailable");
     const daily = (await dailyRes.json()).daily;
 
-    // Hourly data (best-effort — API still works without it)
+    // Hourly precipitation is best-effort. The endpoint still returns the
+    // accumulation-based score when the secondary hourly request is unavailable.
     let hourlyPrecip: number[] = [];
     if (hourlyRes.ok) {
       const h = (await hourlyRes.json()).hourly;
       hourlyPrecip = h?.precipitation ?? [];
     }
 
-    // Daily factors
     const idx = daily.time.length - 5;
     const p: number[] = daily.precipitation_sum ?? [];
     const et0: number[] = daily.et0_fao_evapotranspiration ?? [];
@@ -45,16 +52,16 @@ export async function GET(req: Request) {
     const burstDaily = Math.min(1, precip3 / 120);
     const satNorm = Math.min(1, Math.max(0, (balance7 + 40) / 160));
 
-    // Hourly intensity
     const maxHourly = hourlyPrecip.length ? Math.max(0, ...hourlyPrecip.map(v => v ?? 0)) : 0;
     let hourlyBurst = Math.min(1, maxHourly / 30);
     let max3h = 0;
     for (let i = 2; i < hourlyPrecip.length; i++) {
-      max3h = Math.max(max3h, (hourlyPrecip[i] ?? 0) + (hourlyPrecip[i-1] ?? 0) + (hourlyPrecip[i-2] ?? 0));
+      max3h = Math.max(max3h, (hourlyPrecip[i] ?? 0) + (hourlyPrecip[i - 1] ?? 0) + (hourlyPrecip[i - 2] ?? 0));
     }
     hourlyBurst = Math.max(hourlyBurst, Math.min(1, max3h / 60));
 
     const effectiveBurst = Math.max(burstDaily, hourlyBurst);
+    // This is a rainfall-pattern descriptor only; it is not a hydraulic flood-type classifier.
     const floodType = hourlyBurst > burstDaily + 0.1 ? "urban" : burstDaily > hourlyBurst + 0.1 ? "riverine" : "mixed";
     const score = Math.max(0, Math.min(100, Math.round((rainfallNorm * 0.40 + effectiveBurst * 0.35 + satNorm * 0.25) * 100)));
     const level = score >= 90 ? "EXTREME" : score >= 75 ? "SEVERE" : score >= 60 ? "WARNING" : score >= 40 ? "WATCH" : "NORMAL";
@@ -64,6 +71,8 @@ export async function GET(req: Request) {
       factors: {
         rainfall_7d: +rainfallNorm.toFixed(2),
         burst_intensity: +effectiveBurst.toFixed(2),
+        // Backward-compatible field name. This value is an antecedent-wetness
+        // proxy from rainfall minus ET0, not observed soil-moisture data.
         soil_saturation: +satNorm.toFixed(2),
       },
       hourly: {
@@ -78,10 +87,13 @@ export async function GET(req: Request) {
       },
       meta: {
         model: "derived-v2",
-        upgrade: "now includes hourly intensity for urban flash-flood detection",
-        formula: "0.40·rainfall(7d/200mm) + 0.35·burst(max of 3d/120mm OR hourly/30mm) + 0.25·saturation",
-        data_source: "Open-Meteo (NASA GPM IMERG derived) · daily + hourly",
-        latitude: lat, longitude: lon,
+        model_status: "live heuristic decision-support index; independent Validation v2 model is evaluated separately",
+        formula: "0.40·rainfall(7d/200mm) + 0.35·burst(max of 3d/120mm OR hourly/30mm) + 0.25·antecedent-wetness proxy",
+        data_source: "Open-Meteo forecast API · precipitation + ET0 · daily and hourly",
+        source_note: "This live endpoint does not currently ingest NASA IMERG or GloFAS directly.",
+        flood_type_note: "flood_type is a rainfall-pattern heuristic, not a hydraulic classification",
+        latitude: lat,
+        longitude: lon,
         generated_at: new Date().toISOString(),
       },
     });
