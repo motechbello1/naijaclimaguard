@@ -1,20 +1,22 @@
 "use client";
 
 /**
- * Intelligence Center — the flagship command surface.
+ * Intelligence Center — command surface for selected Nigerian locations.
  *
- * HONESTY MODEL (enforced in UI):
- *   LIVE       — real data fetched now from Open-Meteo (public, no key).
- *   CONNECTED  — architecture complete; activates when a credential is supplied.
- *   DEPLOYABLE — architecture complete; activates when a partner connects.
- * Every LIVE number traces to a real API response. Nothing is fabricated.
+ * STATUS MODEL:
+ *   LIVE        — real data/functionality available now.
+ *   CONNECTED   — integration path exists but depends on a credential/service.
+ *   DEPLOYABLE  — partner-dependent capability, not live production functionality.
+ *
+ * Current risk values on this page are derived from Open-Meteo rainfall and ET0
+ * using the disclosed heuristic below. They are not Validation v2 XGBoost scores.
  */
 
 import AppShell from "@/components/shared/AppShell";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { RefreshCw, Radio, PlugZap, Boxes } from "lucide-react";
 
-// ---- Real flood-prone stations (verified coordinates) ----
+// ---- Selected monitoring coordinates ----
 const STATIONS = [
   { id: "LKJ", name: "Lokoja", state: "Kogi", note: "Niger–Benue confluence", lat: 7.8023, lon: 6.7333 },
   { id: "MKD", name: "Makurdi", state: "Benue", note: "River Benue", lat: 7.7322, lon: 8.5391 },
@@ -56,10 +58,10 @@ function levelFor(s: number) {
   return { label: "Normal", color: "#10B981" };
 }
 
-/** Disclosed multi-factor model — every input is a live Open-Meteo value. */
+/** Disclosed heuristic — every input below comes from Open-Meteo. */
 function deriveRisk(daily: any): RiskModel | null {
   if (!daily?.time?.length) return null;
-  const idx = daily.time.length - 4; // "today" sits before the 3 forecast days
+  const idx = daily.time.length - 4;
   const p: number[] = daily.precipitation_sum ?? [];
   const et0: number[] = daily.et0_fao_evapotranspiration ?? [];
   const sum = (arr: number[], a: number, b: number) =>
@@ -93,20 +95,20 @@ async function fetchStation(st: Station): Promise<StationResult> {
 }
 
 const MODULES = [
-  { name: "Flood Prediction", state: "LIVE", desc: "Multi-factor risk from live rainfall, burst and moisture data." },
-  { name: "Live Monitoring", state: "LIVE", desc: "Six stations refreshed on demand from Open-Meteo." },
-  { name: "Citizen Reporting", state: "LIVE", desc: "Geotagged reports + operator verification — live now. Photo AI-check activates with storage credentials." },
-  { name: "Emergency Alerts", state: "CONNECTED", desc: "Threshold engine live; email sends with a Resend key. SMS/WhatsApp partner-ready." },
-  { name: "Insurance Automation", state: "DEPLOYABLE", desc: "Parametric triggers; activates when an insurer connects." },
-  { name: "Sensor Network", state: "DEPLOYABLE", desc: "Ground-truth gauges; activates when devices deploy." },
-  { name: "Extended Outlook", state: "LIVE", desc: "Upstream basin watch (2\u20136 week signal) live; GloFAS 30-day ensemble connect-ready." },
+  { name: "Current Risk Index", state: "LIVE", desc: "Disclosed heuristic from live rainfall accumulation, rainfall burst, and an antecedent-wetness proxy." },
+  { name: "Live Monitoring", state: "LIVE", desc: "Selected Nigerian locations refreshed on demand from Open-Meteo." },
+  { name: "Citizen Reporting", state: "LIVE", desc: "Geotagged report workflow with operator review. Additional media verification depends on storage/integration configuration." },
+  { name: "Emergency Alerts", state: "CONNECTED", desc: "Threshold rules are implemented; email can send through Resend when configured. SMS remains pending phone-number support." },
+  { name: "Insurance Automation", state: "DEPLOYABLE", desc: "Partner-integration concept for insurer workflows; not a live automated claims system." },
+  { name: "Sensor Network", state: "DEPLOYABLE", desc: "Ground-observation integration path for future gauge/device partnerships." },
+  { name: "Extended Outlook", state: "LIVE", desc: "Basin rainfall watch is live. Production GloFAS ensemble discharge integration remains pending." },
 ] as const;
 
 function StatePill({ state }: { state: string }) {
   const map: Record<string, { cls: string; icon: any; label: string }> = {
     LIVE: { cls: "text-radar border-radar/30", icon: Radio, label: "Live" },
-    CONNECTED: { cls: "text-cyan border-cyan/30", icon: PlugZap, label: "Connect-ready" },
-    DEPLOYABLE: { cls: "text-slate-400 border-slate-300 dark:border-slate-600", icon: Boxes, label: "Partner-ready" },
+    CONNECTED: { cls: "text-cyan border-cyan/30", icon: PlugZap, label: "Integration-ready" },
+    DEPLOYABLE: { cls: "text-slate-400 border-slate-300 dark:border-slate-600", icon: Boxes, label: "Partner-dependent" },
   };
   const m = map[state];
   const Icon = m.icon;
@@ -186,7 +188,7 @@ export default function IntelligencePage() {
           <div>
             <h1 className="font-display text-2xl font-bold">Intelligence Center</h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              National flood risk · live from Open-Meteo · every value traceable
+              Selected-location flood-risk monitoring · live Open-Meteo inputs · disclosed heuristic
             </p>
           </div>
           <button onClick={load}
@@ -196,13 +198,13 @@ export default function IntelligencePage() {
           </button>
         </div>
 
-        {/* National ribbon */}
+        {/* Monitoring ribbon */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[
-            { label: "National peak risk", value: status === "ready" ? `${peak}` : "—", sub: levelFor(peak).label, color: levelFor(peak).color },
-            { label: "Stations live", value: `${STATIONS.length}`, sub: "Open-Meteo" },
-            { label: "Data source", value: "NASA-derived", sub: "public feed" },
-            { label: "Model", value: "Disclosed", sub: "multi-factor" },
+            { label: "Highest selected risk", value: status === "ready" ? `${peak}` : "—", sub: levelFor(peak).label, color: levelFor(peak).color },
+            { label: "Locations queried", value: `${STATIONS.length}`, sub: "Open-Meteo" },
+            { label: "Live data source", value: "Open-Meteo", sub: "weather API" },
+            { label: "Current model", value: "Derived", sub: "disclosed heuristic" },
           ].map((m) => (
             <div key={m.label} className="glass-card rounded-xl p-4">
               <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{m.label}</p>
@@ -213,10 +215,10 @@ export default function IntelligencePage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Station list */}
+          {/* Location list */}
           <div className="glass-card rounded-2xl p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Monitored stations</h2>
+              <h2 className="text-sm font-semibold">Monitored locations</h2>
               <StatePill state="LIVE" />
             </div>
             <div className="space-y-1">
@@ -248,16 +250,16 @@ export default function IntelligencePage() {
             </div>
             {status === "error" && (
               <div className="mt-4 rounded-lg border border-crimson/20 bg-crimson/5 p-3 text-xs text-slate-500">
-                Live sync failed — network issue, not missing data. <button onClick={load} className="font-semibold text-crimson">Retry</button>
+                Live sync failed. <button onClick={load} className="font-semibold text-crimson">Retry</button>
               </div>
             )}
           </div>
 
-          {/* Active station detail */}
+          {/* Active location detail */}
           <div className="glass-card rounded-2xl p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold">
-                {active ? `${active.station.name} · ${active.station.note}` : "Station detail"}
+                {active ? `${active.station.name} · ${active.station.note}` : "Location detail"}
               </h2>
               <StatePill state="LIVE" />
             </div>
@@ -267,15 +269,15 @@ export default function IntelligencePage() {
                   <Gauge score={active.model.score} />
                   <div className="flex-1">
                     <FactorBar label="7-day rainfall load" value={active.model.factors.rainfall} color="#06B6D4" />
-                    <FactorBar label="3-day burst intensity" value={active.model.factors.burst} color="#F59E0B" />
-                    <FactorBar label="Soil moisture balance" value={active.model.factors.saturation} color="#8E5CD9" />
+                    <FactorBar label="3-day rainfall burst" value={active.model.factors.burst} color="#F59E0B" />
+                    <FactorBar label="Antecedent wetness proxy" value={active.model.factors.saturation} color="#8E5CD9" />
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-3 border-t border-slate-200 pt-4 dark:border-midnight-border">
                   {[
                     { l: "7-day precip", v: `${active.model.raw.precip7} mm` },
                     { l: "3-day precip", v: `${active.model.raw.precip3} mm` },
-                    { l: "Moisture bal.", v: `${active.model.raw.balance7} mm` },
+                    { l: "Rain − ET0 bal.", v: `${active.model.raw.balance7} mm` },
                   ].map((x) => (
                     <div key={x.l}>
                       <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{x.l}</p>
@@ -284,8 +286,9 @@ export default function IntelligencePage() {
                   ))}
                 </div>
                 <p className="mt-4 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-midnight-border">
-                  Score = 0.45·rainfall + 0.30·burst + 0.25·saturation, normalized to physical flood
-                  thresholds. Every input is a live Open-Meteo value for this coordinate.
+                  Score = 0.45·rainfall + 0.30·burst + 0.25·wetness proxy. These are normalized heuristic
+                  components from Open-Meteo weather data; the score is not a gauge measurement, hydraulic model,
+                  or independently validated Validation v2 probability.
                 </p>
               </>
             ) : (
@@ -298,7 +301,7 @@ export default function IntelligencePage() {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold">Platform modules</h2>
               <span className="font-mono text-[10px] text-slate-500">
-                {MODULES.filter((m) => m.state === "LIVE").length} live · {MODULES.filter((m) => m.state !== "LIVE").length} ready
+                {MODULES.filter((m) => m.state === "LIVE").length} live · {MODULES.filter((m) => m.state !== "LIVE").length} integration/partner-dependent
               </span>
             </div>
             <div className="space-y-2">
@@ -313,10 +316,10 @@ export default function IntelligencePage() {
               ))}
             </div>
             <div className="mt-4 rounded-lg bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-500 dark:bg-slate-800/40">
-              <strong className="text-slate-600 dark:text-slate-400">Honest by design.</strong> Live modules
-              run on real public data now. Connect-ready modules activate when a credential is supplied.
-              Partner-ready modules activate when an insurer, telco or sensor network connects — no mockups
-              stand in for them.
+              <strong className="text-slate-600 dark:text-slate-400">Status is explicit.</strong> Live means the
+              function is available now. Integration-ready means a real external service/credential is still needed.
+              Partner-dependent means the capability is not presented as production functionality until a partner or
+              physical deployment exists.
             </div>
           </div>
         </div>
