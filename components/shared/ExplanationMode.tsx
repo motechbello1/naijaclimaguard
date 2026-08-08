@@ -16,10 +16,65 @@ type ExplanationContextValue = {
   setMode: (mode: ExplanationMode) => void;
 };
 
+type PageGuide = Record<ExplanationMode, string>;
+
 const STORAGE_KEY = "naijaclimaguard:explanation-mode";
 const MODES: ExplanationMode[] = ["simple", "standard", "technical"];
-
 const ExplanationContext = createContext<ExplanationContextValue | null>(null);
+
+const MODE_LABELS: Record<ExplanationMode, string> = {
+  simple: "Simple",
+  standard: "Standard",
+  technical: "Technical",
+};
+
+const GUIDES: Record<string, PageGuide> = {
+  "/my-area": {
+    simple: "See the flood-risk level for a place you care about and what you should pay attention to.",
+    standard: "Check the current location risk score, recent rainfall and the factors pushing risk up or down.",
+    technical: "Inspect the canonical derived-v2 risk output, rainfall accumulations, burst-intensity signal and antecedent-wetness contribution for this location.",
+  },
+  "/dashboard": {
+    simple: "See your important places in one view and quickly spot where attention may be needed.",
+    standard: "Review saved locations, current risk conditions and recent monitoring activity from one overview.",
+    technical: "Review account-level monitoring state and location outputs generated from the platform's canonical live risk endpoint.",
+  },
+  "/intelligence": {
+    simple: "See why the system thinks flood risk is rising or falling.",
+    standard: "Explore the weather and hydrology signals behind the current risk assessment.",
+    technical: "Inspect source attribution, feature-level context and model metadata used to explain the current decision-support signal.",
+  },
+  "/predict": {
+    simple: "Choose a place and check its current flood-risk signal.",
+    standard: "Evaluate a location using the live risk engine and review the factors behind the score.",
+    technical: "Query the canonical risk endpoint for a coordinate and inspect score components, model attribution and raw weather context.",
+  },
+  "/outlook": {
+    simple: "See weather conditions that could make flooding more likely in the coming weeks.",
+    standard: "Review longer-range rainfall and climate context for planning; this is not a precise flood prediction.",
+    technical: "Review longer-horizon contextual indicators separately from the live derived-v2 score and from prospectively validated flood-warning claims.",
+  },
+  "/action": {
+    simple: "Choose when you want an alert and how the system should contact you.",
+    standard: "Create and manage alert rules that react when your saved location crosses a chosen risk threshold.",
+    technical: "Configure threshold rules evaluated against the same canonical derived-v2 engine used by the public risk API, with delivery state recorded separately.",
+  },
+  "/prove": {
+    simple: "See what evidence supports the system, what has been tested, and what has not been proven yet.",
+    standard: "Review validation evidence, documented flood cases and the limits placed on performance claims.",
+    technical: "Inspect chronological validation, event-level evidence, calibration diagnostics, frozen model generations and prospective acceptance rules.",
+  },
+  "/report": {
+    simple: "Tell the system what flooding you can actually see on the ground.",
+    standard: "Submit a local flood observation that can support situation awareness and later verification.",
+    technical: "Submit geolocated observational evidence as a separate ground-report stream; user reports are not automatically treated as validated model labels.",
+  },
+  "/profile": {
+    simple: "Manage your account and subscription details.",
+    standard: "Review your account identity, plan and settings.",
+    technical: "Manage account-level configuration; model and validation settings are intentionally not editable from the user profile.",
+  },
+};
 
 export function ExplanationModeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<ExplanationMode>("standard");
@@ -36,11 +91,7 @@ export function ExplanationModeProvider({ children }: { children: React.ReactNod
     document.documentElement.dataset.explanationMode = mode;
   }, [mode]);
 
-  const value = useMemo(
-    () => ({ mode, setMode: setModeState }),
-    [mode]
-  );
-
+  const value = useMemo(() => ({ mode, setMode: setModeState }), [mode]);
   return <ExplanationContext.Provider value={value}>{children}</ExplanationContext.Provider>;
 }
 
@@ -55,36 +106,25 @@ export function Explain({ simple, standard, technical }: ExplainableText) {
   return <>{mode === "simple" ? simple : mode === "technical" ? technical : standard}</>;
 }
 
-const MODE_COPY: Record<ExplanationMode, { label: string; description: string }> = {
-  simple: {
-    label: "Simple",
-    description: "Everyday words and the action that matters most.",
-  },
-  standard: {
-    label: "Standard",
-    description: "Clear operational detail without unnecessary jargon.",
-  },
-  technical: {
-    label: "Technical",
-    description: "Model, data-source and audit details for specialists.",
-  },
-};
-
 export function ExplanationModeControl() {
   const { mode, setMode } = useExplanationMode();
   const index = MODES.indexOf(mode);
 
   return (
-    <div className="hidden sm:flex items-center gap-3 rounded-xl border border-slate-200 dark:border-midnight-border bg-white/70 dark:bg-midnight-light/70 px-3 py-2" aria-label="Explanation detail level">
-      <SlidersHorizontal className="h-4 w-4 text-radar shrink-0" />
-      <div className="min-w-[150px]">
-        <div className="flex items-center justify-between gap-3 mb-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Explanation</span>
-          <span className="text-xs font-semibold text-radar">{MODE_COPY[mode].label}</span>
+    <div
+      className="flex items-center gap-2 sm:gap-3 rounded-xl border border-slate-200 dark:border-midnight-border bg-white/70 dark:bg-midnight-light/70 px-2 sm:px-3 py-2"
+      aria-label="Explanation detail level"
+      title="Drag to change how technical the dashboard explanations are"
+    >
+      <SlidersHorizontal className="hidden sm:block h-4 w-4 text-radar shrink-0" />
+      <div className="w-[118px] sm:w-[160px]">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-wider text-slate-400">Explanation</span>
+          <span className="text-[11px] sm:text-xs font-semibold text-radar">{MODE_LABELS[mode]}</span>
         </div>
         <input
           aria-label="Explanation detail: Simple, Standard, or Technical"
-          aria-valuetext={MODE_COPY[mode].label}
+          aria-valuetext={MODE_LABELS[mode]}
           type="range"
           min={0}
           max={2}
@@ -93,7 +133,7 @@ export function ExplanationModeControl() {
           onChange={(event) => setMode(MODES[Number(event.target.value)])}
           className="w-full accent-emerald-500 cursor-pointer"
         />
-        <div className="flex justify-between text-[9px] text-slate-400 leading-none mt-0.5" aria-hidden="true">
+        <div className="flex justify-between text-[8px] sm:text-[9px] text-slate-400 leading-none mt-0.5" aria-hidden="true">
           <span>Simple</span><span>Standard</span><span>Technical</span>
         </div>
       </div>
@@ -101,91 +141,10 @@ export function ExplanationModeControl() {
   );
 }
 
-type PageGuide = {
-  simple: string;
-  standard: string;
-  technical: string;
-};
-
-const GUIDES: Array<{ match: (path: string) => boolean; guide: PageGuide }> = [
-  {
-    match: (p) => p === "/my-area",
-    guide: {
-      simple: "See the flood-risk level for a place you care about and what you should pay attention to.",
-      standard: "Check the current location risk score, recent rainfall and the factors pushing risk up or down.",
-      technical: "Inspect the canonical derived-v2 risk output, rainfall accumulations, burst-intensity signal and antecedent-wetness contribution for this location.",
-    },
-  },
-  {
-    match: (p) => p === "/dashboard",
-    guide: {
-      simple: "See your important places in one view and quickly spot where attention may be needed.",
-      standard: "Review saved locations, current risk conditions and recent monitoring activity from one overview.",
-      technical: "Review account-level monitoring state and location outputs generated from the platform's canonical live risk endpoint.",
-    },
-  },
-  {
-    match: (p) => p === "/intelligence",
-    guide: {
-      simple: "See why the system thinks flood risk is rising or falling.",
-      standard: "Explore the weather and hydrology signals behind the current risk assessment.",
-      technical: "Inspect source attribution, feature-level context and model metadata used to explain the current decision-support signal.",
-    },
-  },
-  {
-    match: (p) => p === "/predict",
-    guide: {
-      simple: "Choose a place and check its current flood-risk signal.",
-      standard: "Evaluate a location using the live risk engine and review the factors behind the score.",
-      technical: "Query the canonical risk endpoint for a coordinate and inspect score components, model attribution and raw weather context.",
-    },
-  },
-  {
-    match: (p) => p === "/outlook",
-    guide: {
-      simple: "See weather conditions that could make flooding more likely in the coming weeks.",
-      standard: "Review longer-range rainfall and climate context for planning; this is not a precise flood prediction.",
-      technical: "Review longer-horizon contextual indicators separately from the live derived-v2 score and from prospectively validated flood-warning claims.",
-    },
-  },
-  {
-    match: (p) => p === "/action",
-    guide: {
-      simple: "Choose when you want an alert and how the system should contact you.",
-      standard: "Create and manage alert rules that react when your saved location crosses a chosen risk threshold.",
-      technical: "Configure threshold rules evaluated against the same canonical derived-v2 engine used by the public risk API, with delivery state recorded separately.",
-    },
-  },
-  {
-    match: (p) => p === "/prove",
-    guide: {
-      simple: "See what evidence supports the system, what has been tested, and what has not been proven yet.",
-      standard: "Review validation evidence, documented flood cases and the limits placed on performance claims.",
-      technical: "Inspect chronological validation, event-level evidence, calibration diagnostics, frozen model generations and prospective acceptance rules.",
-    },
-  },
-  {
-    match: (p) => p === "/report",
-    guide: {
-      simple: "Tell the system what flooding you can actually see on the ground.",
-      standard: "Submit a local flood observation that can support situation awareness and later verification.",
-      technical: "Submit geolocated observational evidence as a separate ground-report stream; user reports are not automatically treated as validated model labels.",
-    },
-  },
-  {
-    match: (p) => p === "/profile",
-    guide: {
-      simple: "Manage your account and subscription details.",
-      standard: "Review your account identity, plan and settings.",
-      technical: "Manage account-level configuration; model and validation settings are intentionally not editable from the user profile.",
-    },
-  },
-];
-
 export function PageExplanation({ pathname }: { pathname: string }) {
   const { mode } = useExplanationMode();
-  const entry = GUIDES.find((item) => item.match(pathname));
-  if (!entry) return null;
+  const guide = GUIDES[pathname];
+  if (!guide) return null;
 
   return (
     <div className="mb-5 flex items-start gap-3 rounded-xl border border-radar/15 bg-radar/[0.04] px-4 py-3" role="note">
@@ -195,9 +154,9 @@ export function PageExplanation({ pathname }: { pathname: string }) {
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">What this page means</p>
-          <span className="text-[10px] uppercase tracking-wider text-radar font-semibold">{MODE_COPY[mode].label}</span>
+          <span className="text-[10px] uppercase tracking-wider text-radar font-semibold">{MODE_LABELS[mode]}</span>
         </div>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{entry.guide[mode]}</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{guide[mode]}</p>
       </div>
     </div>
   );
