@@ -1,2 +1,3 @@
 Validation v2 full execution requested after EARTHDATA_TOKEN and EWDS_API_KEY were configured and required GloFAS dataset licences were accepted.
 Requested: 2026-08-08 Africa/Lagos.
+Observable PR check trigger: enabled after validation-v2-pr workflow was added to main.
