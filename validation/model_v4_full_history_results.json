@@ -1,0 +1,32 @@
+{
+  "status": "full_history_forward_development_complete_shadow_candidate",
+  "development_period": ["2018-01-01", "2024-12-31"],
+  "target": "documented flood anchor in next 1-3 days; anchor day and post-event days are not positive",
+  "feature_rows": 12785,
+  "labelled_rows_after_uncertainty_exclusion": 11894,
+  "positive_rows": 105,
+  "events": 35,
+  "folds": [
+    {"validation_year": 2019, "train_rows": 1721, "validation_rows": 1695, "validation_positive_rows": 15, "prevalence": 0.008849557522123894, "pr_auc": 0.21673396756917412, "roc_auc": 0.769484126984127, "brier_score": 0.13038983407151947},
+    {"validation_year": 2020, "train_rows": 3416, "validation_rows": 1726, "validation_positive_rows": 12, "prevalence": 0.006952491309385863, "pr_auc": 0.035503386881141616, "roc_auc": 0.8235608712563205, "brier_score": 0.08285672662921739},
+    {"validation_year": 2021, "train_rows": 5142, "validation_rows": 1747, "validation_positive_rows": 9, "prevalence": 0.005151688609044075, "pr_auc": 0.01126920636271662, "roc_auc": 0.5875207773941952, "brier_score": 0.05822392556390174},
+    {"validation_year": 2022, "train_rows": 6889, "validation_rows": 1695, "validation_positive_rows": 15, "prevalence": 0.008849557522123894, "pr_auc": 0.0872316675668983, "roc_auc": 0.7945634920634921, "brier_score": 0.048020875925887704},
+    {"validation_year": 2023, "train_rows": 8584, "validation_rows": 1721, "validation_positive_rows": 12, "prevalence": 0.006972690296339338, "pr_auc": 0.03177030833207684, "roc_auc": 0.7782328847279111, "brier_score": 0.03933377104946285},
+    {"validation_year": 2024, "train_rows": 10305, "validation_rows": 1589, "validation_positive_rows": 30, "prevalence": 0.018879798615481436, "pr_auc": 0.10305050431592636, "roc_auc": 0.894013256360915, "brier_score": 0.03935700228183658}
+  ],
+  "mean_temporal_fold_pr_auc": 0.08092650683798898,
+  "all_folds_above_prevalence": true,
+  "pooled_oof_calibrated": {"pr_auc": 0.024503545626669815, "roc_auc": 0.6574639443591056, "brier_score": 0.008968156709064545},
+  "shadow_threshold": 0.008333,
+  "historical_shadow_threshold_metrics": {
+    "threshold": 0.008333,
+    "event_detection_rate": 0.8064516129032258,
+    "detected_events": 25,
+    "evaluated_events": 31,
+    "precision": 0.012957157784743992,
+    "recall": 0.6666666666666666,
+    "false_positive_location_days": 4723,
+    "false_positive_location_days_per_1000_negative": 468.5515873015873
+  },
+  "warning": "Historical development evidence only. Candidate is shadow-only until prospective acceptance."
+}
