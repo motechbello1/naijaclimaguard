@@ -29,6 +29,7 @@ env:
   END_DATE: ${{ github.event.inputs.end_date || '2024-12-31' }}
   CUTOFF: ${{ github.event.inputs.cutoff || '2022-01-01' }}
   EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+  EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
 
 jobs:
   validate:
@@ -58,8 +59,7 @@ jobs:
             --end "$END_DATE"
 
       - name: Compare GloFAS with Nigerian ground observations
-        run: |
-          python validation/compare_glofas_ground.py
+        run: python validation/compare_glofas_ground.py
 
       - name: Fetch ERA5-Land surface state
         run: |
@@ -67,21 +67,28 @@ jobs:
             --start "$START_DATE" \
             --end "$END_DATE"
 
-      - name: NASA Earthdata preflight
-        id: nasa_preflight
+      - name: Source credential preflight
+        id: source_preflight
         shell: bash
         run: |
           if [ -n "$EARTHDATA_TOKEN" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-            echo "NASA Earthdata token detected. IMERG extraction will run."
+            echo "nasa=true" >> "$GITHUB_OUTPUT"
+            echo "NASA Earthdata token detected."
           else
-            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "nasa=false" >> "$GITHUB_OUTPUT"
             echo "NASA Earthdata token is not configured."
-            echo "GloFAS and ERA5-Land have still been fetched; NASA/fusion/model steps will be skipped."
+          fi
+
+          if [ -n "$EWDS_API_KEY" ]; then
+            echo "ewds=true" >> "$GITHUB_OUTPUT"
+            echo "EWDS API key detected."
+          else
+            echo "ewds=false" >> "$GITHUB_OUTPUT"
+            echo "EWDS API key is not configured."
           fi
 
       - name: Stream NASA GPM IMERG Final V07
-        if: steps.nasa_preflight.outputs.available == 'true'
+        if: steps.source_preflight.outputs.nasa == 'true'
         run: |
           python validation/fetch_nasa_imerg.py \
             --start "$START_DATE" \
@@ -89,18 +96,18 @@ jobs:
             --batch-size 20
 
       - name: Check source coverage and provenance
-        if: steps.nasa_preflight.outputs.available == 'true'
+        if: steps.source_preflight.outputs.nasa == 'true'
         run: |
           python validation/check_sources.py \
             --start "$START_DATE" \
             --end "$END_DATE"
 
       - name: Build fused historical feature table
-        if: steps.nasa_preflight.outputs.available == 'true'
+        if: steps.source_preflight.outputs.nasa == 'true'
         run: python validation/build_features.py
 
       - name: Run chronological independent-event benchmark
-        if: steps.nasa_preflight.outputs.available == 'true'
+        if: steps.source_preflight.outputs.nasa == 'true'
         run: |
           python validation/validate_v2.py \
             --features validation/features_daily.csv \
@@ -109,21 +116,41 @@ jobs:
             --threshold 0.50 \
             --output validation/validation_results.json
 
-      - name: Write incomplete-run status when NASA secret is absent
-        if: steps.nasa_preflight.outputs.available != 'true'
+      - name: Stream NASA IMERG Early V06 for Lokoja 2022 operational replay
+        if: steps.source_preflight.outputs.nasa == 'true'
+        run: |
+          python validation/fetch_nasa_imerg_early_2022.py \
+            --start "2022-09-20T00:00:00Z" \
+            --end "2022-10-07T23:59:59Z"
+
+      - name: Fetch archived operational GloFAS forecasts for Lokoja 2022
+        if: steps.source_preflight.outputs.ewds == 'true'
+        run: |
+          python validation/fetch_glofas_operational_forecasts.py \
+            --location Lokoja \
+            --start 2022-09-21 \
+            --end 2022-10-06 \
+            --lead-hours 24 48 72
+
+      - name: Build Lokoja 2022 operational replay evidence table
+        if: steps.source_preflight.outputs.nasa == 'true' && steps.source_preflight.outputs.ewds == 'true'
+        run: python validation/reconstruct_lokoja_2022.py
+
+      - name: Write validation credential/status report
+        if: always()
         shell: bash
         run: |
-          cat > validation/validation_status.txt <<'EOF'
-          Validation v2 source ingestion is PARTIAL.
-
-          GloFAS v4 discharge: attempted
-          GloFAS vs Nigerian ground-observation calibration: attempted
-          ERA5-Land surface state: attempted
-          NASA GPM IMERG Final V07: not run because EARTHDATA_TOKEN is not configured
-          Fused model benchmark: intentionally not run
-
-          Add repository Actions secret EARTHDATA_TOKEN and rerun this workflow.
-          EOF
+          {
+            echo "Validation v2 credential status"
+            echo "NASA Earthdata configured: ${{ steps.source_preflight.outputs.nasa }}"
+            echo "CEMS EWDS configured: ${{ steps.source_preflight.outputs.ewds }}"
+            if [ "${{ steps.source_preflight.outputs.nasa }}" != "true" ]; then
+              echo "NASA-dependent historical fusion and IMERG operational replay were skipped."
+            fi
+            if [ "${{ steps.source_preflight.outputs.ewds }}" != "true" ]; then
+              echo "Archived operational GloFAS T-24/T-48/T-72 replay was skipped."
+            fi
+          } > validation/validation_status.txt
 
       - name: Upload validation evidence
         if: always()
@@ -134,6 +161,7 @@ jobs:
           retention-days: 30
           path: |
             validation/raw/*.csv
+            validation/raw/glofas_operational_forecasts/*.nc
             validation/features_daily.csv
             validation/source_quality.json
             validation/validation_results.json
@@ -142,4 +170,9 @@ jobs:
             validation/ground_observations.csv
             validation/glofas_ground_comparison.csv
             validation/glofas_ground_summary.json
+            validation/nasa_imerg_early_lokoja_2022_halfhour.csv
+            validation/nasa_imerg_early_lokoja_2022_daily.csv
+            validation/glofas_operational_forecasts.csv
+            validation/lokoja_2022_operational_replay.csv
+            validation/lokoja_2022_operational_replay_summary.json
             validation/SOURCES.md
