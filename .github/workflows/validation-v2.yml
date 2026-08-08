@@ -6,6 +6,11 @@ on:
     paths:
       - "validation/**"
       - ".github/workflows/validation-v2.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "validation/**"
+      - ".github/workflows/validation-v2.yml"
   workflow_dispatch:
     inputs:
       start_date:
