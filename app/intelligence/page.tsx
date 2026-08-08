@@ -8,15 +8,15 @@
  *   CONNECTED   — integration path exists but depends on a credential/service.
  *   DEPLOYABLE  — partner-dependent capability, not live production functionality.
  *
- * Current risk values on this page are derived from Open-Meteo rainfall and ET0
- * using the disclosed heuristic below. They are not Validation v2 XGBoost scores.
+ * Current risk values on this page come from /api/v1/risk, the same derived-v2
+ * engine used by saved-location dashboards and alert evaluation. They are not
+ * Validation v2 XGBoost scores.
  */
 
 import AppShell from "@/components/shared/AppShell";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { RefreshCw, Radio, PlugZap, Boxes } from "lucide-react";
 
-// ---- Selected monitoring coordinates ----
 const STATIONS = [
   { id: "LKJ", name: "Lokoja", state: "Kogi", note: "Niger–Benue confluence", lat: 7.8023, lon: 6.7333 },
   { id: "MKD", name: "Makurdi", state: "Benue", note: "River Benue", lat: 7.7322, lon: 8.5391 },
@@ -42,12 +42,10 @@ interface RiskModel {
   score: number;
   factors: { rainfall: number; burst: number; saturation: number };
   raw: { precip7: number; precip3: number; balance7: number };
-  todayIdx: number;
 }
 interface StationResult {
   station: Station;
-  daily: any;
-  model: RiskModel | null;
+  model: RiskModel;
 }
 
 function levelFor(s: number) {
@@ -58,47 +56,34 @@ function levelFor(s: number) {
   return { label: "Normal", color: "#10B981" };
 }
 
-/** Disclosed heuristic — every input below comes from Open-Meteo. */
-function deriveRisk(daily: any): RiskModel | null {
-  if (!daily?.time?.length) return null;
-  const idx = daily.time.length - 4;
-  const p: number[] = daily.precipitation_sum ?? [];
-  const et0: number[] = daily.et0_fao_evapotranspiration ?? [];
-  const sum = (arr: number[], a: number, b: number) =>
-    arr.slice(Math.max(0, a), b).reduce((x, y) => x + (y || 0), 0);
-
-  const precip7 = sum(p, idx - 6, idx + 1);
-  const precip3 = sum(p, idx - 2, idx + 1);
-  const balance7 = precip7 - sum(et0, idx - 6, idx + 1);
-
-  const rainfall = Math.min(1, precip7 / 200);
-  const burst = Math.min(1, precip3 / 120);
-  const saturation = Math.min(1, Math.max(0, (balance7 + 40) / 160));
-  const score = Math.round((rainfall * 0.45 + burst * 0.3 + saturation * 0.25) * 100);
+async function fetchStation(st: Station): Promise<StationResult> {
+  const res = await fetch(`/api/v1/risk?latitude=${st.lat}&longitude=${st.lon}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`risk API ${res.status}`);
+  const data = await res.json();
 
   return {
-    score: Math.max(0, Math.min(100, score)),
-    factors: { rainfall, burst, saturation },
-    raw: { precip7: +precip7.toFixed(1), precip3: +precip3.toFixed(1), balance7: +balance7.toFixed(1) },
-    todayIdx: idx,
+    station: st,
+    model: {
+      score: data.risk.score,
+      factors: {
+        rainfall: data.factors.rainfall_7d,
+        burst: data.factors.burst_intensity,
+        saturation: data.factors.soil_saturation,
+      },
+      raw: {
+        precip7: data.raw_weather.precipitation_7d_mm,
+        precip3: data.raw_weather.precipitation_3d_mm,
+        balance7: data.raw_weather.moisture_balance_7d_mm,
+      },
+    },
   };
 }
 
-async function fetchStation(st: Station): Promise<StationResult> {
-  const url =
-    `https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}` +
-    `&daily=precipitation_sum,et0_fao_evapotranspiration&past_days=10&forecast_days=4&timezone=Africa%2FLagos`;
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Open-Meteo ${res.status}`);
-  const json = await res.json();
-  return { station: st, daily: json.daily, model: deriveRisk(json.daily) };
-}
-
 const MODULES = [
-  { name: "Current Risk Index", state: "LIVE", desc: "Disclosed heuristic from live rainfall accumulation, rainfall burst, and an antecedent-wetness proxy." },
-  { name: "Live Monitoring", state: "LIVE", desc: "Selected Nigerian locations refreshed on demand from Open-Meteo." },
+  { name: "Current Risk Index", state: "LIVE", desc: "Canonical derived-v2 score from the same public risk API used by dashboard and alert workflows." },
+  { name: "Live Monitoring", state: "LIVE", desc: "Selected Nigerian locations refreshed through one shared production risk engine." },
   { name: "Citizen Reporting", state: "LIVE", desc: "Geotagged report workflow with operator review. Additional media verification depends on storage/integration configuration." },
-  { name: "Emergency Alerts", state: "CONNECTED", desc: "Threshold rules are implemented; email can send through Resend when configured. SMS remains pending phone-number support." },
+  { name: "Emergency Alerts", state: "CONNECTED", desc: "Threshold rules use the same derived-v2 engine; email can send through Resend when configured. SMS remains pending phone-number support." },
   { name: "Insurance Automation", state: "DEPLOYABLE", desc: "Partner-integration concept for insurer workflows; not a live automated claims system." },
   { name: "Sensor Network", state: "DEPLOYABLE", desc: "Ground-observation integration path for future gauge/device partnerships." },
   { name: "Extended Outlook", state: "LIVE", desc: "Basin rainfall watch is live. Production GloFAS ensemble discharge integration remains pending." },
@@ -155,21 +140,26 @@ function FactorBar({ label, value, color }: { label: string; value: number; colo
 
 export default function IntelligencePage() {
   const [results, setResults] = useState<StationResult[]>([]);
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "partial" | "error">("loading");
   const [activeId, setActiveId] = useState("LKJ");
   const [lastSync, setLastSync] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
     setStatus("loading");
-    try {
-      const data = await Promise.all(STATIONS.map(fetchStation));
-      data.sort((a, b) => (b.model?.score ?? 0) - (a.model?.score ?? 0));
-      setResults(data);
-      setLastSync(new Date());
-      setStatus("ready");
-    } catch {
+    const settled = await Promise.allSettled(STATIONS.map(fetchStation));
+    const data = settled
+      .filter((item): item is PromiseFulfilledResult<StationResult> => item.status === "fulfilled")
+      .map((item) => item.value);
+
+    if (data.length === 0) {
       setStatus("error");
+      return;
     }
+
+    data.sort((a, b) => b.model.score - a.model.score);
+    setResults(data);
+    setLastSync(new Date());
+    setStatus(data.length === STATIONS.length ? "ready" : "partial");
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -178,17 +168,16 @@ export default function IntelligencePage() {
     () => results.find((r) => r.station.id === activeId) ?? results[0],
     [results, activeId]
   );
-  const peak = results.length ? Math.max(...results.map((r) => r.model?.score ?? 0)) : 0;
+  const peak = results.length ? Math.max(...results.map((r) => r.model.score)) : 0;
 
   return (
     <AppShell>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-bold">Intelligence Center</h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Selected-location flood-risk monitoring · live Open-Meteo inputs · disclosed heuristic
+              Selected-location flood-risk monitoring · canonical derived-v2 API · live Open-Meteo inputs
             </p>
           </div>
           <button onClick={load}
@@ -198,13 +187,12 @@ export default function IntelligencePage() {
           </button>
         </div>
 
-        {/* Monitoring ribbon */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {[
-            { label: "Highest selected risk", value: status === "ready" ? `${peak}` : "—", sub: levelFor(peak).label, color: levelFor(peak).color },
-            { label: "Locations queried", value: `${STATIONS.length}`, sub: "Open-Meteo" },
-            { label: "Live data source", value: "Open-Meteo", sub: "weather API" },
-            { label: "Current model", value: "Derived", sub: "disclosed heuristic" },
+            { label: "Highest selected risk", value: status === "ready" || status === "partial" ? `${peak}` : "—", sub: levelFor(peak).label, color: levelFor(peak).color },
+            { label: "Locations live", value: `${results.length}/${STATIONS.length}`, sub: status === "partial" ? "partial feed" : "shared API" },
+            { label: "Live data source", value: "Open-Meteo", sub: "via risk API" },
+            { label: "Current model", value: "Derived-v2", sub: "single engine" },
           ].map((m) => (
             <div key={m.label} className="glass-card rounded-xl p-4">
               <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{m.label}</p>
@@ -215,7 +203,6 @@ export default function IntelligencePage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Location list */}
           <div className="glass-card rounded-2xl p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold">Monitored locations</h2>
@@ -227,7 +214,7 @@ export default function IntelligencePage() {
                     <div key={s.id} className="h-11 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/50" />
                   ))
                 : results.map((r) => {
-                    const lvl = r.model ? levelFor(r.model.score) : levelFor(0);
+                    const lvl = levelFor(r.model.score);
                     const isActive = r.station.id === activeId;
                     return (
                       <button key={r.station.id} onClick={() => setActiveId(r.station.id)}
@@ -242,12 +229,17 @@ export default function IntelligencePage() {
                           </span>
                         </span>
                         <span className="font-mono text-sm font-bold" style={{ color: lvl.color }}>
-                          {r.model?.score ?? "—"}
+                          {r.model.score}
                         </span>
                       </button>
                     );
                   })}
             </div>
+            {status === "partial" && (
+              <div className="mt-4 rounded-lg border border-amber/20 bg-amber/5 p-3 text-xs text-slate-500">
+                {results.length} of {STATIONS.length} locations responded. Available locations remain live; retry to recover the rest.
+              </div>
+            )}
             {status === "error" && (
               <div className="mt-4 rounded-lg border border-crimson/20 bg-crimson/5 p-3 text-xs text-slate-500">
                 Live sync failed. <button onClick={load} className="font-semibold text-crimson">Retry</button>
@@ -255,7 +247,6 @@ export default function IntelligencePage() {
             )}
           </div>
 
-          {/* Active location detail */}
           <div className="glass-card rounded-2xl p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold">
@@ -269,7 +260,7 @@ export default function IntelligencePage() {
                   <Gauge score={active.model.score} />
                   <div className="flex-1">
                     <FactorBar label="7-day rainfall load" value={active.model.factors.rainfall} color="#06B6D4" />
-                    <FactorBar label="3-day rainfall burst" value={active.model.factors.burst} color="#F59E0B" />
+                    <FactorBar label="Rainfall burst" value={active.model.factors.burst} color="#F59E0B" />
                     <FactorBar label="Antecedent wetness proxy" value={active.model.factors.saturation} color="#8E5CD9" />
                   </div>
                 </div>
@@ -286,9 +277,9 @@ export default function IntelligencePage() {
                   ))}
                 </div>
                 <p className="mt-4 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-midnight-border">
-                  Score = 0.45·rainfall + 0.30·burst + 0.25·wetness proxy. These are normalized heuristic
-                  components from Open-Meteo weather data; the score is not a gauge measurement, hydraulic model,
-                  or independently validated Validation v2 probability.
+                  Score = 0.40·7-day rainfall + 0.35·effective rainfall burst + 0.25·wetness proxy. This is the
+                  same derived-v2 result served by the public risk API and alert engine. It is not a gauge measurement,
+                  hydraulic model, or independently validated Validation v2 probability.
                 </p>
               </>
             ) : (
@@ -296,7 +287,6 @@ export default function IntelligencePage() {
             )}
           </div>
 
-          {/* Module rail */}
           <div className="glass-card rounded-2xl p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold">Platform modules</h2>
