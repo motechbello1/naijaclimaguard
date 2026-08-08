@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
+import { fetchDerivedV2Risk } from "@/lib/risk/derived-v2";
 
 /**
  * POST /api/reports/generate
- * Generates a dated situation report from the same disclosed live signal family
- * used by the public risk endpoint: Open-Meteo precipitation + ET0, with hourly
- * rainfall intensity when available.
+ * Generates a dated situation report from the exact same derived-v2 engine used
+ * by the public risk endpoint, dashboard, My Area and alert workflows.
  *
  * No historical ML performance or fixed lead-time claim is included here.
  */
@@ -18,69 +18,16 @@ const STATIONS = [
   { id: "IBI-06", name: "Ibi", state: "Taraba", lat: 8.1817, lon: 9.7442 },
 ];
 
-function derive(daily: any, hourlyPrecip: number[]) {
-  const idx = daily.time.length - 5;
-  const p: number[] = daily.precipitation_sum ?? [];
-  const et0: number[] = daily.et0_fao_evapotranspiration ?? [];
-  const sum = (a: number[], x: number, y: number) => a.slice(Math.max(0, x), y).reduce((m, n) => m + (n || 0), 0);
-
-  const p7 = sum(p, idx - 6, idx + 1);
-  const p3 = sum(p, idx - 2, idx + 1);
-  const bal = p7 - sum(et0, idx - 6, idx + 1);
-
-  const rainfallNorm = Math.min(1, p7 / 200);
-  const burstDaily = Math.min(1, p3 / 120);
-  const wetnessProxy = Math.min(1, Math.max(0, (bal + 40) / 160));
-
-  const maxHourly = hourlyPrecip.length ? Math.max(0, ...hourlyPrecip.map((v) => v ?? 0)) : 0;
-  let max3h = 0;
-  for (let i = 2; i < hourlyPrecip.length; i++) {
-    max3h = Math.max(max3h, (hourlyPrecip[i] ?? 0) + (hourlyPrecip[i - 1] ?? 0) + (hourlyPrecip[i - 2] ?? 0));
-  }
-  const hourlyBurst = Math.max(Math.min(1, maxHourly / 30), Math.min(1, max3h / 60));
-  const effectiveBurst = Math.max(burstDaily, hourlyBurst);
-
-  const score = Math.max(0, Math.min(100, Math.round((rainfallNorm * 0.40 + effectiveBurst * 0.35 + wetnessProxy * 0.25) * 100)));
-  const level = score >= 90 ? "EXTREME" : score >= 75 ? "SEVERE" : score >= 60 ? "WARNING" : score >= 40 ? "WATCH" : "NORMAL";
-
-  return {
-    score,
-    level,
-    p7: +p7.toFixed(1),
-    p3: +p3.toFixed(1),
-    maxHourly: +maxHourly.toFixed(1),
-  };
-}
-
 export async function POST() {
   const results: string[] = [];
   let reachable = 0;
 
   for (const st of STATIONS) {
     try {
-      const [dailyRes, hourlyRes] = await Promise.all([
-        fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}&daily=precipitation_sum,et0_fao_evapotranspiration&past_days=10&forecast_days=4&timezone=Africa%2FLagos`,
-          { cache: "no-store", signal: AbortSignal.timeout(8000) }
-        ),
-        fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}&hourly=precipitation&past_hours=48&forecast_hours=0&timezone=Africa%2FLagos`,
-          { cache: "no-store", signal: AbortSignal.timeout(8000) }
-        ),
-      ]);
-
-      if (!dailyRes.ok) throw new Error();
-      const { daily } = await dailyRes.json();
-      let hourlyPrecip: number[] = [];
-      if (hourlyRes.ok) {
-        const h = (await hourlyRes.json()).hourly;
-        hourlyPrecip = h?.precipitation ?? [];
-      }
-
-      const r = derive(daily, hourlyPrecip);
+      const r = await fetchDerivedV2Risk(st.lat, st.lon);
       reachable++;
       results.push(
-        `${st.id.padEnd(8)} ${st.name.padEnd(10)} ${st.state.padEnd(9)} risk ${String(r.score).padStart(3)}/100  ${r.level.padEnd(8)} 7d rain ${String(r.p7).padStart(6)}mm  3d ${String(r.p3).padStart(5)}mm  max hourly ${String(r.maxHourly).padStart(5)}mm`
+        `${st.id.padEnd(8)} ${st.name.padEnd(10)} ${st.state.padEnd(9)} risk ${String(r.risk.score).padStart(3)}/100  ${r.risk.level.padEnd(8)} 7d rain ${String(r.raw_weather.precipitation_7d_mm).padStart(6)}mm  3d ${String(r.raw_weather.precipitation_3d_mm).padStart(5)}mm  max hourly ${String(r.hourly.max_mm_per_hour).padStart(5)}mm`
       );
     } catch {
       results.push(`${st.id.padEnd(8)} ${st.name.padEnd(10)} ${st.state.padEnd(9)} live feed unreachable at report time`);
@@ -101,7 +48,9 @@ CURRENT DATA & MODEL PROVENANCE
 Live data source:      Open-Meteo forecast API — precipitation + FAO ET0,
                        with recent hourly precipitation when available.
 Live risk model:       derived-v2 heuristic decision-support index.
-Formula:               0.40*7d rainfall + 0.35*rainfall burst +
+Implementation:        one shared production engine used by API, dashboard,
+                       My Area, Intelligence Center, alerts and this report.
+Formula:               0.40*7d rainfall + 0.35*effective rainfall burst +
                        0.25*antecedent-wetness proxy (normalized components).
 Important limitation:  The live endpoint does not currently ingest NASA IMERG
                        or GloFAS directly, and the wetness term is not observed
