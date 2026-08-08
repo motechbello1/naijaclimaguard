@@ -6,13 +6,17 @@ on:
     paths:
       - "validation/model_v3_dev.py"
       - "validation/review_model_v3_results.py"
+      - "validation/select_model_v3_threshold.py"
+      - "validation/fit_model_v3_freeze_candidate.py"
       - "validation/model_v3_event_registry.csv"
       - "validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md"
       - "validation/MODEL_V3_PROTOCOL.md"
+      - "validation/MODEL_V3_THRESHOLD_POLICY.md"
       - "validation/model_v3_requirements.txt"
       - "validation/model_v3_source_requirements.txt"
       - "validation/run_model_v3_dev.sh"
       - "validation/tests/test_model_v3_dev.py"
+      - "validation/evidence/historical_benchmark_2018_2024.json"
       - ".github/workflows/model-v3-dev-check.yml"
       - ".github/workflows/model-v3-full-development.yml"
   pull_request:
@@ -20,13 +24,17 @@ on:
     paths:
       - "validation/model_v3_dev.py"
       - "validation/review_model_v3_results.py"
+      - "validation/select_model_v3_threshold.py"
+      - "validation/fit_model_v3_freeze_candidate.py"
       - "validation/model_v3_event_registry.csv"
       - "validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md"
       - "validation/MODEL_V3_PROTOCOL.md"
+      - "validation/MODEL_V3_THRESHOLD_POLICY.md"
       - "validation/model_v3_requirements.txt"
       - "validation/model_v3_source_requirements.txt"
       - "validation/run_model_v3_dev.sh"
       - "validation/tests/test_model_v3_dev.py"
+      - "validation/evidence/historical_benchmark_2018_2024.json"
       - ".github/workflows/model-v3-dev-check.yml"
       - ".github/workflows/model-v3-full-development.yml"
   workflow_dispatch:
@@ -51,43 +59,58 @@ jobs:
         run: |
           python --version
           pip freeze | sort | tee model-v3-pip-freeze.txt
-      - name: Compile Model v3 harness and review
+      - name: Compile Model v3 protocol code
         run: |
           python -m py_compile validation/model_v3_dev.py
           python -m py_compile validation/review_model_v3_results.py
+          python -m py_compile validation/select_model_v3_threshold.py
+          python -m py_compile validation/fit_model_v3_freeze_candidate.py
       - name: Run protocol guard tests
         run: python -m unittest validation/tests/test_model_v3_dev.py
       - name: Validate frozen development event registry
         run: |
           python - <<'PY'
           import pandas as pd
-          p = 'validation/model_v3_event_registry.csv'
-          e = pd.read_csv(p, parse_dates=['observed_by_date'])
+          e = pd.read_csv('validation/model_v3_event_registry.csv', parse_dates=['observed_by_date'])
           e = e[e['include_in_benchmark'].astype(str).str.lower().eq('true')]
           assert e['event_id'].is_unique
           assert (e['observed_by_date'] < pd.Timestamp('2022-01-01')).all()
-          assert e['event_id'].nunique() == 16, e['event_id'].nunique()
+          assert e['event_id'].nunique() == 16
           oof = e[e['observed_by_date'].dt.year.isin([2019, 2020, 2021])]
-          assert oof['event_id'].nunique() == 12, oof['event_id'].nunique()
-          expected_by_year = {2018: 4, 2019: 5, 2020: 4, 2021: 3}
-          actual_by_year = e.groupby(e['observed_by_date'].dt.year)['event_id'].nunique().to_dict()
-          assert actual_by_year == expected_by_year, actual_by_year
-          print('development events:', e['event_id'].nunique())
-          print('2019-2021 OOF event anchors:', oof['event_id'].nunique())
-          print('events by year:', actual_by_year)
+          assert oof['event_id'].nunique() == 12
+          assert e.groupby(e['observed_by_date'].dt.year)['event_id'].nunique().to_dict() == {2018: 4, 2019: 5, 2020: 4, 2021: 3}
           PY
-      - name: Verify full-development gate is still 2018-2021 only
+      - name: Validate canonical Validation v2 evidence gate
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path('validation/evidence/historical_benchmark_2018_2024.json').read_text())
+          assert r['status'] == 'historical_benchmark_complete_model_not_production_ready'
+          assert r['data_qa']['fused_location_days'] == 12785
+          assert r['protocol']['cutoff'] == '2022-01-01'
+          assert r['protocol']['independent_feature_covered_train_events'] == 11
+          assert r['protocol']['independent_test_events'] == 20
+          t = r['chronological_test']
+          assert abs(t['roc_auc'] - 0.7147814596462696) < 1e-12
+          assert abs(t['pr_auc'] - 0.0572282380431264) < 1e-12
+          assert t['event_detection_at_0_5'] == {'detected': 1, 'evaluated': 20, 'rate': 0.05}
+          PY
+      - name: Verify full-development and threshold gates
         run: |
           python - <<'PY'
           from pathlib import Path
-          text = Path('.github/workflows/model-v3-full-development.yml').read_text()
-          assert 'START_DATE: "2018-01-01"' in text
-          assert 'END_DATE: "2021-12-31"' in text
-          assert 'HARD_CUTOFF: "2022-01-01"' in text
-          assert 'validation_v2_canonical_confirmed' in text
-          assert "event_id'].nunique() == 16" in text
-          assert "oof['event_id'].nunique() == 12" in text
-          print('full-development workflow cutoff and frozen-registry gates present')
+          wf = Path('.github/workflows/model-v3-full-development.yml').read_text()
+          assert 'START_DATE: "2018-01-01"' in wf
+          assert 'END_DATE: "2021-12-31"' in wf
+          assert 'HARD_CUTOFF: "2022-01-01"' in wf
+          assert 'Machine-verify canonical Validation v2 evidence' in wf
+          assert 'select_model_v3_threshold.py' in wf
+          assert 'fit_model_v3_freeze_candidate.py' in wf
+          policy = Path('validation/MODEL_V3_THRESHOLD_POLICY.md').read_text()
+          assert 'event-window detection rate >= 75%' in policy
+          assert 'False-positive burden <= 10 per 1,000 negative location-days' in policy
+          assert 'Precision >= 10%' in policy
           PY
       - name: Upload runtime fingerprint
         uses: actions/upload-artifact@v4
