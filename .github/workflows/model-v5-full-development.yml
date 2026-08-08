@@ -1,0 +1,192 @@
+name: Model v5 Full Operational-Native Development
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [model-v5-operational-native]
+    paths:
+      - "validation/model_v5_full_run_trigger.txt"
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify protocol exists before source retrieval
+        run: |
+          test -f validation/MODEL_V5_PROTOCOL.md
+          test -f validation/model_v4_event_registry.csv
+          python - <<'PY'
+          import pandas as pd
+          events = pd.read_csv('validation/model_v4_event_registry.csv')
+          enabled = events[events['include_in_benchmark'].astype(str).str.lower().eq('true')]
+          assert enabled['event_id'].nunique() == 35
+          print('Frozen 35-event registry verified')
+          PY
+
+  nasa:
+    needs: protocol
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        year: [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+    env:
+      EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install Model v5 runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+      - name: Verify Earthdata credential
+        run: test -n "$EARTHDATA_TOKEN" || (echo 'EARTHDATA_TOKEN missing' && exit 1)
+      - name: Fetch NASA IMERG Early V07 year
+        run: |
+          START="${{ matrix.year }}-01-01"
+          if [ "${{ matrix.year }}" = "2018" ]; then START="2017-12-01"; fi
+          python validation/fetch_nasa_imerg_early_history_v5.py \
+            --start "$START" \
+            --end "${{ matrix.year }}-12-31" \
+            --workers 6 \
+            --out "validation/model_v5/work/nasa_${{ matrix.year }}.csv"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: model-v5-nasa-${{ matrix.year }}
+          retention-days: 30
+          if-no-files-found: error
+          path: validation/model_v5/work/nasa_${{ matrix.year }}.csv
+
+  glofas:
+    needs: protocol
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        year: [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+    env:
+      EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install Model v5 runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+      - name: Verify EWDS credential
+        run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
+      - name: Fetch GloFAS operational-version reforecasts
+        run: |
+          python validation/fetch_glofas_reforecast_v5.py \
+            --year "${{ matrix.year }}" \
+            --reference-year 2024 \
+            --system-version operational \
+            --lead-hours 24 48 72 \
+            --raw-dir "validation/model_v5/work/glofas_raw_${{ matrix.year }}" \
+            --out "validation/model_v5/work/glofas_${{ matrix.year }}.csv"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: model-v5-glofas-${{ matrix.year }}
+          retention-days: 30
+          if-no-files-found: error
+          path: validation/model_v5/work/glofas_${{ matrix.year }}.csv
+
+  develop:
+    needs: [nasa, glofas]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install pinned Model v5 environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+          python -m pip freeze > validation/model_v5_environment_freeze.txt
+      - name: Download NASA artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: model-v5-nasa-*
+          path: validation/model_v5/work/nasa
+          merge-multiple: true
+      - name: Download GloFAS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: model-v5-glofas-*
+          path: validation/model_v5/work/glofas
+          merge-multiple: true
+      - name: Compile and run Model v5 contract tests
+        run: |
+          python -m py_compile \
+            validation/build_model_v5_dataset.py \
+            validation/model_v5_operational_native.py
+          python -m unittest discover -s validation/tests -p 'test_model_v5.py' -v
+      - name: Build strict issue-time development dataset
+        run: |
+          python validation/build_model_v5_dataset.py \
+            --nasa 'validation/model_v5/work/nasa/*.csv' \
+            --glofas 'validation/model_v5/work/glofas/*.csv' \
+            --events validation/model_v4_event_registry.csv \
+            --start 2018-01-01 \
+            --end 2024-12-31 \
+            --out validation/model_v5_issue_dataset.csv \
+            --manifest validation/model_v5_dataset_manifest.json
+      - name: Run preregistered temporal candidates and ablations
+        run: |
+          python validation/model_v5_operational_native.py \
+            --dataset validation/model_v5_issue_dataset.csv \
+            --events validation/model_v4_event_registry.csv \
+            --output validation/model_v5_results.json \
+            --scored-output validation/model_v5_oof_scored.csv
+      - name: Summarize scientific decision
+        run: |
+          python - <<'PY'
+          import json
+          r = json.load(open('validation/model_v5_results.json'))
+          print('STATUS:', r['status'])
+          print('WINNER:', r['selected_candidate'])
+          m = r['selected_candidate_metrics']['pooled_oof_metrics']
+          print('POOLED PR-AUC:', m['pr_auc'])
+          print('POOLED ROC-AUC:', m['roc_auc'])
+          print('POOLED BRIER:', m['brier_score'])
+          print('SANITY:', r['sanity'])
+          print('THRESHOLD:', r['threshold_policy']['chosen_threshold'])
+          if r['status'] != 'eligible_freeze_candidate':
+              print('Model v5 failed its preregistered freeze gate. Evidence is preserved; criteria are not relaxed.')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: model-v5-development-evidence-${{ github.run_id }}
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            validation/model_v5_issue_dataset.csv
+            validation/model_v5_dataset_manifest.json
+            validation/model_v5_results.json
+            validation/model_v5_oof_scored.csv
+            validation/model_v5_environment_freeze.txt
