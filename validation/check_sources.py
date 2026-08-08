@@ -58,7 +58,8 @@ def main() -> None:
         "period": {"start": args.start, "end": args.end},
         "nasa_imerg": coverage(imerg, args.start, args.end, "nasa_imerg_precip_mm_day"),
         "glofas": coverage(glofas, args.start, args.end, "river_discharge_m3s"),
-        "era5_land": coverage(era5, args.start, args.end, "soil_moisture_0_to_7cm"),
+        "era5_land_soil": coverage(era5, args.start, args.end, "soil_moisture_0_to_7cm"),
+        "era5_land_et0": coverage(era5, args.start, args.end, "et0_fao_evapotranspiration"),
     }
 
     # Provenance checks prevent accidental marketing misattribution.
