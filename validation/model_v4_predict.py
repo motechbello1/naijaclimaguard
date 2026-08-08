@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Score issue-time full-source features with the frozen Model v4 artifact.
 
-Input is one JSON object or a JSON array. Every row must contain `location`, all
-base source features expected by the artifact, and `source_metadata` describing
-what was actually available at issue time. The scorer derives only deterministic
-location-normalized ratios, never backfills future/reanalysis values, and emits
-an immutable evidence record suitable for the prospective ledger.
+Input is one JSON object or a JSON array. Every row must contain `location`, the
+available issue-time hydrological fields, and `source_metadata` describing what
+was actually available. Missing historical lag fields are filled only with the
+frozen training medians and are explicitly listed in the prospective record.
 """
 from __future__ import annotations
 
@@ -18,16 +17,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
-
-DERIVED = {
-    "discharge_location_ratio",
-    "discharge_location_robust_z",
-    "rain_location_ratio",
-    "rain_location_robust_z",
-    "discharge_vs_7d_mean",
-    "rain_3d_vs_30d",
-    "rain_7d_vs_30d",
-}
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -54,17 +43,35 @@ def calibrate(raw: float, xs: List[float], ys: List[float]) -> float:
     return float(y0 + frac * (y1 - y0))
 
 
+def frozen_median(artifact: Dict[str, Any], feature: str) -> float:
+    idx = artifact["features"].index(feature)
+    return float(artifact["imputer_median"][idx])
+
+
+def finite_or_frozen(row: Dict[str, Any], artifact: Dict[str, Any], feature: str) -> tuple[float, bool]:
+    value = row.get(feature)
+    if value is None:
+        return frozen_median(artifact, feature), True
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return frozen_median(artifact, feature), True
+    if not math.isfinite(value):
+        return frozen_median(artifact, feature), True
+    return value, False
+
+
 def enrich(row: Dict[str, Any], artifact: Dict[str, Any]) -> Dict[str, Any]:
     out = dict(row)
     location = str(out.get("location", ""))
     stats = artifact["location_calibration"].get(location) or artifact["location_calibration"]["__GLOBAL__"]
 
-    q = float(out["river_discharge_m3s"])
-    rain = float(out["nasa_imerg_precip_mm_day"])
-    q7 = float(out["discharge_7d_mean"])
-    r3 = float(out["nasa_rain_3d_sum"])
-    r7 = float(out["nasa_rain_7d_sum"])
-    r30 = float(out["nasa_rain_30d_sum"])
+    q, _ = finite_or_frozen(out, artifact, "river_discharge_m3s")
+    rain, _ = finite_or_frozen(out, artifact, "nasa_imerg_precip_mm_day")
+    q7, _ = finite_or_frozen(out, artifact, "discharge_7d_mean")
+    r3, _ = finite_or_frozen(out, artifact, "nasa_rain_3d_sum")
+    r7, _ = finite_or_frozen(out, artifact, "nasa_rain_7d_sum")
+    r30, _ = finite_or_frozen(out, artifact, "nasa_rain_30d_sum")
 
     out["discharge_location_ratio"] = q / float(stats["q_denom"])
     out["discharge_location_robust_z"] = (q - float(stats["q_median"])) / float(stats["q_iqr"])
@@ -91,12 +98,29 @@ def score(row: Dict[str, Any], artifact: Dict[str, Any], artifact_sha: str) -> D
         raise ValueError(f"Full-source prediction missing source metadata: {missing_sources}")
 
     enriched = enrich(row, artifact)
-    values = []
+    values: List[float] = []
+    feature_vector: Dict[str, float] = {}
+    imputed_features: List[str] = []
     for i, feature in enumerate(artifact["features"]):
         value = enriched.get(feature)
-        if value is None or not math.isfinite(float(value)):
+        imputed = False
+        if value is None:
             value = artifact["imputer_median"][i]
-        values.append(float(value))
+            imputed = True
+        else:
+            try:
+                value = float(value)
+            except (TypeError, ValueError):
+                value = artifact["imputer_median"][i]
+                imputed = True
+            if not math.isfinite(float(value)):
+                value = artifact["imputer_median"][i]
+                imputed = True
+        final_value = float(value)
+        values.append(final_value)
+        feature_vector[feature] = final_value
+        if imputed:
+            imputed_features.append(feature)
 
     scaled = [
         (value - float(mean)) / (float(scale) if abs(float(scale)) > 1e-12 else 1.0)
@@ -120,7 +144,8 @@ def score(row: Dict[str, Any], artifact: Dict[str, Any], artifact_sha: str) -> D
         "latitude": row.get("latitude"),
         "longitude": row.get("longitude"),
         "source_metadata": source_metadata,
-        "features": {name: enriched.get(name) for name in artifact["features"]},
+        "feature_vector": feature_vector,
+        "imputed_features": imputed_features,
     }
     input_hash = sha256_bytes(canonical_json(input_for_hash))
 
@@ -135,6 +160,9 @@ def score(row: Dict[str, Any], artifact: Dict[str, Any], artifact_sha: str) -> D
         "artifact_sha256": artifact_sha,
         "input_sha256": input_hash,
         "source_metadata": source_metadata,
+        "feature_vector": feature_vector,
+        "imputed_features": imputed_features,
+        "imputed_feature_count": len(imputed_features),
         "raw_probability": raw_probability,
         "calibrated_probability": probability,
         "shadow_threshold": threshold,
