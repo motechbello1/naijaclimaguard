@@ -8,13 +8,17 @@ on:
       - "security/history-rewrite-preflight-trigger.txt"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   preflight:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -28,19 +32,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          git clone --mirror "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo.git
-          cd repo.git
+          git clone --mirror "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/repo.git"
+          cd "$RUNNER_TEMP/repo.git"
 
-          git for-each-ref --format='%(refname)' refs/heads | sort > ../heads.before
-          git for-each-ref --format='%(refname)' refs/tags | sort > ../tags.before
+          git for-each-ref --format='%(refname)' refs/heads | sort > "$RUNNER_TEMP/heads.before"
+          git for-each-ref --format='%(refname)' refs/tags | sort > "$RUNNER_TEMP/tags.before"
 
           MAIN_TREE_BEFORE=$(git rev-parse refs/heads/main^{tree})
           V4_ARTIFACT_BEFORE=$(git show refs/heads/main:validation/model_v4_frozen_artifact.json | sha256sum | awk '{print $1}')
           V4_MANIFEST_BEFORE=$(git show refs/heads/main:validation/MODEL_V4_FREEZE_MANIFEST.json | sha256sum | awk '{print $1}')
           EVENT_REGISTRY_BEFORE=$(git show refs/heads/main:validation/model_v4_event_registry.csv | sha256sum | awk '{print $1}')
 
-          # Remove the accidentally tracked root .env path from every rewritten ref.
-          # This operates only on this disposable runner mirror during preflight.
           git filter-repo --path .env --invert-paths --force
 
           if git log --all --format='%H' -- .env | grep -q .; then
@@ -53,10 +55,10 @@ jobs:
             exit 1
           fi
 
-          git for-each-ref --format='%(refname)' refs/heads | sort > ../heads.after
-          git for-each-ref --format='%(refname)' refs/tags | sort > ../tags.after
-          diff -u ../heads.before ../heads.after
-          diff -u ../tags.before ../tags.after
+          git for-each-ref --format='%(refname)' refs/heads | sort > "$RUNNER_TEMP/heads.after"
+          git for-each-ref --format='%(refname)' refs/tags | sort > "$RUNNER_TEMP/tags.after"
+          diff -u "$RUNNER_TEMP/heads.before" "$RUNNER_TEMP/heads.after"
+          diff -u "$RUNNER_TEMP/tags.before" "$RUNNER_TEMP/tags.after"
 
           MAIN_TREE_AFTER=$(git rev-parse refs/heads/main^{tree})
           V4_ARTIFACT_AFTER=$(git show refs/heads/main:validation/model_v4_frozen_artifact.json | sha256sum | awk '{print $1}')
@@ -68,17 +70,27 @@ jobs:
           test "$V4_MANIFEST_BEFORE" = "$V4_MANIFEST_AFTER"
           test "$EVENT_REGISTRY_BEFORE" = "$EVENT_REGISTRY_AFTER"
 
-          {
-            echo "## Security history rewrite preflight"
-            echo ""
-            echo "- Disposable mirror rewrite: PASS"
-            echo "- Reachable .env history after rewrite: NONE"
-            echo "- Branch names preserved: PASS"
-            echo "- Tag names preserved: PASS"
-            echo "- Current main tree unchanged: PASS"
-            echo "- Frozen Model v4 artifact bytes unchanged: PASS"
-            echo "- Model v4 freeze manifest bytes unchanged: PASS"
-            echo "- Frozen event-registry bytes unchanged: PASS"
-            echo ""
-            echo "Commit SHAs will necessarily change for affected history; file-content hashes above remain stable."
-          } >> "$GITHUB_STEP_SUMMARY"
+          cat > "$GITHUB_WORKSPACE/security/history-rewrite-preflight-result.txt" <<EOF
+          PASS
+          Disposable mirror rewrite removed the tracked root .env path from all rewritten refs.
+          Branch names preserved: yes
+          Tag names preserved: yes
+          Current main tree unchanged: yes
+          Frozen Model v4 artifact bytes unchanged: yes
+          Model v4 freeze manifest bytes unchanged: yes
+          Frozen event-registry bytes unchanged: yes
+          Note: affected commit SHAs necessarily change during a real rewrite.
+          EOF
+
+          cat "$GITHUB_WORKSPACE/security/history-rewrite-preflight-result.txt" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Persist verifiable preflight result
+        run: |
+          set -euo pipefail
+          git config user.name "naijaclimaguard-security-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add security/history-rewrite-preflight-result.txt
+          git diff --cached --quiet && exit 0
+          git commit -m "security: record history rewrite preflight result"
+          git pull --rebase origin security-history-rewrite-preflight
+          git push origin HEAD:security-history-rewrite-preflight
