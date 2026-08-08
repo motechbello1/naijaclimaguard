@@ -85,26 +85,44 @@ model Report {
 /// NASA products, GloFAS, official gauges, partner IoT devices, dam-operation feeds,
 /// citizen-report streams and official advisories can all be represented here.
 model IntelligenceSource {
-  id                      String                 @id @default(cuid())
-  slug                    String                 @unique
+  id                      String                  @id @default(cuid())
+  slug                    String                  @unique
   provider                String
   name                    String
   sourceKind              IntelligenceSourceKind
   description             String?
-  active                  Boolean                @default(true)
+  active                  Boolean                 @default(true)
   defaultFreshnessMinutes Int
   config                  Json?
-  createdAt               DateTime               @default(now())
-  updatedAt               DateTime               @updatedAt
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
   observations            IntelligenceObservation[]
+  credentials             IntelligenceCredential[]
+}
+
+/// Hashed service credential for a single registered source. The plaintext key
+/// is never stored. A short prefix may be shown to operators for identification.
+model IntelligenceCredential {
+  id         String             @id @default(cuid())
+  name       String
+  keyPrefix  String
+  keyHash    String             @unique
+  scopes     Json
+  active     Boolean            @default(true)
+  createdAt  DateTime           @default(now())
+  lastUsedAt DateTime?
+  sourceId   String
+  source     IntelligenceSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId, active])
 }
 
 /// Immutable normalized evidence record. Raw provider identity, original field/unit,
 /// time, location and quality are retained so later decisions remain auditable.
 model IntelligenceObservation {
-  id               String              @id @default(cuid())
+  id               String             @id @default(cuid())
   sourceId         String
-  source           IntelligenceSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  source           IntelligenceSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   variable         String
   value            Json
   unit             String
@@ -115,7 +133,7 @@ model IntelligenceObservation {
   locationName     String?
   state            String?
   country          String?
-  qualityStatus    ObservationQuality  @default(UNKNOWN)
+  qualityStatus    ObservationQuality @default(UNKNOWN)
   confidence       Float?
   flags            Json?
   sourceVersion    String?
@@ -123,8 +141,8 @@ model IntelligenceObservation {
   originalUnit     String?
   originalVariable String?
   metadata         Json?
-  dedupeKey        String              @unique
-  createdAt        DateTime            @default(now())
+  dedupeKey        String             @unique
+  createdAt        DateTime           @default(now())
 
   @@index([sourceId, observedAt])
   @@index([variable, observedAt])
