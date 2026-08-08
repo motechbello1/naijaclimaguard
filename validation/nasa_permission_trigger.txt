@@ -1,1 +1,1 @@
-GESDISC authorization confirmed by user on 2026-08-08. Re-trigger focused NASA IMERG permission smoke test with direct bearer diagnostic.
+GESDISC authorization confirmed by user on 2026-08-08. Re-trigger focused NASA IMERG permission smoke test with safe HTTP error-body diagnostic.
