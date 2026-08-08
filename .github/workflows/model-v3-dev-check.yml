@@ -6,19 +6,27 @@ on:
     paths:
       - "validation/model_v3_dev.py"
       - "validation/model_v3_event_registry.csv"
+      - "validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md"
+      - "validation/MODEL_V3_PROTOCOL.md"
       - "validation/model_v3_requirements.txt"
+      - "validation/model_v3_source_requirements.txt"
       - "validation/run_model_v3_dev.sh"
       - "validation/tests/test_model_v3_dev.py"
       - ".github/workflows/model-v3-dev-check.yml"
+      - ".github/workflows/model-v3-full-development.yml"
   pull_request:
     branches: [main, validation-v2]
     paths:
       - "validation/model_v3_dev.py"
       - "validation/model_v3_event_registry.csv"
+      - "validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md"
+      - "validation/MODEL_V3_PROTOCOL.md"
       - "validation/model_v3_requirements.txt"
+      - "validation/model_v3_source_requirements.txt"
       - "validation/run_model_v3_dev.sh"
       - "validation/tests/test_model_v3_dev.py"
       - ".github/workflows/model-v3-dev-check.yml"
+      - ".github/workflows/model-v3-full-development.yml"
   workflow_dispatch:
 
 permissions:
@@ -63,6 +71,19 @@ jobs:
           print('development events:', e['event_id'].nunique())
           print('2019-2021 OOF event anchors:', oof['event_id'].nunique())
           print('events by year:', actual_by_year)
+          PY
+      - name: Verify full-development gate is still 2018-2021 only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('.github/workflows/model-v3-full-development.yml').read_text()
+          assert 'START_DATE: "2018-01-01"' in text
+          assert 'END_DATE: "2021-12-31"' in text
+          assert 'HARD_CUTOFF: "2022-01-01"' in text
+          assert 'validation_v2_canonical_confirmed' in text
+          assert "event_id'].nunique() == 16" in text
+          assert "oof['event_id'].nunique() == 12" in text
+          print('full-development workflow cutoff and frozen-registry gates present')
           PY
       - name: Upload runtime fingerprint
         uses: actions/upload-artifact@v4
