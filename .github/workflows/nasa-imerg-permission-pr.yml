@@ -1,0 +1,50 @@
+name: NASA IMERG Permission PR Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "validation/fetch_nasa_imerg.py"
+      - "validation/nasa_permission_trigger.txt"
+
+permissions:
+  contents: read
+
+env:
+  EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+
+jobs:
+  nasa-permission:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'validation-v2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: pip install "earthaccess>=0.15,<1" "fsspec>=2024.6,<2027" "h5py>=3.11,<4" "pandas<3" "numpy<3" "aiohttp>=3.9,<4"
+      - name: Verify Earthdata secret
+        run: test -n "$EARTHDATA_TOKEN" || { echo "EARTHDATA_TOKEN missing"; exit 1; }
+      - name: Read one day of NASA IMERG Final V07
+        run: |
+          python validation/fetch_nasa_imerg.py \
+            --start 2018-01-01 \
+            --end 2018-01-01 \
+            --out validation/nasa_permission_test.csv \
+            --batch-size 1
+      - name: Verify five Nigerian site values
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          d=pd.read_csv('validation/nasa_permission_test.csv')
+          print(d.to_string(index=False))
+          assert len(d) == 5, len(d)
+          assert set(d.location) == {'Lokoja','Makurdi','Onitsha','Yenagoa','Hadejia'}
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nasa-imerg-permission-${{ github.run_number }}
+          retention-days: 7
+          path: validation/nasa_permission_test.csv
