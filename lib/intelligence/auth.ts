@@ -1,8 +1,20 @@
 import { createHash, randomBytes } from "crypto";
-import { Prisma } from "@prisma/client";
+import { IntelligenceSourceKind, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { SourceKind } from "./types";
 
 const KEY_PREFIX = "ncg_int_";
+
+const DB_TO_SOURCE_KIND: Record<IntelligenceSourceKind, SourceKind> = {
+  SATELLITE: "satellite",
+  WEATHER: "weather",
+  HYDROLOGICAL_MODEL: "hydrological_model",
+  OFFICIAL_GAUGE: "official_gauge",
+  IOT_SENSOR: "iot_sensor",
+  DAM_OPERATION: "dam_operation",
+  CITIZEN_REPORT: "citizen_report",
+  OFFICIAL_ADVISORY: "official_advisory",
+};
 
 export function hashIntelligenceKey(plaintext: string) {
   return createHash("sha256").update(plaintext).digest("hex");
@@ -60,6 +72,7 @@ export type IntelligenceAuthResult =
         slug: string;
         provider: string;
         name: string;
+        sourceKind: SourceKind;
         active: boolean;
       };
       scopes: string[];
@@ -110,6 +123,7 @@ export async function authenticateIntelligenceRequest(
       slug: credential.source.slug,
       provider: credential.source.provider,
       name: credential.source.name,
+      sourceKind: DB_TO_SOURCE_KIND[credential.source.sourceKind],
       active: credential.source.active,
     },
     scopes,
