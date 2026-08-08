@@ -2,7 +2,8 @@
 """Fetch ERA5-Land surface-state variables via Open-Meteo Historical Weather API.
 
 ERA5-Land is used for antecedent soil moisture and evapotranspiration context.
-It is not labelled as NASA data.
+It is not labelled as NASA data. Requests are split year-by-year to keep hourly
+responses manageable and easier to retry.
 """
 from __future__ import annotations
 
@@ -33,7 +34,16 @@ DAILY = [
 ]
 
 
-def fetch_one(name: str, lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
+def year_ranges(start: str, end: str):
+    start_ts = pd.Timestamp(start)
+    end_ts = pd.Timestamp(end)
+    for year in range(start_ts.year, end_ts.year + 1):
+        y0 = max(start_ts, pd.Timestamp(year=year, month=1, day=1))
+        y1 = min(end_ts, pd.Timestamp(year=year, month=12, day=31))
+        yield year, y0.strftime("%Y-%m-%d"), y1.strftime("%Y-%m-%d")
+
+
+def fetch_period(name: str, lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
     params = {
         "latitude": lat,
         "longitude": lon,
@@ -44,9 +54,12 @@ def fetch_one(name: str, lat: float, lon: float, start: str, end: str) -> pd.Dat
         "daily": ",".join(DAILY),
         "timezone": "Africa/Lagos",
     }
-    r = requests.get(BASE, params=params, timeout=90)
+    r = requests.get(BASE, params=params, timeout=120)
     r.raise_for_status()
     j = r.json()
+
+    if "hourly" not in j or "daily" not in j:
+        raise RuntimeError(f"ERA5-Land response missing expected sections for {name}: {j}")
 
     hourly = pd.DataFrame(j["hourly"])
     hourly["time"] = pd.to_datetime(hourly["time"])
@@ -74,10 +87,18 @@ def main() -> None:
 
     parts = []
     for name, (lat, lon) in LOCATIONS.items():
-        print(f"Fetching ERA5-Land: {name}")
-        parts.append(fetch_one(name, lat, lon, args.start, args.end))
+        for year, y0, y1 in year_ranges(args.start, args.end):
+            print(f"Fetching ERA5-Land: {name} · {year}")
+            parts.append(fetch_period(name, lat, lon, y0, y1))
 
     out = pd.concat(parts, ignore_index=True).sort_values(["location", "date"])
+    out = out.drop_duplicates(["location", "date"], keep="last")
+
+    expected_days = (pd.Timestamp(args.end) - pd.Timestamp(args.start)).days + 1
+    expected_rows = expected_days * len(LOCATIONS)
+    if len(out) < expected_rows * 0.98:
+        raise RuntimeError(f"ERA5-Land coverage too low: {len(out):,}/{expected_rows:,} expected location-days")
+
     path = Path(args.out)
     path.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(path, index=False)
