@@ -1,18 +1,17 @@
 "use client";
 
 /**
- * Layer 3: Prove — evidence, not theater.
- *  · 2022 Lokoja Megaflood REPLAY: fetches the REAL historical rainfall record
- *    from the Open-Meteo archive (Aug–Oct 2022) and charts the actual buildup,
- *    with documented event dates marked. Anyone can verify this data.
- *  · Honest capability metrics (real dataset facts, historical training result
- *    labeled as such).
- *  · Live situation report download — generated from live data at click time.
+ * Layer 3: Prove — reproducible evidence without overstating model skill.
+ *
+ * This page keeps the real Open-Meteo historical rainfall replay and situation
+ * report download, but does not present rainfall accumulation as proof of a
+ * 48-hour NaijaClimaGuard forecast. Independent model metrics and operational
+ * lead time remain gated by Validation v2.
  */
 
 import AppShell from "@/components/shared/AppShell";
 import { useState, useEffect } from "react";
-import { Users, Database, Target, Download, Loader2, History, AlertTriangle } from "lucide-react";
+import { Activity, Database, Target, Download, Loader2, History, AlertTriangle } from "lucide-react";
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
@@ -20,12 +19,10 @@ import {
 
 interface Day { date: string; label: string; rain: number; cumulative: number; }
 
-// Documented 2022 timeline (public record)
 const EVENTS = [
-  { date: "2022-09-13", label: "Dam release" },
-  { date: "2022-10-05", label: "Signal builds" },
-  { date: "2022-10-07", label: "NEMA advisory" },
-  { date: "2022-10-09", label: "Peak flood" },
+  { date: "2022-09-28", label: "Flooding documented" },
+  { date: "2022-10-01", label: "State response record" },
+  { date: "2022-10-06", label: "NiHSA peak discharge" },
 ];
 
 function ReplayTooltip({ active, payload }: any) {
@@ -81,7 +78,7 @@ export default function ProvePage() {
       a.download = `NaijaClimaGuard-Situation-Report-${new Date().toISOString().slice(0, 10)}.txt`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch { /* button state resets; user can retry */ }
+    } catch { /* user can retry */ }
     setDownloading(false);
   };
 
@@ -93,52 +90,54 @@ export default function ProvePage() {
         <div>
           <h1 className="font-display text-2xl font-bold">Layer 3: Prove</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Verifiable evidence — public archive data anyone can reproduce
+            Reproducible source evidence, with model-performance claims gated by Validation v2
           </p>
         </div>
 
-        {/* Honest capability metrics */}
         <div className="grid gap-5 md:grid-cols-3">
           <div className="glass-card rounded-2xl p-7 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-radar/20 bg-radar/10">
-              <Users className="h-7 w-7 text-radar" />
+              <Activity className="h-7 w-7 text-radar" />
             </div>
-            <p className="font-display text-3xl font-bold">1,400,000</p>
-            <p className="mt-1 text-sm text-slate-500">People in the 2022 validated flood zone</p>
-            <p className="mt-1 font-mono text-xs text-radar">Lokoja megaflood · documented impact</p>
+            <p className="font-display text-3xl font-bold">Live</p>
+            <p className="mt-1 text-sm text-slate-500">Current risk API</p>
+            <p className="mt-1 font-mono text-xs text-radar">derived-v2 · disclosed heuristic</p>
           </div>
+
           <div className="glass-card rounded-2xl p-7 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan/20 bg-cyan/10">
               <Database className="h-7 w-7 text-cyan" />
             </div>
-            <p className="font-display text-3xl font-bold">10,035</p>
-            <p className="mt-1 text-sm text-slate-500">Real training samples</p>
-            <p className="mt-1 font-mono text-xs text-cyan">5 stations · 2018–2023 · Open-Meteo archive</p>
+            <p className="font-display text-3xl font-bold">3</p>
+            <p className="mt-1 text-sm text-slate-500">Validation data families</p>
+            <p className="mt-1 font-mono text-xs text-cyan">NASA IMERG · GloFAS · ERA5-Land</p>
           </div>
+
           <div className="glass-card rounded-2xl p-7 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber/20 bg-amber/10">
               <Target className="h-7 w-7 text-amber" />
             </div>
-            <p className="font-display text-3xl font-bold">0.9928</p>
-            <p className="mt-1 text-sm text-slate-500">ROC-AUC — historical training run</p>
-            <p className="mt-1 font-mono text-xs text-amber">reproducible via the open ml-api build</p>
+            <p className="font-display text-3xl font-bold">v2</p>
+            <p className="mt-1 text-sm text-slate-500">Independent model validation</p>
+            <p className="mt-1 font-mono text-xs text-amber">chronological holdout · event labels</p>
           </div>
         </div>
 
-        {/* THE REPLAY — real archive data */}
         <div className="glass-card rounded-2xl p-6">
           <div className="mb-1 flex items-center gap-2">
             <History className="h-4 w-4 text-radar" />
-            <h2 className="font-display text-base font-bold">2022 Lokoja Megaflood — Real Archive Replay</h2>
+            <h2 className="font-display text-base font-bold">2022 Lokoja — Historical Rainfall Replay</h2>
           </div>
-          <p className="mb-5 text-xs text-slate-500">
-            Actual daily rainfall for Lokoja (Aug–Oct 2022) fetched live from the public Open-Meteo
-            archive — the same signal family the model trains on. Documented events marked.
+          <p className="mb-5 text-xs text-slate-500 leading-relaxed">
+            Daily rainfall for Lokoja (Aug–Oct 2022), fetched from the public Open-Meteo historical archive.
+            The chart is evidence of historical rainfall conditions only. It is not presented as a NaijaClimaGuard
+            forecast or as proof of a 48-hour advantage. Validation v2 separately reconstructs archived NASA and
+            GloFAS inputs available at T−72, T−48, and T−24.
           </p>
 
           {replayState === "loading" && (
             <div className="flex h-[320px] items-center justify-center text-slate-500">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Fetching the real 2022 archive…
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Fetching the 2022 archive…
             </div>
           )}
           {replayState === "error" && (
@@ -174,25 +173,34 @@ export default function ProvePage() {
               </ResponsiveContainer>
             </div>
           )}
+
           <p className="mt-3 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-midnight-border">
-            <strong className="text-radar">Green line</strong> = rain each day. <strong className="text-cyan">Blue curve</strong> = total rain piling up over the season.
-            Plain reading: the blue curve climbs all September — the ground was already full of water <em>before</em> the October 9 disaster.
-            That early climb is what the model watches. Verify yourself: archive-api.open-meteo.com, Lokoja (7.8023, 6.7333), Aug–Oct 2022.
+            <strong className="text-radar">Green line</strong> = daily rain. <strong className="text-cyan">Blue curve</strong> = accumulated rainfall across the displayed period.
+            The event markers distinguish documented flooding/official hydrology from the rainfall series itself.
           </p>
         </div>
 
-        {/* Live report */}
-        <div className="glass-card flex flex-wrap items-center justify-between gap-4 rounded-2xl p-6">
+        <div className="glass-card rounded-2xl p-6 border border-amber/20 bg-amber/5">
+          <h2 className="font-display text-base font-bold mb-2">What is not being claimed yet</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            NaijaClimaGuard is not currently publishing a headline ROC-AUC, precision, recall, false-alarm rate,
+            or fixed 48/72-hour lead-time result from Validation v2. Those numbers will only appear here after the
+            independent event benchmark and archived operational replay are completed and preserved as reproducible artifacts.
+          </p>
+        </div>
+
+        <div className="glass-card rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="font-display text-base font-bold">Live Situation Report</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Generated at click time from live station data — every figure sourced, nothing fabricated.
-            </p>
+            <h2 className="font-display text-base font-bold">Current Situation Report</h2>
+            <p className="text-xs text-slate-500 mt-1">Generated from live Open-Meteo inputs and the disclosed current risk formula.</p>
           </div>
-          <button onClick={downloadReport} disabled={downloading}
-            className="flex items-center gap-2 rounded-lg bg-radar px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50">
+          <button
+            onClick={downloadReport}
+            disabled={downloading}
+            className="flex items-center gap-2 rounded-lg bg-radar px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+          >
             {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {downloading ? "Generating from live data…" : "Download live report"}
+            Download report
           </button>
         </div>
       </div>
