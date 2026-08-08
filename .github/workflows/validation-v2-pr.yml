@@ -40,10 +40,13 @@ jobs:
           pip install -r validation/requirements.txt
 
       - name: Credential preflight
+        id: source_preflight
         shell: bash
         run: |
           test -n "$EARTHDATA_TOKEN" || { echo "EARTHDATA_TOKEN missing"; exit 1; }
           test -n "$EWDS_API_KEY" || { echo "EWDS_API_KEY missing"; exit 1; }
+          echo "nasa=true" >> "$GITHUB_OUTPUT"
+          echo "ewds=true" >> "$GITHUB_OUTPUT"
           echo "NASA and EWDS credentials detected."
 
       - name: Fetch GloFAS v4 historical discharge
@@ -56,15 +59,21 @@ jobs:
         run: python validation/fetch_era5_land.py --start "$START_DATE" --end "$END_DATE"
 
       - name: Stream NASA GPM IMERG Final V07
+        id: nasa_final
+        continue-on-error: true
         run: python validation/fetch_nasa_imerg.py --start "$START_DATE" --end "$END_DATE" --batch-size 20
 
       - name: Check source coverage and provenance
+        if: steps.nasa_final.outcome == 'success'
         run: python validation/check_sources.py --start "$START_DATE" --end "$END_DATE"
 
       - name: Build fused historical feature table
+        if: steps.nasa_final.outcome == 'success'
         run: python validation/build_features.py
 
       - name: Run chronological independent-event benchmark
+        id: benchmark
+        if: steps.nasa_final.outcome == 'success'
         run: |
           python validation/validate_v2.py \
             --features validation/features_daily.csv \
@@ -74,12 +83,18 @@ jobs:
             --output validation/validation_results.json
 
       - name: Stream NASA IMERG Early V06 for Lokoja 2022 operational replay
+        id: nasa_early
+        if: always()
+        continue-on-error: true
         run: |
           python validation/fetch_nasa_imerg_early_2022.py \
             --start "2022-09-20T00:00:00Z" \
             --end "2022-10-07T23:59:59Z"
 
       - name: Fetch archived operational GloFAS forecasts for Lokoja 2022
+        id: glofas_ops
+        if: always()
+        continue-on-error: true
         run: |
           python validation/fetch_glofas_operational_forecasts.py \
             --location Lokoja \
@@ -88,7 +103,22 @@ jobs:
             --lead-hours 24 48 72
 
       - name: Build Lokoja 2022 operational replay evidence table
+        id: lokoja_replay
+        if: always() && steps.nasa_early.outcome == 'success' && steps.glofas_ops.outcome == 'success'
         run: python validation/reconstruct_lokoja_2022.py
+
+      - name: Write validation status report
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "Validation v2 execution status"
+            echo "NASA IMERG Final: ${{ steps.nasa_final.outcome }}"
+            echo "Historical XGBoost benchmark: ${{ steps.benchmark.outcome }}"
+            echo "NASA IMERG Early replay source: ${{ steps.nasa_early.outcome }}"
+            echo "GloFAS operational archive: ${{ steps.glofas_ops.outcome }}"
+            echo "Lokoja combined replay: ${{ steps.lokoja_replay.outcome }}"
+          } > validation/validation_status.txt
 
       - name: Upload validation evidence
         if: always()
@@ -103,6 +133,7 @@ jobs:
             validation/features_daily.csv
             validation/source_quality.json
             validation/validation_results.json
+            validation/validation_status.txt
             validation/event_registry.csv
             validation/ground_observations.csv
             validation/glofas_ground_comparison.csv
