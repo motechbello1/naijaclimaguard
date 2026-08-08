@@ -43,6 +43,8 @@ jobs:
           print('content_type=', r.headers.get('Content-Type'))
           print('content_range=', r.headers.get('Content-Range'))
           if r.status_code not in (200, 206):
+              body=r.text[:1000].replace(os.environ['EARTHDATA_TOKEN'], '[REDACTED]')
+              print('safe_response_body=', body)
               raise SystemExit(f'Direct bearer byte-range request failed with HTTP {r.status_code}')
           print('Direct bearer access succeeded.')
           PY
