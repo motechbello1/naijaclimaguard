@@ -105,7 +105,7 @@
   "shadow_threshold": 0.008333,
   "source_hashes": {
     "features_sha256": "6721d8ad021d7d00f0ea877f048b1b5df98537c4fc864d2e708f9fd86b0f1c3e",
-    "events_sha256": "107a761e693932ba27057cb3281b9b5e05493d5d3de3ded89982c7bd4ca7e5b0"
+    "events_sha256": "e03fe71016ca542bd7dab3af7a3e47889015327adc85cbe0eb828665eadabb4b"
   },
   "replacement_authorized": false,
   "prospective_evidence_required": true
