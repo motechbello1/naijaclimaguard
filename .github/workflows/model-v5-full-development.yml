@@ -8,7 +8,7 @@ on:
       - "validation/model_v5_full_run_trigger.txt"
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   PYTHONUNBUFFERED: "1"
@@ -118,6 +118,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -192,6 +194,20 @@ jobs:
           if f['status'] == 'freeze_blocked':
               print('BLOCKERS:', f['blockers'])
           PY
+      - name: Preserve machine-readable decision on development branch
+        if: github.ref_name == 'model-v5-operational-native'
+        run: |
+          git config user.name "naijaclimaguard-model-v5-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            validation/model_v5_dataset_manifest.json \
+            validation/model_v5_results.json \
+            validation/model_v5_freeze_manifest.json \
+            validation/model_v5_environment_freeze.txt
+          git diff --cached --quiet && exit 0
+          git commit -m "model-v5: preserve operational-native development decision ${GITHUB_RUN_ID}"
+          git pull --rebase origin model-v5-operational-native
+          git push origin HEAD:model-v5-operational-native
       - uses: actions/upload-artifact@v4
         with:
           name: model-v5-development-evidence-${{ github.run_id }}
