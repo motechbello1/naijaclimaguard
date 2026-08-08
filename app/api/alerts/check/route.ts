@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import {
   evaluateAlertRules,
   getActiveAlertRulesForUser,
@@ -17,8 +18,17 @@ export async function GET() {
     return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   }
 
+  const account = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true },
+  });
+  if (!account) {
+    return NextResponse.json({ error: "Account not found." }, { status: 401 });
+  }
+
   const rules = await getActiveAlertRulesForUser(session.user.email);
-  const results = await evaluateAlertRules(rules);
+  const evaluated = await evaluateAlertRules(rules);
+  const results = evaluated.map(({ userId: _userId, ...result }) => result);
 
   return NextResponse.json({
     checkedAt: new Date().toISOString(),
