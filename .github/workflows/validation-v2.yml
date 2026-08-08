@@ -82,16 +82,16 @@ jobs:
         run: python validation/fetch_nasa_imerg.py --start "$START_DATE" --end "$END_DATE" --batch-size 20
 
       - name: Check source coverage and provenance
-        if: steps.nasa_final.outcome == 'success'
+        if: always() && steps.nasa_final.outcome == 'success'
         run: python validation/check_sources.py --start "$START_DATE" --end "$END_DATE"
 
       - name: Build fused historical feature table
-        if: steps.nasa_final.outcome == 'success'
+        if: always() && steps.nasa_final.outcome == 'success'
         run: python validation/build_features.py
 
       - name: Run chronological independent-event benchmark
         id: benchmark
-        if: steps.nasa_final.outcome == 'success'
+        if: always() && steps.nasa_final.outcome == 'success'
         run: |
           python validation/validate_v2.py \
             --features validation/features_daily.csv \
@@ -116,8 +116,7 @@ jobs:
         run: |
           python validation/fetch_glofas_operational_forecasts.py \
             --location Lokoja \
-            --start 2022-09-21 \
-            --end 2022-10-06 \
+            --issue-dates 2022-09-25 2022-09-26 2022-09-27 2022-10-03 2022-10-04 2022-10-05 \
             --lead-hours 24 48 72
 
       - name: Build Lokoja 2022 operational replay evidence table
