@@ -94,19 +94,24 @@ jobs:
           print('locations:', sorted(d['location'].unique()))
           PY
 
-      - name: Enforce dedicated Model v3 event registry
+      - name: Enforce frozen Model v3 event registry
         run: |
           python - <<'PY'
           import pandas as pd
           p = 'validation/model_v3_event_registry.csv'
           e = pd.read_csv(p, parse_dates=['observed_by_date'])
           e = e[e['include_in_benchmark'].astype(str).str.lower().eq('true')]
+          assert e['event_id'].is_unique
           assert (e['observed_by_date'] < pd.Timestamp('2022-01-01')).all()
-          assert e['event_id'].nunique() >= 15
+          assert e['event_id'].nunique() == 16, e['event_id'].nunique()
           oof = e[e['observed_by_date'].dt.year.isin([2019, 2020, 2021])]
-          assert oof['event_id'].nunique() >= 10
+          assert oof['event_id'].nunique() == 12, oof['event_id'].nunique()
+          expected_by_year = {2018: 4, 2019: 5, 2020: 4, 2021: 3}
+          actual_by_year = e.groupby(e['observed_by_date'].dt.year)['event_id'].nunique().to_dict()
+          assert actual_by_year == expected_by_year, actual_by_year
           print('development events:', e['event_id'].nunique())
           print('OOF events:', oof['event_id'].nunique())
+          print('events by year:', actual_by_year)
           PY
 
       - name: Run Model v3 development candidates
@@ -124,9 +129,9 @@ jobs:
           assert r['production']['engine_remains'] == 'derived-v2'
           assert r['production']['model_v3_deployed'] is False
           assert r['freeze_gate']['ready_to_freeze_for_new_holdout'] is False
-          assert r['data']['development_events'] >= 15
+          assert r['data']['development_events'] == 16, r['data']['development_events']
           print('selected development candidate:', r['selected_candidate']['candidate'])
-          print('development threshold:', r['selected_candidate']['development_threshold'])
+          print('provisional development threshold:', r['selected_candidate']['development_threshold'])
           print('mean temporal-fold PR-AUC:', r['selected_candidate']['mean_fold_pr_auc'])
           print('freeze gate:', r['freeze_gate'])
           PY
@@ -137,6 +142,8 @@ jobs:
             echo "Model v3 full development run"
             echo "Development period: 2018-01-01 through 2021-12-31"
             echo "Hard cutoff: 2022-01-01"
+            echo "Frozen development events: 16"
+            echo "Frozen OOF event anchors: 12"
             echo "Validation v2 canonical gate confirmed at dispatch: ${{ inputs.validation_v2_canonical_confirmed }}"
             echo "Production engine remains: derived-v2"
             echo "Model v3 deployment: false"
@@ -160,6 +167,7 @@ jobs:
             validation/features_daily.csv
             validation/source_quality.json
             validation/model_v3_event_registry.csv
+            validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md
             validation/model_v3_requirements.txt
             validation/model_v3_source_requirements.txt
             validation/MODEL_V3_PROTOCOL.md
