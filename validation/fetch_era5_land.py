@@ -6,6 +6,9 @@ It is not labelled as NASA data.
 
 Requests are split into six-month chunks and retried with backoff so a transient
 Open-Meteo TLS/read timeout cannot invalidate the entire multi-year benchmark.
+
+ET0 is requested hourly and summed to daily totals. This avoids silently
+accepting all-null daily ET0 responses from model-specific archive requests.
 """
 from __future__ import annotations
 
@@ -25,13 +28,14 @@ LOCATIONS = {
 }
 
 BASE = "https://archive-api.open-meteo.com/v1/archive"
-HOURLY = [
+SOIL_HOURLY = [
     "soil_moisture_0_to_7cm",
     "soil_moisture_7_to_28cm",
     "soil_moisture_28_to_100cm",
 ]
+ET0 = "et0_fao_evapotranspiration"
+HOURLY = SOIL_HOURLY + [ET0]
 DAILY = [
-    "et0_fao_evapotranspiration",
     "temperature_2m_max",
     "temperature_2m_min",
     "precipitation_hours",
@@ -53,8 +57,6 @@ def request_json(session: requests.Session, params: dict, label: str, attempts: 
     last_exc: Exception | None = None
     for attempt in range(1, attempts + 1):
         try:
-            # Separate connect/read timeouts. Six-month chunks should normally
-            # complete well below this limit, while allowing slow archive reads.
             r = session.get(BASE, params=params, timeout=(30, 180))
             r.raise_for_status()
             return r.json()
@@ -94,13 +96,22 @@ def fetch_period(
     hourly = pd.DataFrame(j["hourly"])
     hourly["time"] = pd.to_datetime(hourly["time"])
     hourly["date"] = hourly["time"].dt.floor("D")
-    soil_daily = hourly.groupby("date", as_index=False)[HOURLY].mean()
+
+    # Soil moisture is an instantaneous state -> daily mean.
+    soil_daily = hourly.groupby("date", as_index=False)[SOIL_HOURLY].mean()
+    # ET0 is an hourly accumulated amount -> daily sum with min_count=1 so an
+    # entirely missing day remains NaN rather than being converted to zero.
+    et0_daily = (
+        hourly.groupby("date", as_index=False)[ET0]
+        .agg(lambda s: s.sum(min_count=1))
+    )
 
     daily = pd.DataFrame(j["daily"])
     daily["date"] = pd.to_datetime(daily["time"])
     daily = daily.drop(columns=["time"])
 
     out = daily.merge(soil_daily, on="date", how="left")
+    out = out.merge(et0_daily, on="date", how="left")
     out.insert(1, "location", name)
     out["latitude"] = lat
     out["longitude"] = lon
@@ -132,11 +143,14 @@ def main() -> None:
     expected_rows = expected_days * len(LOCATIONS)
     if len(out) < expected_rows * 0.98:
         raise RuntimeError(f"ERA5-Land coverage too low: {len(out):,}/{expected_rows:,} expected location-days")
+    et0_fraction = float(out[ET0].notna().mean())
+    if et0_fraction < 0.95:
+        raise RuntimeError(f"ERA5-Land ET0 non-null fraction below 95%: {et0_fraction:.3f}")
 
     path = Path(args.out)
     path.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(path, index=False)
-    print(f"Wrote {len(out):,} rows to {path}")
+    print(f"Wrote {len(out):,} rows to {path}; ET0 non-null fraction={et0_fraction:.3f}")
 
 
 if __name__ == "__main__":
