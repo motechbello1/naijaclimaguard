@@ -1,1 +1,1 @@
-GESDISC EULA accepted and redirect handling fixed on 2026-08-08. Re-trigger focused NASA IMERG extraction smoke test.
+GESDISC EULA accepted; NASA smoke test passed. Trigger parallel historical validation on 2026-08-08.
