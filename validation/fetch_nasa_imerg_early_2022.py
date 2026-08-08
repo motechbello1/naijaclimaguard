@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 """Extract NASA IMERG Early V06 near-real-time rainfall for the 2022 Lokoja replay.
 
-This is NOT the research-quality IMERG Final training stream. It exists solely to
-reconstruct rainfall information that could actually have been available with
-low latency during the 2022 event.
-
-NASA describes IMERG Early as the lowest-latency IMERG stream (~4 hours). During
-late 2022, operational Early processing was on the Version 06 series.
+This is NOT the research-quality IMERG Final training stream. It reconstructs
+rainfall information that could have been available with low latency in 2022.
+NASA describes IMERG Early as the lowest-latency IMERG stream (~4 hours).
 
 Source: NASA GES DISC `GPM_3IMERGHHE` Version 06, half-hourly 0.1° product.
-Requires the same Earthdata authentication used by fetch_nasa_imerg.py.
+EARTHDATA_TOKEN is used directly as an Authorization: Bearer header so CI does
+not depend on a separate URS /profile request.
 """
 from __future__ import annotations
 
 import argparse
 import os
 import re
+import time
 from pathlib import Path
 
 import earthaccess
+import fsspec
 import h5py
 import numpy as np
 import pandas as pd
@@ -50,7 +50,6 @@ def coord(f: h5py.File, names):
 
 
 def infer_timestamp(f: h5py.File, source_name: str) -> pd.Timestamp:
-    # Native IMERG names include YYYYMMDD-SHHMMSS.
     m = re.search(r"(20\d{6})-S(\d{6})", source_name)
     if m:
         return pd.to_datetime(m.group(1) + m.group(2), format="%Y%m%d%H%M%S", utc=True)
@@ -76,7 +75,6 @@ def extract(file_obj, source_name: str) -> dict:
         orientation = "lon_lat" if squeezed == (len(lon), len(lat)) else "lat_lon"
         if squeezed not in {(len(lon), len(lat)), (len(lat), len(lon))}:
             raise ValueError(f"Unexpected IMERG Early grid shape: {shape}")
-
         if len(shape) == 3 and shape[0] == 1:
             raw = ds[0, ix, iy] if orientation == "lon_lat" else ds[0, iy, ix]
         elif len(shape) == 3 and shape[-1] == 1:
@@ -86,7 +84,6 @@ def extract(file_obj, source_name: str) -> dict:
         rate = float(np.asarray(raw).squeeze())
         if rate < -1000:
             rate = np.nan
-        # Half-hour precipitation rate in mm/hr -> 30-minute accumulation in mm.
         accumulation = rate * 0.5 if np.isfinite(rate) else np.nan
         return {
             "observation_time_utc": infer_timestamp(f, source_name),
@@ -103,6 +100,53 @@ def extract(file_obj, source_name: str) -> dict:
         }
 
 
+def search_with_retry(start: str, end: str, attempts: int = 5):
+    last = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return earthaccess.search_data(
+                short_name=SHORT_NAME,
+                version=VERSION,
+                bounding_box=(6.5, 7.0, 7.0, 8.5),
+                temporal=(start, end),
+            )
+        except Exception as exc:
+            last = exc
+            if attempt == attempts:
+                break
+            delay = min(30, 2 ** attempt)
+            print(f"CMR retry {attempt}/{attempts - 1}: {type(exc).__name__}; sleeping {delay}s")
+            time.sleep(delay)
+    raise RuntimeError(f"NASA CMR search failed: {last}")
+
+
+def external_url(granule) -> str:
+    links = granule.data_links(access="external")
+    candidates = [u for u in links if u.lower().endswith((".nc4", ".nc", ".h5", ".hdf5"))]
+    ges = [u for u in candidates if "gesdisc.earthdata.nasa.gov" in u]
+    chosen = ges or candidates
+    if not chosen:
+        raise RuntimeError(f"No downloadable IMERG data link found: {links}")
+    return chosen[0]
+
+
+def read_one(fs, url: str, attempts: int = 5) -> dict:
+    name = url.rsplit("/", 1)[-1]
+    last = None
+    for attempt in range(1, attempts + 1):
+        try:
+            with fs.open(url, "rb", block_size=2 * 1024 * 1024, cache_type="blockcache") as fobj:
+                return extract(fobj, name)
+        except Exception as exc:
+            last = exc
+            if attempt == attempts:
+                break
+            delay = min(30, 2 ** attempt)
+            print(f"  granule retry {attempt}/{attempts - 1}: {type(exc).__name__}; sleeping {delay}s")
+            time.sleep(delay)
+    raise RuntimeError(f"Authenticated IMERG Early read failed for {name}: {last}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", default="2022-09-20T00:00:00Z")
@@ -112,43 +156,30 @@ def main() -> None:
     ap.add_argument("--out-daily", default="validation/nasa_imerg_early_lokoja_2022_daily.csv")
     args = ap.parse_args()
 
-    if not (os.getenv("EARTHDATA_TOKEN") or (os.getenv("EARTHDATA_USERNAME") and os.getenv("EARTHDATA_PASSWORD"))):
-        raise RuntimeError("Earthdata authentication missing")
-    earthaccess.login(strategy="environment")
-
-    results = earthaccess.search_data(
-        short_name=SHORT_NAME,
-        version=VERSION,
-        bounding_box=(6.5, 7.0, 7.0, 8.5),
-        temporal=(args.start, args.end),
+    token = os.getenv("EARTHDATA_TOKEN")
+    if not token:
+        raise RuntimeError("EARTHDATA_TOKEN is required")
+    fs = fsspec.filesystem(
+        "http",
+        headers={"Authorization": f"Bearer {token}", "User-Agent": "NaijaClimaGuard-Validation-v2/1.0"},
     )
+
+    results = search_with_retry(args.start, args.end)
     if not results:
         raise RuntimeError("No NASA IMERG Early V06 granules found for Lokoja replay period")
     print(f"Found {len(results):,} IMERG Early granules")
 
     rows = []
-    for i in range(0, len(results), args.batch_size):
-        batch = results[i:i + args.batch_size]
-        remote = earthaccess.open(batch)
-        for granule, fobj in zip(batch, remote):
-            try:
-                source_name = granule["meta"]["native-id"]
-            except Exception:
-                source_name = str(getattr(fobj, "path", granule))
-            rows.append(extract(fobj, source_name))
-            try:
-                fobj.close()
-            except Exception:
-                pass
-        print(f"  streamed {min(i + len(batch), len(results))}/{len(results)}")
+    for i, granule in enumerate(results, start=1):
+        rows.append(read_one(fs, external_url(granule)))
+        if i % args.batch_size == 0 or i == len(results):
+            print(f"  streamed {i}/{len(results)} bearer-authenticated half-hour granules")
 
     hh = pd.DataFrame(rows).sort_values("observation_time_utc")
     hh["observation_time_utc"] = pd.to_datetime(hh["observation_time_utc"], utc=True)
     hh = hh.drop_duplicates("observation_time_utc")
     Path(args.out_halfhour).write_text(hh.to_csv(index=False), encoding="utf-8")
 
-    # Daily UTC accumulation. For a forecast issued at 00 UTC, use only previous
-    # complete days to avoid assuming same-day observations were already available.
     hh["date"] = hh["observation_time_utc"].dt.floor("D").dt.tz_localize(None)
     daily = hh.groupby("date", as_index=False).agg(
         imerg_early_daily_mm=("imerg_early_30min_mm", "sum"),
@@ -157,7 +188,6 @@ def main() -> None:
     daily["complete_day"] = daily["halfhour_granules"] >= 46
     daily["source"] = "NASA GPM IMERG Early V06 aggregated from half-hourly granules"
     Path(args.out_daily).write_text(daily.to_csv(index=False), encoding="utf-8")
-
     print(f"Wrote {len(hh):,} half-hour observations and {len(daily):,} daily accumulations")
 
 
