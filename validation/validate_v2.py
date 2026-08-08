@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -34,6 +34,7 @@ HERE = Path(__file__).resolve().parent
 DEFAULT_EVENTS = HERE / "event_registry.csv"
 MIN_TRAIN_EVENTS_FOR_HEADLINE_METRICS = 10
 MIN_TEST_EVENTS_FOR_HEADLINE_METRICS = 20
+MIN_FEATURE_NONNULL_FRACTION = 0.90
 
 
 def load_events(path: Path) -> pd.DataFrame:
@@ -46,13 +47,18 @@ def load_events(path: Path) -> pd.DataFrame:
 
 def load_feature_file(path: Path) -> pd.DataFrame:
     df = pd.read_csv(path, parse_dates=["date"])
-    required = {
-        "date", "location", "nasa_imerg_precip_mm_day", "river_discharge_m3s",
-        "et0_fao_evapotranspiration",
-    }
+    required = {"date", "location", "nasa_imerg_precip_mm_day", "river_discharge_m3s"}
     missing = required - set(df.columns)
     if missing:
-        raise ValueError(f"Missing fused source columns: {sorted(missing)}")
+        raise ValueError(f"Missing fused core-source columns: {sorted(missing)}")
+    soil = [c for c in (
+        "soil_moisture_0_to_7cm",
+        "soil_moisture_7_to_28cm",
+        "soil_moisture_28_to_100cm",
+        "soil_moisture_profile_mean",
+    ) if c in df.columns]
+    if not soil:
+        raise ValueError("No ERA5-Land soil-moisture state column found")
     return df.sort_values(["location", "date"]).reset_index(drop=True)
 
 
@@ -88,13 +94,11 @@ def attach_independent_labels(
             existing.eq(""), e["event_id"], existing + ";" + str(e["event_id"])
         )
 
-    # A genuine event-positive day must never be removed merely because it falls
-    # inside another event's ambiguity window.
     x["excluded"] = uncertain_any & ~positive_any
     return x[~x["excluded"]].copy()
 
 
-def feature_columns(df: pd.DataFrame) -> List[str]:
+def feature_columns(df: pd.DataFrame) -> Tuple[List[str], Dict[str, float]]:
     candidates = [
         "nasa_imerg_precip_mm_day",
         "nasa_rain_3d_sum", "nasa_rain_7d_sum", "nasa_rain_14d_sum", "nasa_rain_30d_sum",
@@ -105,16 +109,21 @@ def feature_columns(df: pd.DataFrame) -> List[str]:
         "et0_fao_evapotranspiration", "nasa_rain_minus_et0", "water_balance_7d",
         "temperature_2m_max", "temperature_2m_min", "precipitation_hours",
         "month", "day_of_year",
-        # Reserved for a true forecast-time benchmark when archived forecast
-        # features are assembled. Historical/reanalysis validation must not
-        # silently masquerade as this forecast benchmark.
         "forecast_precip_24h", "forecast_precip_48h", "forecast_precip_72h",
         "forecast_discharge_24h", "forecast_discharge_48h", "forecast_discharge_72h",
     ]
-    cols = [c for c in candidates if c in df.columns]
+    available = [c for c in candidates if c in df.columns]
+    coverage = {c: float(df[c].notna().mean()) for c in available}
+    cols = [c for c in available if coverage[c] >= MIN_FEATURE_NONNULL_FRACTION]
+    dropped = {c: round(coverage[c], 4) for c in available if c not in cols}
+    required_core = {"nasa_imerg_precip_mm_day", "river_discharge_m3s"}
+    if not required_core.issubset(cols):
+        raise ValueError(f"Core source feature coverage below {MIN_FEATURE_NONNULL_FRACTION:.0%}: {dropped}")
+    if not any(c.startswith("soil_moisture") for c in cols):
+        raise ValueError(f"ERA5-Land soil feature coverage below {MIN_FEATURE_NONNULL_FRACTION:.0%}: {dropped}")
     if not cols:
-        raise ValueError("No modelling features found")
-    return cols
+        raise ValueError("No modelling features passed coverage gate")
+    return cols, dropped
 
 
 def chronological_split(df: pd.DataFrame, cutoff: str) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -186,7 +195,7 @@ def per_location_metrics(scored: pd.DataFrame) -> Dict[str, object]:
 
 
 def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: float) -> Dict:
-    cols = feature_columns(df)
+    cols, dropped_low_coverage = feature_columns(df)
     train, test = chronological_split(df, cutoff)
     X_train = train[cols].replace([np.inf, -np.inf], np.nan)
     X_test = test[cols].replace([np.inf, -np.inf], np.nan)
@@ -230,15 +239,9 @@ def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: flo
     publishable = train_gate and test_gate
     reasons: List[str] = []
     if not train_gate:
-        reasons.append(
-            f"Only {train_event_count} independent training events; minimum is "
-            f"{MIN_TRAIN_EVENTS_FOR_HEADLINE_METRICS}."
-        )
+        reasons.append(f"Only {train_event_count} independent training events; minimum is {MIN_TRAIN_EVENTS_FOR_HEADLINE_METRICS}.")
     if not test_gate:
-        reasons.append(
-            f"Only {test_event_count} independent test events; minimum is "
-            f"{MIN_TEST_EVENTS_FOR_HEADLINE_METRICS}."
-        )
+        reasons.append(f"Only {test_event_count} independent test events; minimum is {MIN_TEST_EVENTS_FOR_HEADLINE_METRICS}.")
     if not publishable:
         reasons.append("Do not use these metrics as pitch headline claims.")
 
@@ -258,7 +261,9 @@ def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: flo
         "cutoff": cutoff,
         "threshold": threshold,
         "threshold_origin": "Predeclared fixed threshold; not optimized on the chronological test set.",
+        "minimum_feature_nonnull_fraction": MIN_FEATURE_NONNULL_FRACTION,
         "features": cols,
+        "dropped_low_coverage_features": dropped_low_coverage,
         "train_rows": int(len(train)),
         "test_rows": int(len(test)),
         "train_positive_rows": positives,
