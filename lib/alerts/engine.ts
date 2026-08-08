@@ -42,6 +42,15 @@ export interface AlertEvaluationResult {
   deliveryRecorded?: boolean;
 }
 
+export interface BackgroundAlertBatch {
+  totalActive: number;
+  page: number;
+  pageCount: number;
+  offset: number;
+  limit: number;
+  rules: AlertRuleForEvaluation[];
+}
+
 function parseChannels(value: string) {
   try {
     const parsed = JSON.parse(value);
@@ -140,7 +149,8 @@ export async function evaluateAlertRules(
     const score = risk.risk.score;
     const crossed = score >= alert.threshold;
     const recentlyNotified = Boolean(
-      alert.lastNotifiedAt && now.getTime() - alert.lastNotifiedAt.getTime() < NOTIFICATION_COOLDOWN_MS
+      alert.lastNotifiedAt &&
+        now.getTime() - alert.lastNotifiedAt.getTime() < NOTIFICATION_COOLDOWN_MS
     );
 
     if (!crossed) {
@@ -205,7 +215,9 @@ export async function evaluateAlertRules(
   return results;
 }
 
-export async function getActiveAlertRulesForUser(email: string): Promise<AlertRuleForEvaluation[]> {
+export async function getActiveAlertRulesForUser(
+  email: string
+): Promise<AlertRuleForEvaluation[]> {
   const user = await prisma.user.findUnique({
     where: { email },
     include: {
@@ -227,20 +239,43 @@ export async function getActiveAlertRulesForUser(email: string): Promise<AlertRu
   }));
 }
 
-export async function getActiveAlertRulesForBackground(limit = 250): Promise<AlertRuleForEvaluation[]> {
+/**
+ * Select a stable rotating page of active alerts. The page is derived from the
+ * current time bucket, so deployments with more alerts than one function should
+ * process do not permanently starve rules beyond the first page.
+ */
+export async function getBackgroundAlertBatch(
+  limit = 250,
+  now = new Date()
+): Promise<BackgroundAlertBatch> {
+  const safeLimit = Math.max(1, Math.min(limit, 1000));
+  const totalActive = await prisma.alert.count({ where: { active: true } });
+  const pageCount = Math.max(1, Math.ceil(totalActive / safeLimit));
+  const hourBucket = Math.floor(now.getTime() / (60 * 60 * 1000));
+  const page = hourBucket % pageCount;
+  const offset = page * safeLimit;
+
   const alerts = await prisma.alert.findMany({
     where: { active: true },
-    orderBy: { updatedAt: "asc" },
-    take: Math.max(1, Math.min(limit, 1000)),
+    orderBy: { id: "asc" },
+    skip: offset,
+    take: safeLimit,
     include: { location: true, user: true },
   });
 
-  return alerts.map((alert) => ({
-    id: alert.id,
-    threshold: alert.threshold,
-    channels: alert.channels,
-    lastNotifiedAt: alert.lastNotifiedAt,
-    location: alert.location,
-    user: { id: alert.user.id, email: alert.user.email },
-  }));
+  return {
+    totalActive,
+    page,
+    pageCount,
+    offset,
+    limit: safeLimit,
+    rules: alerts.map((alert) => ({
+      id: alert.id,
+      threshold: alert.threshold,
+      channels: alert.channels,
+      lastNotifiedAt: alert.lastNotifiedAt,
+      location: alert.location,
+      user: { id: alert.user.id, email: alert.user.email },
+    })),
+  };
 }
