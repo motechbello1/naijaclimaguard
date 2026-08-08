@@ -76,35 +76,45 @@ function normalizeNumeric(
 ): { value: number; unit: string } {
   if (!Number.isFinite(value)) throw new Error("Observation value must be finite");
   const u = (unit || "").trim().toLowerCase().replace("³", "3");
+  let normalized: { value: number; unit: string };
 
   if (variable === "water_level_m") {
-    if (["m", "meter", "metre", "meters", "metres"].includes(u) || !u) return { value, unit: "m" };
-    if (["cm", "centimeter", "centimetre", "centimeters", "centimetres"].includes(u)) return { value: value / 100, unit: "m" };
-    if (["mm", "millimeter", "millimetre"].includes(u)) return { value: value / 1000, unit: "m" };
-    throw new Error(`Unsupported water-level unit: ${unit}`);
+    if (["m", "meter", "metre", "meters", "metres"].includes(u) || !u) normalized = { value, unit: "m" };
+    else if (["cm", "centimeter", "centimetre", "centimeters", "centimetres"].includes(u)) normalized = { value: value / 100, unit: "m" };
+    else if (["mm", "millimeter", "millimetre"].includes(u)) normalized = { value: value / 1000, unit: "m" };
+    else throw new Error(`Unsupported water-level unit: ${unit}`);
+    return normalized;
   }
 
   if (variable === "river_discharge_m3s" || variable === "dam_release_m3s") {
-    if (["m3/s", "m3s", "m^3/s", "cms", "cumec", "cumecs"].includes(u)) return { value, unit: "m3/s" };
-    if (["ft3/s", "ft^3/s", "cfs"].includes(u)) return { value: value * 0.028316846592, unit: "m3/s" };
-    throw new Error(`Unsupported discharge unit: ${unit}`);
+    if (["m3/s", "m3s", "m^3/s", "cms", "cumec", "cumecs"].includes(u)) normalized = { value, unit: "m3/s" };
+    else if (["ft3/s", "ft^3/s", "cfs"].includes(u)) normalized = { value: value * 0.028316846592, unit: "m3/s" };
+    else throw new Error(`Unsupported discharge unit: ${unit}`);
+    if (normalized.value < 0) throw new Error("Discharge/release cannot be negative");
+    return normalized;
   }
 
   if (variable === "precipitation_mm" || variable === "evapotranspiration_mm") {
-    if (["mm", "millimeter", "millimetre", "millimeters", "millimetres"].includes(u) || !u) return { value, unit: "mm" };
-    if (["cm", "centimeter", "centimetre"].includes(u)) return { value: value * 10, unit: "mm" };
-    throw new Error(`Unsupported precipitation/ET unit: ${unit}`);
+    if (["mm", "millimeter", "millimetre", "millimeters", "millimetres"].includes(u) || !u) normalized = { value, unit: "mm" };
+    else if (["cm", "centimeter", "centimetre"].includes(u)) normalized = { value: value * 10, unit: "mm" };
+    else throw new Error(`Unsupported precipitation/ET unit: ${unit}`);
+    if (normalized.value < 0) throw new Error("Precipitation/ET cannot be negative");
+    return normalized;
   }
 
   if (variable === "rainfall_intensity_mm_h") {
-    if (["mm/h", "mm/hr", "mm/hour", "mmh"].includes(u)) return { value, unit: "mm/h" };
-    throw new Error(`Unsupported rainfall-intensity unit: ${unit}`);
+    if (["mm/h", "mm/hr", "mm/hour", "mmh"].includes(u)) normalized = { value, unit: "mm/h" };
+    else throw new Error(`Unsupported rainfall-intensity unit: ${unit}`);
+    if (normalized.value < 0) throw new Error("Rainfall intensity cannot be negative");
+    return normalized;
   }
 
   if (variable === "soil_moisture_fraction") {
-    if (["fraction", "ratio", "m3/m3", "m3m3"].includes(u) || !u) return { value, unit: "fraction" };
-    if (["%", "percent", "percentage"].includes(u)) return { value: value / 100, unit: "fraction" };
-    throw new Error(`Unsupported soil-moisture unit: ${unit}`);
+    if (["fraction", "ratio", "m3/m3", "m3m3"].includes(u) || !u) normalized = { value, unit: "fraction" };
+    else if (["%", "percent", "percentage"].includes(u)) normalized = { value: value / 100, unit: "fraction" };
+    else throw new Error(`Unsupported soil-moisture unit: ${unit}`);
+    if (normalized.value < 0 || normalized.value > 1) throw new Error("Soil-moisture fraction must be between 0 and 1");
+    return normalized;
   }
 
   return { value, unit: unit || "dimensionless" };
@@ -116,8 +126,15 @@ export function normalizeObservation(input: RawObservationInput): CanonicalObser
   const observedAt = iso(input.observedAt);
   const receivedAt = iso(input.receivedAt ?? new Date());
 
-  if (input.confidence != null && (input.confidence < 0 || input.confidence > 1)) {
-    throw new Error("confidence must be between 0 and 1");
+  if (
+    input.confidence != null &&
+    (!Number.isFinite(input.confidence) || input.confidence < 0 || input.confidence > 1)
+  ) {
+    throw new Error("confidence must be a finite number between 0 and 1");
+  }
+
+  if (!["number", "string", "boolean"].includes(typeof input.value)) {
+    throw new Error("Observation value must be a number, string, or boolean");
   }
 
   let value = input.value;
@@ -127,7 +144,15 @@ export function normalizeObservation(input: RawObservationInput): CanonicalObser
     const normalized = normalizeNumeric(variable, value, input.unit);
     value = normalized.value;
     unit = normalized.unit;
-  } else if (!["flood_observation", "advisory_level"].includes(variable)) {
+  } else if (variable === "flood_observation") {
+    if (typeof value !== "boolean" && typeof value !== "string") {
+      throw new Error("flood_observation requires a boolean or string value");
+    }
+  } else if (variable === "advisory_level") {
+    if (typeof value !== "string" || !value.trim()) {
+      throw new Error("advisory_level requires a non-empty string value");
+    }
+  } else {
     throw new Error(`${variable} requires a numeric value`);
   }
 
