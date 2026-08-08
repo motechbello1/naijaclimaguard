@@ -3,8 +3,9 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NaijaClimaGuard — Physical Risk Intelligence for Africa",
-  description: "AI-powered flood risk prediction. 48-hour advance warnings. ROC-AUC 0.9928.",
+  title: "NaijaClimaGuard — Nigeria Flood Risk Intelligence",
+  description:
+    "Nigeria-focused flood-risk decision support with live location monitoring, auditable risk context, and an independent validation pipeline for NASA, GloFAS, and ERA5-Land data.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
