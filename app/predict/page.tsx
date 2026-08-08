@@ -3,8 +3,8 @@
 /**
  * Layer 1: Predict — transparent live-data demo.
  *  · Chart: Open-Meteo daily precipitation (10 days past + 4 forecast).
- *  · Risk score: current public derived-v2 endpoint; daily-only local fallback
- *    if that endpoint is unavailable.
+ *  · Risk score: the canonical public derived-v2 endpoint only.
+ *  · If the risk endpoint is unavailable, no alternate score is substituted.
  *  · Validation v2 XGBoost is intentionally not presented as the live model
  *    until the independent benchmark is complete.
  *  · Scenario dropdown: clearly labeled simulation.
@@ -19,21 +19,6 @@ import { getRiskLevel } from "@/lib/data";
 const LOKOJA = { lat: 7.8023, lon: 6.7333 };
 
 interface DayPoint { day: string; precip: number; isForecast: boolean; simulated?: number; }
-
-function deriveFallback(daily: any) {
-  const idx = daily.time.length - 5;
-  const p: number[] = daily.precipitation_sum ?? [];
-  const et0: number[] = daily.et0_fao_evapotranspiration ?? [];
-  const sum = (arr: number[], a: number, b: number) => arr.slice(Math.max(0, a), b).reduce((x, y) => x + (y || 0), 0);
-  const precip7 = sum(p, idx - 6, idx + 1);
-  const precip3 = sum(p, idx - 2, idx + 1);
-  const balance7 = precip7 - sum(et0, idx - 6, idx + 1);
-  const rainfall = Math.min(1, precip7 / 200);
-  const burst = Math.min(1, precip3 / 120);
-  const wetness = Math.min(1, Math.max(0, (balance7 + 40) / 160));
-  const score = Math.round((rainfall * 0.45 + burst * 0.3 + wetness * 0.25) * 100);
-  return { score, rainfall, burst, wetness };
-}
 
 function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
@@ -55,11 +40,16 @@ export default function PredictPage() {
   const [dataState, setDataState] = useState<"loading" | "live" | "error">("loading");
   const [riskScore, setRiskScore] = useState<number | null>(null);
   const [riskLevel, setRiskLevel] = useState("");
-  const [riskSource, setRiskSource] = useState<"api" | "fallback" | null>(null);
+  const [riskSource, setRiskSource] = useState<"api" | "unavailable" | null>(null);
   const [factors, setFactors] = useState({ rainfall: 0, burst: 0, wetness: 0 });
 
   const load = useCallback(async () => {
     setDataState("loading");
+    setRiskSource(null);
+    setRiskScore(null);
+    setRiskLevel("");
+    setFactors({ rainfall: 0, burst: 0, wetness: 0 });
+
     try {
       const weatherUrl =
         `https://api.open-meteo.com/v1/forecast?latitude=${LOKOJA.lat}&longitude=${LOKOJA.lon}` +
@@ -75,34 +65,26 @@ export default function PredictPage() {
         isForecast: i > todayIdx,
       }));
       setSeries(pts);
+      setDataState("live");
 
-      let usedApi = false;
       try {
         const risk = await fetch(`/api/v1/risk?latitude=${LOKOJA.lat}&longitude=${LOKOJA.lon}`, { cache: "no-store" });
-        if (risk.ok) {
-          const d = await risk.json();
-          setRiskScore(d.risk.score);
-          setRiskLevel(d.risk.level);
-          setFactors({
-            rainfall: d.factors.rainfall_7d,
-            burst: d.factors.burst_intensity,
-            wetness: d.factors.soil_saturation,
-          });
-          setRiskSource("api");
-          usedApi = true;
-        }
-      } catch { /* use transparent daily-only fallback */ }
-
-      if (!usedApi) {
-        const f = deriveFallback(daily);
-        setRiskScore(f.score);
-        setRiskLevel(getRiskLevel(f.score).label.toUpperCase());
-        setFactors({ rainfall: f.rainfall, burst: f.burst, wetness: f.wetness });
-        setRiskSource("fallback");
+        if (!risk.ok) throw new Error("risk API unavailable");
+        const d = await risk.json();
+        setRiskScore(d.risk.score);
+        setRiskLevel(d.risk.level);
+        setFactors({
+          rainfall: d.factors.rainfall_7d,
+          burst: d.factors.burst_intensity,
+          wetness: d.factors.soil_saturation,
+        });
+        setRiskSource("api");
+      } catch {
+        setRiskSource("unavailable");
       }
-      setDataState("live");
     } catch {
       setDataState("error");
+      setRiskSource("unavailable");
     }
   }, []);
 
@@ -130,12 +112,12 @@ export default function PredictPage() {
             <div className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border ${
               riskSource === "api"
                 ? "text-radar border-radar/20 bg-radar/5"
-                : riskSource === "fallback"
-                ? "text-cyan border-cyan/20 bg-cyan/5"
+                : riskSource === "unavailable"
+                ? "text-amber border-amber/20 bg-amber/5"
                 : "text-slate-400 border-slate-200 dark:border-midnight-border"
             }`}>
-              {riskSource ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {riskSource === "api" ? "Derived-v2 API: Live" : riskSource === "fallback" ? "Daily fallback: Live data" : "Connecting…"}
+              {riskSource === "api" ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+              {riskSource === "api" ? "Derived-v2 API: Live" : riskSource === "unavailable" ? "Risk API unavailable" : "Connecting…"}
             </div>
             <select
               value={scenario}
@@ -165,9 +147,7 @@ export default function PredictPage() {
             <div>
               <p className="text-xs text-slate-400">Current risk index — Lokoja, Kogi State</p>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                {riskSource === "api"
-                  ? "From the disclosed derived-v2 live API; this is not the Validation v2 XGBoost model"
-                  : "Daily-only disclosed fallback on live Open-Meteo inputs"}
+                From the canonical derived-v2 live API; this is not the Validation v2 XGBoost model
               </p>
             </div>
             <div className="text-right">
@@ -181,26 +161,40 @@ export default function PredictPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { icon: CloudRain, label: "Rainfall load (7d)", value: factors.rainfall, color: "text-cyan" },
-            { icon: Waves, label: "Rainfall burst", value: factors.burst, color: "text-radar" },
-            { icon: Droplets, label: "Wetness proxy", value: factors.wetness, color: "text-amber" },
-          ].map((stat) => (
-            <div key={stat.label} className="glass-card rounded-xl p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                <span className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 mr-3 overflow-hidden">
-                  <div className="h-full rounded-full bg-radar transition-all duration-700" style={{ width: `${Math.round(stat.value * 100)}%` }} />
-                </div>
-                <span className="text-sm font-bold font-mono">{Math.round(stat.value * 100)}%</span>
-              </div>
+        {riskSource === "unavailable" && dataState === "live" && (
+          <div className="glass-card rounded-xl p-5 flex items-start gap-3 border border-amber/20">
+            <AlertTriangle className="h-5 w-5 text-amber shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold">Risk score temporarily unavailable</p>
+              <p className="mt-1 text-xs text-slate-500">
+                The precipitation chart remains live, but NaijaClimaGuard will not substitute a different fallback formula. Retry to restore the canonical derived-v2 score.
+              </p>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {riskScore !== null && (
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { icon: CloudRain, label: "Rainfall load (7d)", value: factors.rainfall, color: "text-cyan" },
+              { icon: Waves, label: "Rainfall burst", value: factors.burst, color: "text-radar" },
+              { icon: Droplets, label: "Wetness proxy", value: factors.wetness, color: "text-amber" },
+            ].map((stat) => (
+              <div key={stat.label} className="glass-card rounded-xl p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                  <span className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 mr-3 overflow-hidden">
+                    <div className="h-full rounded-full bg-radar transition-all duration-700" style={{ width: `${Math.round(stat.value * 100)}%` }} />
+                  </div>
+                  <span className="text-sm font-bold font-mono">{Math.round(stat.value * 100)}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="glass-card rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
