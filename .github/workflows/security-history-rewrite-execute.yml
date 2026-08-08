@@ -1,0 +1,164 @@
+name: Security History Rewrite Execute
+
+on:
+  push:
+    branches: [security-history-rewrite-execute]
+    paths:
+      - ".github/workflows/security-history-rewrite-execute.yml"
+      - "security/history-rewrite-execute-trigger.txt"
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  rewrite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install git-filter-repo
+        run: python -m pip install --disable-pip-version-check git-filter-repo
+
+      - name: Cancel every other queued or running workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.request
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          token = os.environ["GH_TOKEN"]
+          current = int(os.environ["GITHUB_RUN_ID"])
+          headers = {
+              "Authorization": f"Bearer {token}",
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+              "User-Agent": "naijaclimaguard-security-rewrite",
+          }
+
+          def request(url, method="GET"):
+              req = urllib.request.Request(url, headers=headers, method=method)
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  body = response.read()
+                  return json.loads(body) if body else None
+
+          base = f"https://api.github.com/repos/{repo}/actions/runs?per_page=100"
+          data = request(base)
+          targets = [
+              run for run in data.get("workflow_runs", [])
+              if run["id"] != current and run["status"] in {"queued", "in_progress", "requested", "waiting", "pending"}
+          ]
+          for run in targets:
+              try:
+                  request(f"https://api.github.com/repos/{repo}/actions/runs/{run['id']}/cancel", "POST")
+                  print(f"cancel requested: {run['id']} {run['name']} {run['status']}")
+              except Exception as exc:
+                  print(f"cancel request failed for {run['id']}: {exc}")
+                  raise
+
+          for _ in range(12):
+              time.sleep(5)
+              data = request(base)
+              remaining = [
+                  run for run in data.get("workflow_runs", [])
+                  if run["id"] != current and run["status"] in {"queued", "in_progress", "requested", "waiting", "pending"}
+              ]
+              if not remaining:
+                  print("all other active workflow runs are stopped")
+                  break
+              print("waiting for cancellation:", [(r["id"], r["name"], r["status"]) for r in remaining])
+          else:
+              raise SystemExit("Other workflow runs remained active; refusing history rewrite")
+          PY
+
+      - name: Rewrite mirror, verify, dry-run, then force-update branches and tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          MIRROR="$RUNNER_TEMP/repo.git"
+          git clone --mirror "$REMOTE" "$MIRROR"
+          cd "$MIRROR"
+
+          OLD_MAIN=$(git rev-parse refs/heads/main)
+          MAIN_TREE_BEFORE=$(git rev-parse refs/heads/main^{tree})
+          V4_ARTIFACT_BEFORE=$(git show refs/heads/main:validation/model_v4_frozen_artifact.json | sha256sum | awk '{print $1}')
+          V4_MANIFEST_BEFORE=$(git show refs/heads/main:validation/MODEL_V4_FREEZE_MANIFEST.json | sha256sum | awk '{print $1}')
+          EVENT_REGISTRY_BEFORE=$(git show refs/heads/main:validation/model_v4_event_registry.csv | sha256sum | awk '{print $1}')
+          git for-each-ref --format='%(refname)' refs/heads | sort > "$RUNNER_TEMP/heads.before"
+          git for-each-ref --format='%(refname)' refs/tags | sort > "$RUNNER_TEMP/tags.before"
+
+          git filter-repo --path .env --invert-paths --force
+
+          if git log --all --format='%H' -- .env | grep -q .; then
+            echo "FAIL: .env still appears in rewritten history"
+            exit 1
+          fi
+          if git rev-list --objects --all | awk '$2 == ".env" {print}' | grep -q .; then
+            echo "FAIL: .env object remains reachable"
+            exit 1
+          fi
+
+          git for-each-ref --format='%(refname)' refs/heads | sort > "$RUNNER_TEMP/heads.after"
+          git for-each-ref --format='%(refname)' refs/tags | sort > "$RUNNER_TEMP/tags.after"
+          diff -u "$RUNNER_TEMP/heads.before" "$RUNNER_TEMP/heads.after"
+          diff -u "$RUNNER_TEMP/tags.before" "$RUNNER_TEMP/tags.after"
+
+          MAIN_TREE_AFTER=$(git rev-parse refs/heads/main^{tree})
+          V4_ARTIFACT_AFTER=$(git show refs/heads/main:validation/model_v4_frozen_artifact.json | sha256sum | awk '{print $1}')
+          V4_MANIFEST_AFTER=$(git show refs/heads/main:validation/MODEL_V4_FREEZE_MANIFEST.json | sha256sum | awk '{print $1}')
+          EVENT_REGISTRY_AFTER=$(git show refs/heads/main:validation/model_v4_event_registry.csv | sha256sum | awk '{print $1}')
+          test "$MAIN_TREE_BEFORE" = "$MAIN_TREE_AFTER"
+          test "$V4_ARTIFACT_BEFORE" = "$V4_ARTIFACT_AFTER"
+          test "$V4_MANIFEST_BEFORE" = "$V4_MANIFEST_AFTER"
+          test "$EVENT_REGISTRY_BEFORE" = "$EVENT_REGISTRY_AFTER"
+
+          NEW_MAIN=$(git rev-parse refs/heads/main)
+          git remote add origin "$REMOTE"
+
+          # Server-side permission/protection check before any real mutation.
+          git push --dry-run --force origin 'refs/heads/*:refs/heads/*'
+          git push --dry-run --force origin 'refs/tags/*:refs/tags/*'
+
+          git push --force origin 'refs/heads/*:refs/heads/*'
+          git push --force origin 'refs/tags/*:refs/tags/*'
+
+          printf '%s\n' "$OLD_MAIN" > "$RUNNER_TEMP/old-main"
+          printf '%s\n' "$NEW_MAIN" > "$RUNNER_TEMP/new-main"
+          printf '%s\n' "$MAIN_TREE_AFTER" > "$RUNNER_TEMP/main-tree"
+          printf '%s\n' "$V4_ARTIFACT_AFTER" > "$RUNNER_TEMP/v4-artifact-sha256"
+          printf '%s\n' "$V4_MANIFEST_AFTER" > "$RUNNER_TEMP/v4-manifest-sha256"
+          printf '%s\n' "$EVENT_REGISTRY_AFTER" > "$RUNNER_TEMP/event-registry-sha256"
+
+      - name: Record rewrite provenance on cleaned main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git clone --branch main --single-branch "$REMOTE" "$RUNNER_TEMP/clean-main"
+          cd "$RUNNER_TEMP/clean-main"
+          mkdir -p security
+          cat > security/history-rewrite-result.txt <<EOF
+          PASS
+          Root .env removed from all rewritten branch/tag history reachable by the push.
+          Other workflow runs were stopped before rewrite.
+          Force-push dry run passed before real ref updates.
+          Old main: $(cat "$RUNNER_TEMP/old-main")
+          Rewritten main before provenance commit: $(cat "$RUNNER_TEMP/new-main")
+          Current main tree before provenance file: $(cat "$RUNNER_TEMP/main-tree")
+          Frozen Model v4 artifact SHA-256: $(cat "$RUNNER_TEMP/v4-artifact-sha256")
+          Model v4 freeze manifest SHA-256 before post-rewrite refreeze: $(cat "$RUNNER_TEMP/v4-manifest-sha256")
+          Frozen event-registry SHA-256: $(cat "$RUNNER_TEMP/event-registry-sha256")
+          EOF
+          git config user.name "naijaclimaguard-security-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add security/history-rewrite-result.txt
+          git commit -m "security: record completed secret-history rewrite"
+          git push origin main
