@@ -35,7 +35,7 @@ from sklearn.preprocessing import StandardScaler
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_FEATURES = HERE / "features_daily.csv"
-DEFAULT_EVENTS = HERE / "event_registry.csv"
+DEFAULT_EVENTS = HERE / "model_v3_event_registry.csv"
 DEVELOPMENT_CUTOFF = pd.Timestamp("2022-01-01")
 DEVELOPMENT_START = pd.Timestamp("2018-01-01")
 PRIMARY_POSITIVE_DAYS_BEFORE = 3
@@ -43,6 +43,9 @@ PRIMARY_POSITIVE_DAYS_AFTER = 0
 EXCLUSION_DAYS = 14
 MIN_FEATURE_NONNULL_FRACTION = 0.90
 RANDOM_STATE = 42
+EXPECTED_DEVELOPMENT_EVENTS = 16
+EXPECTED_OOF_EVENTS = 12
+EXPECTED_EVENTS_BY_YEAR = {2018: 4, 2019: 5, 2020: 4, 2021: 3}
 
 BASE_HYDRO_FEATURES = [
     "nasa_imerg_precip_mm_day",
@@ -86,6 +89,19 @@ def load_events(path: Path) -> pd.DataFrame:
     ].copy()
     if events.empty:
         raise ValueError("No enabled 2018-2021 development events found")
+    if not events["event_id"].is_unique:
+        raise ValueError("Model v3 development event IDs must be unique")
+    by_year = events.groupby(events["observed_by_date"].dt.year)["event_id"].nunique().to_dict()
+    if int(events["event_id"].nunique()) != EXPECTED_DEVELOPMENT_EVENTS:
+        raise ValueError(
+            f"Frozen Model v3 registry changed: expected {EXPECTED_DEVELOPMENT_EVENTS} enabled events, "
+            f"got {events['event_id'].nunique()}"
+        )
+    if by_year != EXPECTED_EVENTS_BY_YEAR:
+        raise ValueError(f"Frozen Model v3 registry year distribution changed: {by_year}")
+    oof_count = int(events[events["observed_by_date"].dt.year.isin([2019, 2020, 2021])]["event_id"].nunique())
+    if oof_count != EXPECTED_OOF_EVENTS:
+        raise ValueError(f"Frozen Model v3 OOF event count changed: expected {EXPECTED_OOF_EVENTS}, got {oof_count}")
     return events.sort_values("observed_by_date").reset_index(drop=True)
 
 
@@ -298,12 +314,18 @@ def event_detection(scored: pd.DataFrame, events: pd.DataFrame, threshold: float
         ].copy()
         if window.empty:
             continue
-        detected = bool((window["probability"] >= threshold).any())
+        crossed = window[window["probability"] >= threshold].sort_values("date")
+        first = crossed.iloc[0]["date"] if not crossed.empty else pd.NaT
+        lead_hours = None if pd.isna(first) else int((anchor - first).total_seconds() / 3600)
         event_rows.append({
-            "event_id": str(event["event_id"]), "location": str(event["location"]),
+            "event_id": str(event["event_id"]),
+            "location": str(event["location"]),
             "observed_by_date": str(anchor.date()),
-            "detected_in_development_event_window": detected,
+            "detected_in_development_event_window": not crossed.empty,
+            "first_crossing_date": None if pd.isna(first) else str(first.date()),
+            "development_hindcast_lead_hours": lead_hours,
             "max_probability": float(window["probability"].max()),
+            "warning": "Historical event-window hindcast timing only; not issue-time forecast lead skill.",
         })
     detected_count = sum(bool(r["detected_in_development_event_window"]) for r in event_rows)
     return {
@@ -314,8 +336,51 @@ def event_detection(scored: pd.DataFrame, events: pd.DataFrame, threshold: float
     }
 
 
-def select_threshold(y_true: np.ndarray, probability: np.ndarray) -> Tuple[float, Dict[str, object]]:
-    """Select a development-only threshold from pooled out-of-fold predictions."""
+def per_location_diagnostics(scored: pd.DataFrame, events: pd.DataFrame, threshold: float) -> Dict[str, object]:
+    out: Dict[str, object] = {}
+    for location, group in scored.groupby("location"):
+        location_events = events[events["location"].eq(location)].copy()
+        out[str(location)] = {
+            "rows": int(len(group)),
+            "positive_rows": int(group["label"].sum()),
+            "metrics": metric_bundle(group["label"], group["probability"], threshold),
+            "event_metrics": event_detection(group, location_events, threshold),
+        }
+    return out
+
+
+def threshold_frontier(scored: pd.DataFrame, events: pd.DataFrame) -> List[Dict[str, object]]:
+    """Development-only tradeoff table; false alerts are negative location-days, not notification episodes."""
+    y = scored["label"].to_numpy(dtype=int)
+    p = scored["probability"].to_numpy(dtype=float)
+    negative_rows = int((y == 0).sum())
+    rows: List[Dict[str, object]] = []
+    for threshold in np.round(np.arange(0.05, 0.951, 0.05), 2):
+        metrics = metric_bundle(y, p, float(threshold))
+        cm = metrics["confusion_matrix"]
+        events_at_threshold = event_detection(scored, events, float(threshold))
+        false_alert_rows = int(cm["fp"])
+        rows.append({
+            "threshold": float(threshold),
+            "precision": metrics["precision"],
+            "recall": metrics["recall"],
+            "f1": metrics["f1"],
+            "false_alarm_ratio": metrics["false_alarm_ratio"],
+            "miss_rate": metrics["miss_rate"],
+            "predicted_positive_location_days": int(cm["tp"] + cm["fp"]),
+            "false_positive_location_days": false_alert_rows,
+            "false_positive_location_days_per_1000_negative_rows": (
+                float(1000.0 * false_alert_rows / negative_rows) if negative_rows else None
+            ),
+            "detected_events": events_at_threshold["detected_events"],
+            "evaluated_events": events_at_threshold["evaluated_events"],
+            "event_detection_rate": events_at_threshold["event_detection_rate"],
+        })
+    return rows
+
+
+def select_provisional_f1_threshold(y_true: np.ndarray, probability: np.ndarray) -> Tuple[float, Dict[str, object]]:
+    """Pick an OOF F1 diagnostic threshold. This is not an operational warning policy."""
     best = None
     for threshold in np.round(np.arange(0.05, 0.951, 0.01), 2):
         metrics = metric_bundle(y_true, probability, float(threshold))
@@ -361,15 +426,20 @@ def evaluate_candidate(
         fold_scored["probability"] = probability
         oof_parts.append(fold_scored)
         fold_results.append({
-            "fold": fold.__dict__, "train_rows": int(len(train)), "validation_rows": int(len(val)),
-            "train_positive_rows": positives, "validation_positive_rows": int(y_val.sum()),
+            "fold": fold.__dict__,
+            "train_rows": int(len(train)),
+            "validation_rows": int(len(val)),
+            "train_positive_rows": positives,
+            "validation_positive_rows": int(y_val.sum()),
             "features": cols,
             "feature_coverage": {k: round(v, 4) for k, v in coverage.items()},
             "metrics_at_0_50_for_diagnostic_only": metric_bundle(y_val, probability, 0.50),
         })
 
     oof = pd.concat(oof_parts, ignore_index=True).sort_values(["date", "location"]).reset_index(drop=True)
-    threshold, _ = select_threshold(oof["label"].to_numpy(dtype=int), oof["probability"].to_numpy(dtype=float))
+    threshold, _ = select_provisional_f1_threshold(
+        oof["label"].to_numpy(dtype=int), oof["probability"].to_numpy(dtype=float)
+    )
     events_oof = events[events["observed_by_date"].dt.year.isin(oof["date"].dt.year.unique())].copy()
     pr_values = [
         f["metrics_at_0_50_for_diagnostic_only"]["pr_auc"] for f in fold_results
@@ -385,11 +455,15 @@ def evaluate_candidate(
         "folds": fold_results,
         "mean_fold_pr_auc": float(np.mean(pr_values)) if pr_values else None,
         "mean_fold_roc_auc": float(np.mean(roc_values)) if roc_values else None,
-        "oof_rows": int(len(oof)), "oof_positive_rows": int(oof["label"].sum()),
+        "oof_rows": int(len(oof)),
+        "oof_positive_rows": int(oof["label"].sum()),
         "selected_development_threshold": threshold,
+        "threshold_status": "provisional_oof_f1_diagnostic_not_operational_policy",
         "pooled_oof_metrics_at_selected_threshold": metric_bundle(oof["label"], oof["probability"], threshold),
         "pooled_oof_metrics_at_0_50": metric_bundle(oof["label"], oof["probability"], 0.50),
         "development_event_metrics": event_detection(oof, events_oof, threshold),
+        "per_location_at_provisional_threshold": per_location_diagnostics(oof, events_oof, threshold),
+        "threshold_frontier": threshold_frontier(oof, events_oof),
     }
 
 
@@ -405,16 +479,20 @@ def season_only_diagnostic(labelled: pd.DataFrame) -> Dict[str, object]:
         ])
         model.fit(train[SEASON_FEATURES], train["label"].astype(int))
         probability = model.predict_proba(val[SEASON_FEATURES])[:, 1]
-        fold_results.append({"fold": fold.__dict__, "metrics_at_0_50": metric_bundle(val["label"], probability, 0.50)})
+        fold_results.append({
+            "fold": fold.__dict__,
+            "metrics_at_0_50": metric_bundle(val["label"], probability, 0.50),
+        })
         part = val[["date", "location", "label", "event_id"]].copy()
         part["probability"] = probability
         oof_parts.append(part)
     oof = pd.concat(oof_parts, ignore_index=True)
-    threshold, _ = select_threshold(oof["label"].to_numpy(), oof["probability"].to_numpy())
+    threshold, _ = select_provisional_f1_threshold(oof["label"].to_numpy(), oof["probability"].to_numpy())
     return {
         "purpose": "diagnostic_only_not_eligible_for_selection",
         "features": SEASON_FEATURES,
         "selected_development_threshold": threshold,
+        "threshold_status": "provisional_oof_f1_diagnostic_not_operational_policy",
         "pooled_oof_metrics": metric_bundle(oof["label"], oof["probability"], threshold),
         "folds": fold_results,
     }
@@ -479,14 +557,24 @@ def run(features_path: Path, events_path: Path) -> Dict[str, object]:
         "data": {
             "feature_rows_used": int(len(features)),
             "labelled_rows_after_uncertainty_exclusion": int(len(labelled)),
-            "positive_rows": positives, "negative_rows": negatives,
+            "positive_rows": positives,
+            "negative_rows": negatives,
             "development_events": int(events["event_id"].nunique()),
+            "oof_event_anchors": int(
+                events[events["observed_by_date"].dt.year.isin([2019, 2020, 2021])]["event_id"].nunique()
+            ),
+            "events_by_year": {
+                str(k): int(v)
+                for k, v in events.groupby(events["observed_by_date"].dt.year)["event_id"].nunique().to_dict().items()
+            },
             "locations": sorted(labelled["location"].astype(str).unique().tolist()),
-            "features_sha256": sha256_file(features_path), "events_sha256": sha256_file(events_path),
+            "features_sha256": sha256_file(features_path),
+            "events_sha256": sha256_file(events_path),
         },
         "leakage_guards": [
             "All development rows are strictly before 2022-01-01.",
             "All development events are strictly before 2022-01-01.",
+            "The dedicated event registry is frozen at 16 events / 12 OOF anchors for this development generation.",
             "Temporal folds train only on years earlier than each validation year.",
             "Location/reach normalization statistics are fitted inside each fold using training years only.",
             "Raw month and day_of_year are excluded from all eligible candidates.",
@@ -495,20 +583,34 @@ def run(features_path: Path, events_path: Path) -> Dict[str, object]:
         ],
         "season_only_diagnostic": season,
         "candidates": results,
-        "model_selection_warning": "Only seven independent event anchors fall in the 2019-2021 out-of-fold validation years. Treat model ranking as provisional until the development event registry is strengthened.",
+        "model_selection_warning": (
+            "Twelve independent event anchors fall in the 2019-2021 out-of-fold validation years. "
+            "This supports provisional development ranking only; it does not establish national or production validation."
+        ),
         "selected_candidate": {
             "candidate": winner["candidate"],
             "selection_rule": "highest mean temporal-fold PR-AUC; Brier score tie-breaker",
             "development_threshold": winner["selected_development_threshold"],
+            "threshold_status": winner["threshold_status"],
+            "threshold_warning": (
+                "The reported F1-maximizing OOF threshold is diagnostic only. A final operational threshold requires "
+                "a predeclared development-only false-alert / missed-event policy before model freeze."
+            ),
             "mean_fold_pr_auc": winner["mean_fold_pr_auc"],
             "pooled_oof_metrics": winner["pooled_oof_metrics_at_selected_threshold"],
             "development_event_metrics": winner["development_event_metrics"],
+            "per_location_at_provisional_threshold": winner["per_location_at_provisional_threshold"],
+            "threshold_frontier": winner["threshold_frontier"],
             "seasonal_signal_warning": season_flag,
             "calendar_features_allowed_in_winner": False,
         },
         "freeze_gate": {
             "ready_to_freeze_for_new_holdout": False,
-            "reason": "Development candidate only. CI reproduction, calibration review, event-definition review and a genuinely new untouched/prospective holdout are still required.",
+            "reason": (
+                "Development candidate only. CI reproduction, event-definition review, per-location/reach review, "
+                "seasonal diagnostic review, an explicit operational threshold policy, and a genuinely new untouched/"
+                "prospective holdout are still required."
+            ),
         },
         "production": {"engine_remains": "derived-v2", "model_v3_deployed": False},
     }
