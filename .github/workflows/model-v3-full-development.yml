@@ -130,9 +130,18 @@ jobs:
           assert r['production']['model_v3_deployed'] is False
           assert r['freeze_gate']['ready_to_freeze_for_new_holdout'] is False
           assert r['data']['development_events'] == 16, r['data']['development_events']
-          print('selected development candidate:', r['selected_candidate']['candidate'])
-          print('provisional development threshold:', r['selected_candidate']['development_threshold'])
-          print('mean temporal-fold PR-AUC:', r['selected_candidate']['mean_fold_pr_auc'])
+          assert r['data']['oof_event_anchors'] == 12, r['data']['oof_event_anchors']
+          selected = r['selected_candidate']
+          assert selected['threshold_status'] == 'provisional_oof_f1_diagnostic_not_operational_policy'
+          assert selected['calendar_features_allowed_in_winner'] is False
+          assert len(selected['threshold_frontier']) == 19
+          expected_locations = {'Lokoja', 'Makurdi', 'Onitsha', 'Yenagoa', 'Hadejia'}
+          assert set(selected['per_location_at_provisional_threshold']) == expected_locations
+          print('selected development candidate:', selected['candidate'])
+          print('provisional development threshold:', selected['development_threshold'])
+          print('mean temporal-fold PR-AUC:', selected['mean_fold_pr_auc'])
+          print('per-location diagnostics:', sorted(selected['per_location_at_provisional_threshold']))
+          print('threshold frontier points:', len(selected['threshold_frontier']))
           print('freeze gate:', r['freeze_gate'])
           PY
 
@@ -144,6 +153,7 @@ jobs:
             echo "Hard cutoff: 2022-01-01"
             echo "Frozen development events: 16"
             echo "Frozen OOF event anchors: 12"
+            echo "Threshold status: provisional OOF F1 diagnostic only"
             echo "Validation v2 canonical gate confirmed at dispatch: ${{ inputs.validation_v2_canonical_confirmed }}"
             echo "Production engine remains: derived-v2"
             echo "Model v3 deployment: false"
