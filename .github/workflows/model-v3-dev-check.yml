@@ -5,6 +5,7 @@ on:
     branches: [model-v3-dev]
     paths:
       - "validation/model_v3_dev.py"
+      - "validation/review_model_v3_results.py"
       - "validation/model_v3_event_registry.csv"
       - "validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md"
       - "validation/MODEL_V3_PROTOCOL.md"
@@ -18,6 +19,7 @@ on:
     branches: [main, validation-v2]
     paths:
       - "validation/model_v3_dev.py"
+      - "validation/review_model_v3_results.py"
       - "validation/model_v3_event_registry.csv"
       - "validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md"
       - "validation/MODEL_V3_PROTOCOL.md"
@@ -49,8 +51,10 @@ jobs:
         run: |
           python --version
           pip freeze | sort | tee model-v3-pip-freeze.txt
-      - name: Compile Model v3 harness
-        run: python -m py_compile validation/model_v3_dev.py
+      - name: Compile Model v3 harness and review
+        run: |
+          python -m py_compile validation/model_v3_dev.py
+          python -m py_compile validation/review_model_v3_results.py
       - name: Run protocol guard tests
         run: python -m unittest validation/tests/test_model_v3_dev.py
       - name: Validate frozen development event registry
