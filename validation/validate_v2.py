@@ -62,6 +62,26 @@ def load_feature_file(path: Path) -> pd.DataFrame:
     return df.sort_values(["location", "date"]).reset_index(drop=True)
 
 
+def feature_covered_events(events: pd.DataFrame, features: pd.DataFrame) -> pd.DataFrame:
+    """Keep only events whose observed date is represented by that location's feature period.
+
+    This prevents registry events outside available feature history (for example
+    Makurdi 2017 when features begin in 2018) from satisfying the independent-event
+    publishability gate.
+    """
+    coverage = (
+        features.groupby("location")["date"]
+        .agg(feature_start="min", feature_end="max")
+        .reset_index()
+    )
+    covered = events.merge(coverage, on="location", how="left")
+    in_range = (
+        covered["feature_start"].notna()
+        & covered["observed_by_date"].between(covered["feature_start"], covered["feature_end"])
+    )
+    return covered[in_range].copy()
+
+
 def attach_independent_labels(
     features: pd.DataFrame,
     events: pd.DataFrame,
@@ -148,6 +168,8 @@ def event_lead_time_table(test: pd.DataFrame, events: pd.DataFrame, threshold: f
         crossed = w[w["probability"] >= threshold]
         first = crossed.iloc[0]["date"] if not crossed.empty else pd.NaT
         lead_hours = None if pd.isna(first) else int((t0 - first).total_seconds() / 3600)
+        max_probability = None if w.empty else float(w["probability"].max())
+        max_probability_date = None if w.empty else str(w.loc[w["probability"].idxmax(), "date"].date())
         rows.append({
             "event_id": e["event_id"],
             "location": e["location"],
@@ -155,6 +177,8 @@ def event_lead_time_table(test: pd.DataFrame, events: pd.DataFrame, threshold: f
             "first_threshold_crossing": None if pd.isna(first) else str(first.date()),
             "hindcast_detection_lead_hours": lead_hours,
             "detected_before_or_on_event": lead_hours is not None and lead_hours >= 0,
+            "max_probability_in_7d_window": max_probability,
+            "max_probability_date": max_probability_date,
             "warning": "Observational hindcast timing only unless archived forecast-time features were used.",
         })
     return rows
@@ -230,8 +254,11 @@ def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: flo
     scored["prediction"] = pred
 
     cut = pd.Timestamp(cutoff)
-    train_events = events[events["observed_by_date"] < cut].copy()
-    test_events = events[events["observed_by_date"] >= cut].copy()
+    coverage_start = df["date"].min()
+    coverage_end = df["date"].max()
+    covered_events = events[events["observed_by_date"].between(coverage_start, coverage_end)].copy()
+    train_events = covered_events[covered_events["observed_by_date"] < cut].copy()
+    test_events = covered_events[covered_events["observed_by_date"] >= cut].copy()
     train_event_count = int(train_events["event_id"].nunique())
     test_event_count = int(test_events["event_id"].nunique())
     train_gate = train_event_count >= MIN_TRAIN_EVENTS_FOR_HEADLINE_METRICS
@@ -239,13 +266,13 @@ def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: flo
     publishable = train_gate and test_gate
     reasons: List[str] = []
     if not train_gate:
-        reasons.append(f"Only {train_event_count} independent training events; minimum is {MIN_TRAIN_EVENTS_FOR_HEADLINE_METRICS}.")
+        reasons.append(f"Only {train_event_count} feature-covered independent training events; minimum is {MIN_TRAIN_EVENTS_FOR_HEADLINE_METRICS}.")
     if not test_gate:
-        reasons.append(f"Only {test_event_count} independent test events; minimum is {MIN_TEST_EVENTS_FOR_HEADLINE_METRICS}.")
+        reasons.append(f"Only {test_event_count} feature-covered independent test events; minimum is {MIN_TEST_EVENTS_FOR_HEADLINE_METRICS}.")
     if not publishable:
         reasons.append("Do not use these metrics as pitch headline claims.")
 
-    event_rows = event_lead_time_table(scored, events, threshold)
+    event_rows = event_lead_time_table(scored, test_events, threshold)
     detected_events = sum(bool(r["detected_before_or_on_event"]) for r in event_rows)
 
     result: Dict[str, object] = {
@@ -258,6 +285,8 @@ def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: flo
             "Copernicus/ECMWF GloFAS v4 river discharge",
             "ERA5-Land surface-state variables",
         ],
+        "feature_data_start": str(coverage_start.date()),
+        "feature_data_end": str(coverage_end.date()),
         "cutoff": cutoff,
         "threshold": threshold,
         "threshold_origin": "Predeclared fixed threshold; not optimized on the chronological test set.",
@@ -293,6 +322,7 @@ def main() -> None:
 
     events = load_events(args.events)
     features = load_feature_file(args.features)
+    events = feature_covered_events(events, features)
     labelled = attach_independent_labels(features, events)
     result = evaluate(labelled, events, args.cutoff, args.threshold)
     args.output.write_text(json.dumps(result, indent=2), encoding="utf-8")
