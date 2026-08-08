@@ -1,0 +1,54 @@
+name: EWDS Lokoja Replay PR Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "validation/fetch_glofas_operational_forecasts.py"
+      - "validation/ewds_replay_trigger.txt"
+
+permissions:
+  contents: read
+
+env:
+  EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
+
+jobs:
+  replay-source:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'validation-v2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: pip install "pandas<3" "numpy<3" "cdsapi>=0.7.7,<1" "xarray>=2024.7,<2027" "netCDF4>=1.7,<2" "requests>=2.32,<3"
+      - name: Verify EWDS secret
+        run: test -n "$EWDS_API_KEY" || { echo "EWDS_API_KEY missing"; exit 1; }
+      - name: Retrieve six decision-critical issue dates
+        run: |
+          python validation/fetch_glofas_operational_forecasts.py \
+            --location Lokoja \
+            --issue-dates 2022-09-25 2022-09-26 2022-09-27 2022-10-03 2022-10-04 2022-10-05 \
+            --lead-hours 24 48 72
+      - name: Validate extracted operational forecasts
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          p='validation/glofas_operational_forecasts.csv'
+          d=pd.read_csv(p)
+          print(d.to_string(index=False))
+          assert len(d) >= 18, f'Expected 18 issue/lead rows, got {len(d)}'
+          assert {24,48,72}.issubset(set(d['lead_time_hours']))
+          assert d['forecast_discharge_m3s'].notna().all()
+          print(d.groupby('lead_time_hours')['forecast_discharge_m3s'].agg(['min','max','mean']))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ewds-lokoja-operational-${{ github.run_number }}
+          retention-days: 30
+          path: |
+            validation/glofas_operational_forecasts.csv
+            validation/raw/glofas_operational_forecasts/*.nc
