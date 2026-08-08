@@ -1,21 +1,13 @@
 #!/usr/bin/env python3
-"""Retrieve archived *operational* GloFAS forecasts for lead-time reconstruction.
+"""Retrieve archived operational GloFAS forecasts for lead-time reconstruction.
 
-This script is intentionally separate from historical/reanalysis ingestion.
-It retrieves what the operational GloFAS archive issued on each forecast date,
-so T-24/T-48/T-72 claims are not reconstructed from later reanalysis.
+For Lokoja 2022 we only need the issue dates that correspond to T-72/T-48/T-24
+around two independently documented milestones:
+- 2022-09-28: flooding already documented in Lokoja
+- 2022-10-06: NiHSA-reported maximum Lokoja discharge
 
-For the September/early-October 2022 Lokoja case, `system_version=operational`
-corresponds to the operational GloFAS system at that time (v3.2 before the
-19 October 2022 v3.3 operational release).
-
-Requirements
-------------
-- Free CEMS Early Warning Data Store (EWDS) account.
-- Accept the CEMS-FLOODS dataset licence for `cems-glofas-forecast`.
-- Set EWDS_API_KEY in the environment. Never commit the key.
-
-EWDS endpoint: https://ewds.climate.copernicus.eu/api
+This keeps the operational replay scientifically focused and avoids submitting
+unnecessary EWDS archive jobs.
 """
 from __future__ import annotations
 
@@ -46,52 +38,27 @@ def dates(start: str, end: str) -> Iterable[pd.Timestamp]:
 
 
 def bbox(lat: float, lon: float, margin: float = 0.15) -> list[float]:
-    # EWDS ordering: North, West, South, East.
     return [lat + margin, lon - margin, lat - margin, lon + margin]
 
 
 def discharge_variable(ds: xr.Dataset) -> str:
-    preferred = [
-        "river_discharge_in_the_last_24_hours",
-        "river_discharge",
-        "dis24",
-    ]
-    for name in preferred:
+    for name in ("river_discharge_in_the_last_24_hours", "river_discharge", "dis24"):
         if name in ds.data_vars:
             return name
     for name, da in ds.data_vars.items():
         units = str(da.attrs.get("units", "")).lower()
         long_name = str(da.attrs.get("long_name", "")).lower()
-        if ("m3" in units or "m**3" in units or "m³" in units) and "discharge" in long_name:
-            return name
-        if "discharge" in name.lower():
+        if (("m3" in units or "m**3" in units or "m³" in units) and "discharge" in long_name) or "discharge" in name.lower():
             return name
     raise KeyError(f"Could not identify discharge variable. Variables: {list(ds.data_vars)}")
 
 
 def lat_lon_names(ds: xr.Dataset) -> tuple[str, str]:
-    lat_candidates = ["latitude", "lat", "y"]
-    lon_candidates = ["longitude", "lon", "x"]
-    lat = next((n for n in lat_candidates if n in ds.coords), None)
-    lon = next((n for n in lon_candidates if n in ds.coords), None)
+    lat = next((n for n in ("latitude", "lat", "y") if n in ds.coords), None)
+    lon = next((n for n in ("longitude", "lon", "x") if n in ds.coords), None)
     if not lat or not lon:
         raise KeyError(f"Latitude/longitude coordinates not found: {list(ds.coords)}")
     return lat, lon
-
-
-def lead_values_hours(da: xr.DataArray) -> list[int]:
-    # EWDS NetCDF commonly exposes forecast lead as `step` or leadtime_hour.
-    for name in ("step", "leadtime_hour", "leadtime", "forecast_period"):
-        if name in da.coords:
-            values = da.coords[name].values
-            out = []
-            for v in np.atleast_1d(values):
-                if np.issubdtype(np.asarray(v).dtype, np.timedelta64):
-                    out.append(int(pd.Timedelta(v).total_seconds() // 3600))
-                else:
-                    out.append(int(v))
-            return out
-    return []
 
 
 def extract_point(path: Path, location: str, issue_date: pd.Timestamp, qlat: float, qlon: float) -> list[dict]:
@@ -99,12 +66,9 @@ def extract_point(path: Path, location: str, issue_date: pd.Timestamp, qlat: flo
     var = discharge_variable(ds)
     lat_name, lon_name = lat_lon_names(ds)
     da = ds[var].sel({lat_name: qlat, lon_name: qlon}, method="nearest")
-
-    # Remove singleton dimensions that are not forecast lead/member dimensions.
     for dim in list(da.dims):
         if da.sizes[dim] == 1 and dim not in {"step", "leadtime_hour", "leadtime", "forecast_period", "number"}:
             da = da.isel({dim: 0})
-
     lead_coord = next((n for n in ("step", "leadtime_hour", "leadtime", "forecast_period") if n in da.coords), None)
     if lead_coord is None:
         raise KeyError(f"No lead-time coordinate found in {path.name}: coords={list(da.coords)}")
@@ -113,27 +77,21 @@ def extract_point(path: Path, location: str, issue_date: pd.Timestamp, qlat: flo
     for lead_raw in np.atleast_1d(da.coords[lead_coord].values):
         if np.issubdtype(np.asarray(lead_raw).dtype, np.timedelta64):
             lead_h = int(pd.Timedelta(lead_raw).total_seconds() // 3600)
-            selector = lead_raw
         else:
             lead_h = int(lead_raw)
-            selector = lead_raw
-
-        selected = da.sel({lead_coord: selector})
-        # We request control_forecast only, but collapse a singleton member if present.
+        selected = da.sel({lead_coord: lead_raw})
         if "number" in selected.dims:
             selected = selected.isel(number=0)
-        value = float(np.asarray(selected.values).squeeze())
-        valid_time = issue_date + pd.Timedelta(hours=lead_h)
         rows.append({
             "issue_date": issue_date.strftime("%Y-%m-%d"),
-            "valid_time": valid_time.isoformat(),
+            "valid_time": (issue_date + pd.Timedelta(hours=lead_h)).isoformat(),
             "lead_time_hours": lead_h,
             "location": location,
             "latitude_requested": qlat,
             "longitude_requested": qlon,
             "latitude_grid": float(np.asarray(selected[lat_name].values).squeeze()) if lat_name in selected.coords else None,
             "longitude_grid": float(np.asarray(selected[lon_name].values).squeeze()) if lon_name in selected.coords else None,
-            "forecast_discharge_m3s": value,
+            "forecast_discharge_m3s": float(np.asarray(selected.values).squeeze()),
             "product_type": "control_forecast",
             "system_version_request": "operational",
             "hydrological_model": "lisflood",
@@ -148,7 +106,6 @@ def retrieve_one(client: cdsapi.Client, location: str, issue_date: pd.Timestamp,
     target = raw_dir / f"glofas_operational_{location.lower()}_{issue_date:%Y%m%d}.nc"
     if target.exists() and target.stat().st_size > 0:
         return target
-
     request = {
         "system_version": "operational",
         "hydrological_model": "lisflood",
@@ -170,8 +127,9 @@ def retrieve_one(client: cdsapi.Client, location: str, issue_date: pd.Timestamp,
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--location", choices=sorted(LOCATIONS), default="Lokoja")
-    ap.add_argument("--start", default="2022-09-21", help="Forecast issue-date start")
-    ap.add_argument("--end", default="2022-10-06", help="Forecast issue-date end")
+    ap.add_argument("--start", default="2022-09-21")
+    ap.add_argument("--end", default="2022-10-06")
+    ap.add_argument("--issue-dates", nargs="*", help="Explicit forecast issue dates; overrides --start/--end")
     ap.add_argument("--lead-hours", nargs="+", type=int, default=[24, 48, 72])
     ap.add_argument("--raw-dir", default="validation/raw/glofas_operational_forecasts")
     ap.add_argument("--out", default="validation/glofas_operational_forecasts.csv")
@@ -179,28 +137,22 @@ def main() -> None:
 
     key = os.getenv("EWDS_API_KEY")
     if not key:
-        raise RuntimeError(
-            "EWDS_API_KEY is not configured. Create a free EWDS account, accept the cems-glofas-forecast licence, "
-            "and store the personal access token as a secret."
-        )
-
+        raise RuntimeError("EWDS_API_KEY is not configured")
     client = cdsapi.Client(url=EWDS_URL, key=key)
-    raw_dir = Path(args.raw_dir)
-    raw_dir.mkdir(parents=True, exist_ok=True)
+    raw_dir = Path(args.raw_dir); raw_dir.mkdir(parents=True, exist_ok=True)
+    issue_dates = [pd.Timestamp(d) for d in args.issue_dates] if args.issue_dates else list(dates(args.start, args.end))
 
     qlat, qlon = LOCATIONS[args.location]
     rows: list[dict] = []
-    for issue_date in dates(args.start, args.end):
+    for issue_date in issue_dates:
         path = retrieve_one(client, args.location, issue_date, args.lead_hours, raw_dir)
         rows.extend(extract_point(path, args.location, issue_date, qlat, qlon))
 
     out = pd.DataFrame(rows).sort_values(["issue_date", "lead_time_hours"])
-    expected = len(pd.date_range(args.start, args.end, freq="D")) * len(args.lead_hours)
+    expected = len(issue_dates) * len(args.lead_hours)
     if len(out) < expected:
-        print(f"WARNING: extracted {len(out)} rows; expected up to {expected}. Inspect missing forecast cycles.")
-
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+        print(f"WARNING: extracted {len(out)} rows; expected up to {expected}")
+    out_path = Path(args.out); out_path.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(out_path, index=False)
     print(f"Wrote {len(out):,} operational forecast rows to {out_path}")
 
