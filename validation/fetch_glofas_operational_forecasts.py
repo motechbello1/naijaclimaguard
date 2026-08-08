@@ -1,0 +1,197 @@
+#!/usr/bin/env python3
+"""Retrieve archived operational GloFAS forecasts for lead-time reconstruction.
+
+For Lokoja 2022 we use issue dates corresponding to T-72/T-48/T-24 around:
+- 2022-09-28: flooding already documented in Lokoja
+- 2022-10-06: NiHSA-reported maximum Lokoja discharge
+
+EWDS can temporarily reject otherwise valid requests when the dataset queue is
+full. Those capacity errors are retried with backoff; request/schema errors are
+still surfaced immediately.
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import time
+from pathlib import Path
+from typing import Iterable
+
+import cdsapi
+import numpy as np
+import pandas as pd
+import requests
+import xarray as xr
+
+EWDS_URL = "https://ewds.climate.copernicus.eu/api"
+DATASET = "cems-glofas-forecast"
+
+LOCATIONS = {
+    "Lokoja": (7.8023, 6.7333),
+    "Makurdi": (7.7322, 8.5391),
+    "Onitsha": (6.1407, 6.7869),
+    "Yenagoa": (4.9247, 6.2642),
+    "Hadejia": (12.4494, 10.0447),
+}
+
+
+def dates(start: str, end: str) -> Iterable[pd.Timestamp]:
+    yield from pd.date_range(start=start, end=end, freq="D")
+
+
+def bbox(lat: float, lon: float, margin: float = 0.15) -> list[float]:
+    return [lat + margin, lon - margin, lat - margin, lon + margin]
+
+
+def discharge_variable(ds: xr.Dataset) -> str:
+    for name in ("river_discharge_in_the_last_24_hours", "river_discharge", "dis24"):
+        if name in ds.data_vars:
+            return name
+    for name, da in ds.data_vars.items():
+        units = str(da.attrs.get("units", "")).lower()
+        long_name = str(da.attrs.get("long_name", "")).lower()
+        if (("m3" in units or "m**3" in units or "m³" in units) and "discharge" in long_name) or "discharge" in name.lower():
+            return name
+    raise KeyError(f"Could not identify discharge variable. Variables: {list(ds.data_vars)}")
+
+
+def lat_lon_names(ds: xr.Dataset) -> tuple[str, str]:
+    lat = next((n for n in ("latitude", "lat", "y") if n in ds.coords), None)
+    lon = next((n for n in ("longitude", "lon", "x") if n in ds.coords), None)
+    if not lat or not lon:
+        raise KeyError(f"Latitude/longitude coordinates not found: {list(ds.coords)}")
+    return lat, lon
+
+
+def extract_point(path: Path, location: str, issue_date: pd.Timestamp, qlat: float, qlon: float) -> list[dict]:
+    ds = xr.open_dataset(path)
+    var = discharge_variable(ds)
+    lat_name, lon_name = lat_lon_names(ds)
+    da = ds[var].sel({lat_name: qlat, lon_name: qlon}, method="nearest")
+    for dim in list(da.dims):
+        if da.sizes[dim] == 1 and dim not in {"step", "leadtime_hour", "leadtime", "forecast_period", "number"}:
+            da = da.isel({dim: 0})
+    lead_coord = next((n for n in ("step", "leadtime_hour", "leadtime", "forecast_period") if n in da.coords), None)
+    if lead_coord is None:
+        raise KeyError(f"No lead-time coordinate found in {path.name}: coords={list(da.coords)}")
+
+    rows = []
+    for lead_raw in np.atleast_1d(da.coords[lead_coord].values):
+        if np.issubdtype(np.asarray(lead_raw).dtype, np.timedelta64):
+            lead_h = int(pd.Timedelta(lead_raw).total_seconds() // 3600)
+        else:
+            lead_h = int(lead_raw)
+        selected = da.sel({lead_coord: lead_raw})
+        if "number" in selected.dims:
+            selected = selected.isel(number=0)
+        rows.append({
+            "issue_date": issue_date.strftime("%Y-%m-%d"),
+            "valid_time": (issue_date + pd.Timedelta(hours=lead_h)).isoformat(),
+            "lead_time_hours": lead_h,
+            "location": location,
+            "latitude_requested": qlat,
+            "longitude_requested": qlon,
+            "latitude_grid": float(np.asarray(selected[lat_name].values).squeeze()) if lat_name in selected.coords else None,
+            "longitude_grid": float(np.asarray(selected[lon_name].values).squeeze()) if lon_name in selected.coords else None,
+            "forecast_discharge_m3s": float(np.asarray(selected.values).squeeze()),
+            "product_type": "control_forecast",
+            "system_version_request": "operational",
+            "hydrological_model": "lisflood",
+            "source": "Copernicus CEMS GloFAS archived operational forecast via EWDS",
+        })
+    ds.close()
+    return rows
+
+
+def is_capacity_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return any(x in text for x in (
+        "queued requests",
+        "temporarily limited",
+        "too many requests",
+        "capacity",
+        "429",
+    ))
+
+
+def retrieve_one(
+    client: cdsapi.Client,
+    location: str,
+    issue_date: pd.Timestamp,
+    lead_hours: list[int],
+    raw_dir: Path,
+    attempts: int = 8,
+) -> Path:
+    lat, lon = LOCATIONS[location]
+    target = raw_dir / f"glofas_operational_{location.lower()}_{issue_date:%Y%m%d}.nc"
+    if target.exists() and target.stat().st_size > 0:
+        return target
+
+    request = {
+        "system_version": "operational",
+        "hydrological_model": "lisflood",
+        "product_type": "control_forecast",
+        "variable": "river_discharge_in_the_last_24_hours",
+        "year": issue_date.strftime("%Y"),
+        "month": issue_date.strftime("%m"),
+        "day": issue_date.strftime("%d"),
+        "leadtime_hour": [str(h) for h in lead_hours],
+        "area": bbox(lat, lon),
+        "data_format": "netcdf",
+        "download_format": "unarchived",
+    }
+
+    last: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            print(f"Retrieving {location} GloFAS operational forecast issued {issue_date.date()} (attempt {attempt}/{attempts}) ...")
+            client.retrieve(DATASET, request).download(str(target))
+            return target
+        except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as exc:
+            last = exc
+            if not is_capacity_error(exc) or attempt == attempts:
+                raise
+            # Give the EWDS processing queue time to drain. Longest wait is 120 s.
+            delay = min(120, 15 * (2 ** (attempt - 1)))
+            print(f"EWDS temporarily capacity-limited; sleeping {delay}s before retry")
+            time.sleep(delay)
+    raise RuntimeError(f"EWDS request failed after {attempts} attempts: {last}")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--location", choices=sorted(LOCATIONS), default="Lokoja")
+    ap.add_argument("--start", default="2022-09-21")
+    ap.add_argument("--end", default="2022-10-06")
+    ap.add_argument("--issue-dates", nargs="*", help="Explicit forecast issue dates; overrides --start/--end")
+    ap.add_argument("--lead-hours", nargs="+", type=int, default=[24, 48, 72])
+    ap.add_argument("--raw-dir", default="validation/raw/glofas_operational_forecasts")
+    ap.add_argument("--out", default="validation/glofas_operational_forecasts.csv")
+    args = ap.parse_args()
+
+    key = os.getenv("EWDS_API_KEY")
+    if not key:
+        raise RuntimeError("EWDS_API_KEY is not configured")
+    client = cdsapi.Client(url=EWDS_URL, key=key)
+    raw_dir = Path(args.raw_dir)
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    issue_dates = [pd.Timestamp(d) for d in args.issue_dates] if args.issue_dates else list(dates(args.start, args.end))
+
+    qlat, qlon = LOCATIONS[args.location]
+    rows: list[dict] = []
+    for issue_date in issue_dates:
+        path = retrieve_one(client, args.location, issue_date, args.lead_hours, raw_dir)
+        rows.extend(extract_point(path, args.location, issue_date, qlat, qlon))
+
+    out = pd.DataFrame(rows).sort_values(["issue_date", "lead_time_hours"])
+    expected = len(issue_dates) * len(args.lead_hours)
+    if len(out) < expected:
+        print(f"WARNING: extracted {len(out)} rows; expected up to {expected}")
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out.to_csv(out_path, index=False)
+    print(f"Wrote {len(out):,} operational forecast rows to {out_path}")
+
+
+if __name__ == "__main__":
+    main()

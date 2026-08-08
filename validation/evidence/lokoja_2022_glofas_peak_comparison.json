@@ -1,0 +1,36 @@
+{
+  "location": "Lokoja",
+  "official_reference": {
+    "date": "2022-10-06",
+    "discharge_m3s": 25424.0,
+    "source": "NiHSA 2023 Annual Flood Outlook",
+    "note": "Official reference used for magnitude comparison only."
+  },
+  "archived_operational_glofas_forecasts": [
+    {
+      "issue_date": "2022-10-03",
+      "lead_time_hours": 72,
+      "valid_time": "2022-10-06T00:00:00",
+      "forecast_discharge_m3s": 22156.515625,
+      "error_m3s": -3267.484375,
+      "percent_error": -12.851968219005664
+    },
+    {
+      "issue_date": "2022-10-04",
+      "lead_time_hours": 48,
+      "valid_time": "2022-10-06T00:00:00",
+      "forecast_discharge_m3s": 21865.9921875,
+      "error_m3s": -3558.0078125,
+      "percent_error": -13.994681474591725
+    },
+    {
+      "issue_date": "2022-10-05",
+      "lead_time_hours": 24,
+      "valid_time": "2022-10-06T00:00:00",
+      "forecast_discharge_m3s": 21877.7578125,
+      "error_m3s": -3546.2421875,
+      "percent_error": -13.948404181876183
+    }
+  ],
+  "interpretation": "The archived operational GloFAS forecasts captured a very high river-discharge state at T-72, T-48 and T-24, but underestimated the NiHSA-reported peak magnitude by about 13-14 percent. This does not by itself prove a flood-warning threshold crossing or NaijaClimaGuard lead-time advantage; an independent decision threshold and complete replay are still required."
+}
