@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
 """Retrieve archived operational GloFAS forecasts for lead-time reconstruction.
 
-For Lokoja 2022 we only need the issue dates that correspond to T-72/T-48/T-24
-around two independently documented milestones:
+For Lokoja 2022 we use issue dates corresponding to T-72/T-48/T-24 around:
 - 2022-09-28: flooding already documented in Lokoja
 - 2022-10-06: NiHSA-reported maximum Lokoja discharge
 
-This keeps the operational replay scientifically focused and avoids submitting
-unnecessary EWDS archive jobs.
+EWDS can temporarily reject otherwise valid requests when the dataset queue is
+full. Those capacity errors are retried with backoff; request/schema errors are
+still surfaced immediately.
 """
 from __future__ import annotations
 
 import argparse
 import os
+import time
 from pathlib import Path
 from typing import Iterable
 
 import cdsapi
 import numpy as np
 import pandas as pd
+import requests
 import xarray as xr
 
 EWDS_URL = "https://ewds.climate.copernicus.eu/api"
@@ -101,11 +103,30 @@ def extract_point(path: Path, location: str, issue_date: pd.Timestamp, qlat: flo
     return rows
 
 
-def retrieve_one(client: cdsapi.Client, location: str, issue_date: pd.Timestamp, lead_hours: list[int], raw_dir: Path) -> Path:
+def is_capacity_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return any(x in text for x in (
+        "queued requests",
+        "temporarily limited",
+        "too many requests",
+        "capacity",
+        "429",
+    ))
+
+
+def retrieve_one(
+    client: cdsapi.Client,
+    location: str,
+    issue_date: pd.Timestamp,
+    lead_hours: list[int],
+    raw_dir: Path,
+    attempts: int = 8,
+) -> Path:
     lat, lon = LOCATIONS[location]
     target = raw_dir / f"glofas_operational_{location.lower()}_{issue_date:%Y%m%d}.nc"
     if target.exists() and target.stat().st_size > 0:
         return target
+
     request = {
         "system_version": "operational",
         "hydrological_model": "lisflood",
@@ -119,9 +140,22 @@ def retrieve_one(client: cdsapi.Client, location: str, issue_date: pd.Timestamp,
         "data_format": "netcdf",
         "download_format": "unarchived",
     }
-    print(f"Retrieving {location} GloFAS operational forecast issued {issue_date.date()} ...")
-    client.retrieve(DATASET, request).download(str(target))
-    return target
+
+    last: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            print(f"Retrieving {location} GloFAS operational forecast issued {issue_date.date()} (attempt {attempt}/{attempts}) ...")
+            client.retrieve(DATASET, request).download(str(target))
+            return target
+        except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as exc:
+            last = exc
+            if not is_capacity_error(exc) or attempt == attempts:
+                raise
+            # Give the EWDS processing queue time to drain. Longest wait is 120 s.
+            delay = min(120, 15 * (2 ** (attempt - 1)))
+            print(f"EWDS temporarily capacity-limited; sleeping {delay}s before retry")
+            time.sleep(delay)
+    raise RuntimeError(f"EWDS request failed after {attempts} attempts: {last}")
 
 
 def main() -> None:
@@ -139,7 +173,8 @@ def main() -> None:
     if not key:
         raise RuntimeError("EWDS_API_KEY is not configured")
     client = cdsapi.Client(url=EWDS_URL, key=key)
-    raw_dir = Path(args.raw_dir); raw_dir.mkdir(parents=True, exist_ok=True)
+    raw_dir = Path(args.raw_dir)
+    raw_dir.mkdir(parents=True, exist_ok=True)
     issue_dates = [pd.Timestamp(d) for d in args.issue_dates] if args.issue_dates else list(dates(args.start, args.end))
 
     qlat, qlon = LOCATIONS[args.location]
@@ -152,7 +187,8 @@ def main() -> None:
     expected = len(issue_dates) * len(args.lead_hours)
     if len(out) < expected:
         print(f"WARNING: extracted {len(out)} rows; expected up to {expected}")
-    out_path = Path(args.out); out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(out_path, index=False)
     print(f"Wrote {len(out):,} operational forecast rows to {out_path}")
 
