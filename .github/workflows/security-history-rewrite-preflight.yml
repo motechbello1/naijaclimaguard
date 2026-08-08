@@ -1,0 +1,84 @@
+name: Security History Rewrite Preflight
+
+on:
+  push:
+    branches: [security-history-rewrite-preflight]
+    paths:
+      - ".github/workflows/security-history-rewrite-preflight.yml"
+      - "security/history-rewrite-preflight-trigger.txt"
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install git-filter-repo
+        run: python -m pip install --disable-pip-version-check git-filter-repo
+
+      - name: Rewrite a disposable mirror and verify invariants
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git clone --mirror "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo.git
+          cd repo.git
+
+          git for-each-ref --format='%(refname)' refs/heads | sort > ../heads.before
+          git for-each-ref --format='%(refname)' refs/tags | sort > ../tags.before
+
+          MAIN_TREE_BEFORE=$(git rev-parse refs/heads/main^{tree})
+          V4_ARTIFACT_BEFORE=$(git show refs/heads/main:validation/model_v4_frozen_artifact.json | sha256sum | awk '{print $1}')
+          V4_MANIFEST_BEFORE=$(git show refs/heads/main:validation/MODEL_V4_FREEZE_MANIFEST.json | sha256sum | awk '{print $1}')
+          EVENT_REGISTRY_BEFORE=$(git show refs/heads/main:validation/model_v4_event_registry.csv | sha256sum | awk '{print $1}')
+
+          # Remove the accidentally tracked root .env path from every rewritten ref.
+          # This operates only on this disposable runner mirror during preflight.
+          git filter-repo --path .env --invert-paths --force
+
+          if git log --all --format='%H' -- .env | grep -q .; then
+            echo "FAIL: .env still appears in rewritten commit history"
+            exit 1
+          fi
+
+          if git rev-list --objects --all | awk '$2 == ".env" {print}' | grep -q .; then
+            echo "FAIL: .env object remains reachable from rewritten refs"
+            exit 1
+          fi
+
+          git for-each-ref --format='%(refname)' refs/heads | sort > ../heads.after
+          git for-each-ref --format='%(refname)' refs/tags | sort > ../tags.after
+          diff -u ../heads.before ../heads.after
+          diff -u ../tags.before ../tags.after
+
+          MAIN_TREE_AFTER=$(git rev-parse refs/heads/main^{tree})
+          V4_ARTIFACT_AFTER=$(git show refs/heads/main:validation/model_v4_frozen_artifact.json | sha256sum | awk '{print $1}')
+          V4_MANIFEST_AFTER=$(git show refs/heads/main:validation/MODEL_V4_FREEZE_MANIFEST.json | sha256sum | awk '{print $1}')
+          EVENT_REGISTRY_AFTER=$(git show refs/heads/main:validation/model_v4_event_registry.csv | sha256sum | awk '{print $1}')
+
+          test "$MAIN_TREE_BEFORE" = "$MAIN_TREE_AFTER"
+          test "$V4_ARTIFACT_BEFORE" = "$V4_ARTIFACT_AFTER"
+          test "$V4_MANIFEST_BEFORE" = "$V4_MANIFEST_AFTER"
+          test "$EVENT_REGISTRY_BEFORE" = "$EVENT_REGISTRY_AFTER"
+
+          {
+            echo "## Security history rewrite preflight"
+            echo ""
+            echo "- Disposable mirror rewrite: PASS"
+            echo "- Reachable .env history after rewrite: NONE"
+            echo "- Branch names preserved: PASS"
+            echo "- Tag names preserved: PASS"
+            echo "- Current main tree unchanged: PASS"
+            echo "- Frozen Model v4 artifact bytes unchanged: PASS"
+            echo "- Model v4 freeze manifest bytes unchanged: PASS"
+            echo "- Frozen event-registry bytes unchanged: PASS"
+            echo ""
+            echo "Commit SHAs will necessarily change for affected history; file-content hashes above remain stable."
+          } >> "$GITHUB_STEP_SUMMARY"
