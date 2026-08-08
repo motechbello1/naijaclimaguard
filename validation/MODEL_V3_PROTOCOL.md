@@ -24,14 +24,24 @@ Because 2022-2024 has now been observed, it is permanently excluded from Model v
 
 Model v3 uses `validation/model_v3_event_registry.csv`, separate from the frozen Validation v2 registry.
 
-The current registry contains **15 independently documented pre-2022 flood-event anchors** across Lokoja, Makurdi, Onitsha, Yenagoa and Hadejia. Four additional 2019 anchors were added from independently published reports before Model v3 candidate scores were generated:
+The registry is now frozen for this Model v3 development generation at **16 independently documented pre-2022 flood-event anchors** across Lokoja, Makurdi, Onitsha, Yenagoa and Hadejia. The distribution is fixed at:
+
+- 2018: 4 events
+- 2019: 5 events
+- 2020: 4 events
+- 2021: 3 events
+
+Five independently sourced anchors were added during the pre-score development-registry audit, before Model v3 candidate scores were generated:
 
 - Makurdi — 2019-08-08
 - Hadejia — 2019-08-17
 - Yenagoa — 2019-10-18
 - Makurdi — 2019-10-28
+- Onitsha — 2020-09-10
 
-The selection rule is documentary evidence of an active flood event at the named location/date, not rainfall, discharge, model probability or desired class balance.
+The selection rule is documentary evidence of an active, materially disruptive flood event at the named location/date, not rainfall, discharge, model probability or desired class balance. Inclusion and exclusion decisions are recorded separately in `validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md` so events cannot be silently added or removed after model scores are seen.
+
+Any later registry change is a protocol change and requires a new model-development generation rather than a quiet rerun of this one.
 
 ## Development target
 
@@ -49,7 +59,7 @@ Candidate ranking uses expanding-year forward validation only:
 2. train on 2018-2019 → validate on 2020
 3. train on 2018-2020 → validate on 2021
 
-The dedicated registry currently supplies **11 independent event anchors in the 2019-2021 out-of-fold validation years**. This is enough for provisional development ranking but remains a modest event sample; uncertainty and per-location behavior must be reported rather than hidden behind a single aggregate metric.
+The frozen registry supplies **12 independent event anchors in the 2019-2021 out-of-fold validation years**. This clears the provisional development gate for candidate comparison but remains a modest event sample; uncertainty, per-fold, per-event and per-location behavior must be reported rather than hidden behind a single aggregate metric.
 
 ## Location/reach calibration
 
@@ -95,9 +105,11 @@ Also report:
 - miss rate
 - confusion matrix
 - independent event-window detection rate
-- per-fold and, before freeze, per-location behavior
+- per-fold metrics
+- per-location metrics
+- a development-only threshold frontier showing event detection and false-alert burden
 
-The operating threshold is selected from pooled **development out-of-fold predictions only**. It is never optimized against 2022-2024.
+A threshold chosen by pooled out-of-fold F1 is treated only as a **provisional development diagnostic**, not as an operational flood-warning threshold. Before freeze, threshold choice must be justified from development data under an explicit false-alert / missed-event operating policy. It is never optimized against 2022-2024.
 
 ## Reproducibility
 
@@ -110,8 +122,10 @@ Every full development result must preserve:
 - code commit SHA
 - exact Python/package runtime
 - candidate definitions
-- selected threshold and its development origin
+- provisional threshold and its development-only origin
 - fold-level metrics
+- per-location diagnostics
+- threshold frontier / alert-burden diagnostics
 
 ## Freeze gate
 
@@ -121,7 +135,8 @@ Do **not** freeze Model v3 merely because one development metric looks attractiv
 2. Model v3 protocol/registry CI must pass in the pinned environment.
 3. A complete 2018-2021 development run must be reproduced in CI.
 4. Event definition, seasonal diagnostic and location/reach behavior must be reviewed.
-5. The exact feature builder, candidate, parameters, preprocessing/calibration and threshold must be committed and fingerprinted.
+5. The operating-threshold policy must be declared from development-only evidence and its false-alert / missed-event tradeoff documented.
+6. The exact feature builder, candidate, parameters, preprocessing/calibration and threshold must be committed and fingerprinted.
 
 Only then may the entire decision pipeline be frozen.
 
