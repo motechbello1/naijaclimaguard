@@ -144,7 +144,8 @@ jobs:
         run: |
           python -m py_compile \
             validation/build_model_v5_dataset.py \
-            validation/model_v5_operational_native.py
+            validation/model_v5_operational_native.py \
+            validation/freeze_model_v5_candidate.py
           python -m unittest discover -s validation/tests -p 'test_model_v5.py' -v
       - name: Build strict issue-time development dataset
         run: |
@@ -163,11 +164,22 @@ jobs:
             --events validation/model_v4_event_registry.csv \
             --output validation/model_v5_results.json \
             --scored-output validation/model_v5_oof_scored.csv
+      - name: Apply gated freeze serializer
+        run: |
+          python validation/freeze_model_v5_candidate.py \
+            --dataset validation/model_v5_issue_dataset.csv \
+            --dataset-manifest validation/model_v5_dataset_manifest.json \
+            --events validation/model_v4_event_registry.csv \
+            --results validation/model_v5_results.json \
+            --protocol validation/MODEL_V5_PROTOCOL.md \
+            --model-out validation/model_v5_freeze_candidate.joblib \
+            --manifest-out validation/model_v5_freeze_manifest.json
       - name: Summarize scientific decision
         run: |
           python - <<'PY'
           import json
           r = json.load(open('validation/model_v5_results.json'))
+          f = json.load(open('validation/model_v5_freeze_manifest.json'))
           print('STATUS:', r['status'])
           print('WINNER:', r['selected_candidate'])
           m = r['selected_candidate_metrics']['pooled_oof_metrics']
@@ -176,8 +188,9 @@ jobs:
           print('POOLED BRIER:', m['brier_score'])
           print('SANITY:', r['sanity'])
           print('THRESHOLD:', r['threshold_policy']['chosen_threshold'])
-          if r['status'] != 'eligible_freeze_candidate':
-              print('Model v5 failed its preregistered freeze gate. Evidence is preserved; criteria are not relaxed.')
+          print('FREEZE:', f['status'])
+          if f['status'] == 'freeze_blocked':
+              print('BLOCKERS:', f['blockers'])
           PY
       - uses: actions/upload-artifact@v4
         with:
@@ -189,4 +202,6 @@ jobs:
             validation/model_v5_dataset_manifest.json
             validation/model_v5_results.json
             validation/model_v5_oof_scored.csv
+            validation/model_v5_freeze_manifest.json
+            validation/model_v5_freeze_candidate.joblib
             validation/model_v5_environment_freeze.txt
