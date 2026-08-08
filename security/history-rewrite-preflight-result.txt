@@ -1,0 +1,9 @@
+PASS
+Disposable mirror rewrite removed the tracked root .env path from all rewritten refs.
+Branch names preserved: yes
+Tag names preserved: yes
+Current main tree unchanged: yes
+Frozen Model v4 artifact bytes unchanged: yes
+Model v4 freeze manifest bytes unchanged: yes
+Frozen event-registry bytes unchanged: yes
+Note: affected commit SHAs necessarily change during a real rewrite.
