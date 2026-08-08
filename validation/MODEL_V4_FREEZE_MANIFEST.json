@@ -1,15 +1,30 @@
 {
-  "schema": "naijaclimaguard.model_freeze.v1",
+  "schema": "naijaclimaguard.model_freeze.v2",
   "generation": "model-v4-full-history-forward",
-  "status": "prospective_shadow_frozen",
-  "freeze_parent_sha": "3225892ae35c19588f42890c56bb8db3a5c9f4b7",
-  "freeze_effective_rule": "The Git commit that adds this manifest is the prospective freeze point. Only predictions with issue_time_utc strictly after that commit timestamp may count as prospective evidence.",
+  "status": "prospective_shadow_refrozen_after_security_history_rewrite",
+  "freeze_parent_sha": "983df729ce5379b388611fcf43b8b8f795ac6ec5",
+  "freeze_effective_rule": "The Git commit that writes this v2 manifest is the new prospective freeze point after the credential-history rewrite. Only predictions with issue_time_utc strictly after this refreeze commit may count as prospective Model v4 evidence.",
   "artifact_path": "validation/model_v4_frozen_artifact.json",
-  "artifact_sha256": "013e5d1bcf61eb51609f1a454a641b4261949c5a1a871b4f6dd6f83e64b993b8",
-  "artifact_last_change_commit": "c720a345118356ac449bab8a3c0114db53d6dd64",
+  "artifact_sha256": "83c886e722bff7d8f3cd3f0093316531579e3b5e11316201895429405cc18076",
+  "artifact_last_change_commit": "b573bbb988909b138040fa9662df7f9242d648fd",
   "event_registry_path": "validation/model_v4_event_registry.csv",
-  "event_registry_sha256": "e03fe71016ca542bd7dab3af7a3e47889015327adc85cbe0eb828665eadabb4b",
-  "historical_features_sha256": "6721d8ad021d7d00f0ea877f048b1b5df98537c4fc864d2e708f9fd86b0f1c3e",
+  "event_registry_sha256": "107a761e693932ba27057cb3281b9b5e05493d5d3de3ded89982c7bd4ca7e5b0",
+  "historical_features_sha256_legacy_training_record": "6721d8ad021d7d00f0ea877f048b1b5df98537c4fc864d2e708f9fd86b0f1c3e",
+  "security_history_rewrite": {
+    "result_path": "security/history-rewrite-result.txt",
+    "completed": true,
+    "root_env_removed_from_reachable_branch_tag_history": true,
+    "model_artifact_bytes_changed_by_rewrite": false,
+    "event_registry_bytes_changed_by_rewrite": false,
+    "commit_shas_changed_by_rewrite": true,
+    "prior_valid_prospective_prediction_records_before_refreeze": 0,
+    "note": "The security rewrite exposed a pre-existing mismatch between SHA-256 values recorded before commit and the canonical bytes stored in Git. This v2 manifest records the canonical Git bytes used by the live verification workflow. The frozen numerical model state is unchanged."
+  },
+  "legacy_embedded_source_hashes": {
+    "features_sha256": "6721d8ad021d7d00f0ea877f048b1b5df98537c4fc864d2e708f9fd86b0f1c3e",
+    "events_sha256": "e03fe71016ca542bd7dab3af7a3e47889015327adc85cbe0eb828665eadabb4b",
+    "interpretation": "These values remain inside the already-frozen artifact as historical provenance metadata. They are not used as the canonical post-rewrite Git-byte verification hashes."
+  },
   "historical_development": {
     "period_start": "2018-01-01",
     "period_end": "2024-12-31",
@@ -35,7 +50,8 @@
     "threshold_change_allowed_after_freeze": false,
     "feature_contract_change_allowed_after_freeze": false,
     "coefficient_change_allowed_after_freeze": false,
-    "calibration_change_allowed_after_freeze": false
+    "calibration_change_allowed_after_freeze": false,
+    "numerical_state_changed_by_security_refreeze": false
   },
   "live_issue_time_source_contract": {
     "rainfall": {
@@ -84,5 +100,5 @@
   "production_engine_remains": "derived-v2",
   "public_alerts_from_model_v4_authorized": false,
   "replacement_authorized": false,
-  "next_generation_rule": "Any post-freeze change to coefficients, features, calibration or threshold creates a new model generation and cannot reuse this generation's prospective evidence as untouched acceptance evidence."
+  "next_generation_rule": "Any post-refreeze change to coefficients, features, calibration or threshold creates a new model generation and cannot reuse this generation's future prospective evidence as untouched acceptance evidence."
 }
