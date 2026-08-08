@@ -8,10 +8,12 @@ on:
       - "validation/review_model_v3_results.py"
       - "validation/select_model_v3_threshold.py"
       - "validation/fit_model_v3_freeze_candidate.py"
+      - "validation/evaluate_model_v3_untouched.py"
       - "validation/model_v3_event_registry.csv"
       - "validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md"
       - "validation/MODEL_V3_PROTOCOL.md"
       - "validation/MODEL_V3_THRESHOLD_POLICY.md"
+      - "validation/MODEL_V3_UNTOUCHED_ACCEPTANCE_POLICY.md"
       - "validation/model_v3_requirements.txt"
       - "validation/model_v3_source_requirements.txt"
       - "validation/run_model_v3_dev.sh"
@@ -26,10 +28,12 @@ on:
       - "validation/review_model_v3_results.py"
       - "validation/select_model_v3_threshold.py"
       - "validation/fit_model_v3_freeze_candidate.py"
+      - "validation/evaluate_model_v3_untouched.py"
       - "validation/model_v3_event_registry.csv"
       - "validation/MODEL_V3_EVENT_REGISTRY_AUDIT.md"
       - "validation/MODEL_V3_PROTOCOL.md"
       - "validation/MODEL_V3_THRESHOLD_POLICY.md"
+      - "validation/MODEL_V3_UNTOUCHED_ACCEPTANCE_POLICY.md"
       - "validation/model_v3_requirements.txt"
       - "validation/model_v3_source_requirements.txt"
       - "validation/run_model_v3_dev.sh"
@@ -65,6 +69,7 @@ jobs:
           python -m py_compile validation/review_model_v3_results.py
           python -m py_compile validation/select_model_v3_threshold.py
           python -m py_compile validation/fit_model_v3_freeze_candidate.py
+          python -m py_compile validation/evaluate_model_v3_untouched.py
       - name: Run protocol guard tests
         run: python -m unittest validation/tests/test_model_v3_dev.py
       - name: Validate frozen development event registry
@@ -96,7 +101,7 @@ jobs:
           assert abs(t['pr_auc'] - 0.0572282380431264) < 1e-12
           assert t['event_detection_at_0_5'] == {'detected': 1, 'evaluated': 20, 'rate': 0.05}
           PY
-      - name: Verify full-development and threshold gates
+      - name: Verify development threshold and untouched policies are frozen
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -107,10 +112,15 @@ jobs:
           assert 'Machine-verify canonical Validation v2 evidence' in wf
           assert 'select_model_v3_threshold.py' in wf
           assert 'fit_model_v3_freeze_candidate.py' in wf
-          policy = Path('validation/MODEL_V3_THRESHOLD_POLICY.md').read_text()
-          assert 'event-window detection rate >= 75%' in policy
-          assert 'False-positive burden <= 10 per 1,000 negative location-days' in policy
-          assert 'Precision >= 10%' in policy
+          threshold_policy = Path('validation/MODEL_V3_THRESHOLD_POLICY.md').read_text()
+          assert 'event-window detection rate >= 75%' in threshold_policy
+          assert 'False-positive burden <= 10 per 1,000 negative location-days' in threshold_policy
+          assert 'Precision >= 10%' in threshold_policy
+          untouched = Path('validation/MODEL_V3_UNTOUCHED_ACCEPTANCE_POLICY.md').read_text()
+          assert 'at least **20 independent documented flood-event anchors**' in untouched
+          assert 'PR-AUC is at least 2x' in untouched
+          assert '95% Wilson lower confidence bound' in untouched
+          assert 'does not establish a 24/48/72-hour issue-time warning claim' in untouched
           PY
       - name: Upload runtime fingerprint
         uses: actions/upload-artifact@v4
