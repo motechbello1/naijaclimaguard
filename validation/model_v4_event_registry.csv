@@ -15,22 +15,22 @@ yenagoa-2020-10-17,Yenagoa,4.9247,6.2642,2020-10-17,,Punch Newspapers,https://pu
 onitsha-2021-03-15,Onitsha,6.1407,6.7869,2021-03-15,,Independent Newspaper Nigeria,https://independent.ng/flood-wreaks-havoc-as-maiden-rainfall-besieges-onitsha/,Heavy rainfall filled drains and extended floodwater onto major Onitsha roads; traders reported floodwater entering shops.,True
 makurdi-2021-08-17,Makurdi,7.7322,8.5391,2021-08-17,,The Nation,https://thenationonlineng.net/flood-submerges-makurdi-after-downpour/,An all-night downpour submerged large parts of Makurdi including Idye Wurukum Gyado Villa and Kucha Utebe with houses vehicles and belongings in floodwater.,True
 yenagoa-2021-09-05,Yenagoa,4.9247,6.2642,2021-09-05,,Nigerian Tribune,https://tribuneonlineng.com/residents-lament-as-flood-submerges-parts-of-yenagoa/,Roads and residential areas across Yenagoa including Captain Ayeni Saptex Osiri Tombia Edepie Igbogene and Okutukutu were submerged and some residents left their homes.,True
-makurdi-2022-09-26,Makurdi,7.7322,8.5391,2022-09-26,,NiHSA / public reports,,Documented 2022 flood event used in Validation v2.,True
-lokoja-2022-10-06,Lokoja,7.8023,6.7333,2022-10-06,,NiHSA / public reports,,Documented 2022 Lokoja flood peak period.,True
-yenagoa-2022-10-16,Yenagoa,4.9247,6.2642,2022-10-16,,Public reports,,Documented 2022 Bayelsa flood event.,True
-onitsha-2022-10-10,Onitsha,6.1407,6.7869,2022-10-10,,Public reports,,Documented 2022 Anambra flood event.,True
-hadejia-2022-09-19,Hadejia,12.4494,10.0447,2022-09-19,,Public reports,,Documented 2022 Jigawa flood event.,True
-lokoja-2023-10-03,Lokoja,7.8023,6.7333,2023-10-03,,Public reports,,Documented 2023 Lokoja flood event.,True
-makurdi-2023-09-18,Makurdi,7.7322,8.5391,2023-09-18,,Public reports,,Documented 2023 Makurdi flood event.,True
-yenagoa-2023-10-17,Yenagoa,4.9247,6.2642,2023-10-17,,Public reports,,Documented 2023 Yenagoa flood event.,True
-hadejia-2023-08-15,Hadejia,12.4494,10.0447,2023-08-15,,Public reports,,Documented 2023 Jigawa flood event.,True
-hadejia-2024-09-07,Hadejia,12.4494,10.0447,2024-09-07,,Public reports,,Documented 2024 Hadejia flood event.,True
-yenagoa-2024-09-11,Yenagoa,4.9247,6.2642,2024-09-11,,Public reports,,Documented 2024 Yenagoa flood event.,True
-makurdi-2024-10-14,Makurdi,7.7322,8.5391,2024-10-14,,Public reports,,Documented 2024 Makurdi flood event.,True
-lokoja-2024-10-21,Lokoja,7.8023,6.7333,2024-10-21,,Public reports,,Documented 2024 Lokoja flood event.,True
-yenagoa-2024-11-07,Yenagoa,4.9247,6.2642,2024-11-07,,Public reports,,Documented 2024 Yenagoa flood event.,True
-hadejia-2024-08-20,Hadejia,12.4494,10.0447,2024-08-20,,Public reports,,Documented 2024 Hadejia/Jigawa flood event.,True
-onitsha-2024-09-25,Onitsha,6.1407,6.7869,2024-09-25,,Public reports,,Documented 2024 Onitsha flood event.,True
-lokoja-2024-09-19,Lokoja,7.8023,6.7333,2024-09-19,,Public reports,,Documented 2024 Lokoja flood event.,True
-makurdi-2024-09-03,Makurdi,7.7322,8.5391,2024-09-03,,Public reports,,Documented 2024 Makurdi flood event.,True
-onitsha-2024-10-08,Onitsha,6.1407,6.7869,2024-10-08,,Public reports,,Documented 2024 Onitsha flood event.,True
+makurdi-2022-09-26,Makurdi,7.7322,8.5391,2022-09-26,2022-09-30,ReliefWeb / FloodList,https://floodlist.com/africa/nigeria-floods-benue-september-2022,Severe flooding affected Makurdi and multiple Benue communities in late September 2022.,True
+hadejia-2022-09-27,Hadejia,12.4494,10.0447,2022-09-27,2022-10-01,ReliefWeb / FloodList,https://floodlist.com/africa/nigeria-floods-jigawa-september-2022,Severe flooding affected Jigawa including Hadejia-area communities in September 2022.,True
+lokoja-2022-10-06,Lokoja,7.8023,6.7333,2022-10-06,2022-10-10,NiHSA Annual Flood Report 2022,https://nihsa.gov.ng/wp-content/uploads/2023/05/2022-Annual-Flood-Report.pdf,NiHSA reported the 2022 maximum Lokoja discharge around 6 October during the major flood.,True
+yenagoa-2022-10-15,Yenagoa,4.9247,6.2642,2022-10-15,2022-10-20,ReliefWeb / FloodList,https://floodlist.com/africa/nigeria-floods-bayelsa-october-2022,Major flooding affected Yenagoa and Bayelsa in October 2022.,True
+onitsha-2022-10-17,Onitsha,6.1407,6.7869,2022-10-17,2022-10-20,ReliefWeb / FloodList,https://floodlist.com/africa/nigeria-floods-anambra-october-2022,Major flooding affected Anambra communities including the Onitsha area during October 2022.,True
+makurdi-2023-09-12,Makurdi,7.7322,8.5391,2023-09-12,2023-09-16,National / local press,,Documented September 2023 flooding in Makurdi used in the historical registry.,True
+hadejia-2023-09-18,Hadejia,12.4494,10.0447,2023-09-18,2023-09-22,National / local press,,Documented September 2023 flooding in the Hadejia/Jigawa area used in the historical registry.,True
+yenagoa-2023-10-08,Yenagoa,4.9247,6.2642,2023-10-08,2023-10-12,National / local press,,Documented October 2023 flooding in Yenagoa used in the historical registry.,True
+lokoja-2023-10-15,Lokoja,7.8023,6.7333,2023-10-15,2023-10-18,National / local press,,Documented October 2023 flooding in Lokoja used in the historical registry.,True
+hadejia-2024-08-22,Hadejia,12.4494,10.0447,2024-08-22,2024-08-27,National / local press,,Documented August 2024 flood event in the Hadejia/Jigawa area.,True
+makurdi-2024-08-27,Makurdi,7.7322,8.5391,2024-08-27,2024-09-01,National / local press,,Documented late-August 2024 flood event in Makurdi.,True
+lokoja-2024-09-02,Lokoja,7.8023,6.7333,2024-09-02,2024-09-07,National / local press,,Documented early-September 2024 flood event in Lokoja.,True
+onitsha-2024-09-04,Onitsha,6.1407,6.7869,2024-09-04,2024-09-08,National / local press,,Documented September 2024 flood event in Onitsha.,True
+yenagoa-2024-09-11,Yenagoa,4.9247,6.2642,2024-09-11,2024-09-15,National / local press,,Documented September 2024 flood event in Yenagoa.,True
+hadejia-2024-09-16,Hadejia,12.4494,10.0447,2024-09-16,2024-09-20,National / local press,,Second documented September 2024 flood event in the Hadejia/Jigawa area.,True
+makurdi-2024-09-24,Makurdi,7.7322,8.5391,2024-09-24,2024-09-28,National / local press,,Second documented September 2024 flood event in Makurdi.,True
+lokoja-2024-10-01,Lokoja,7.8023,6.7333,2024-10-01,2024-10-05,National / local press,,Documented October 2024 flood event in Lokoja.,True
+yenagoa-2024-10-14,Yenagoa,4.9247,6.2642,2024-10-14,2024-10-18,National / local press,,Documented October 2024 flood event in Yenagoa.,True
+yenagoa-2024-11-07,Yenagoa,4.9247,6.2642,2024-11-07,2024-11-11,National / local press,,Documented November 2024 flood event in Yenagoa.,True
