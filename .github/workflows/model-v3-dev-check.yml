@@ -45,20 +45,24 @@ jobs:
         run: python -m py_compile validation/model_v3_dev.py
       - name: Run protocol guard tests
         run: python -m unittest validation/tests/test_model_v3_dev.py
-      - name: Validate dedicated event registry gate
+      - name: Validate frozen development event registry
         run: |
           python - <<'PY'
           import pandas as pd
           p = 'validation/model_v3_event_registry.csv'
           e = pd.read_csv(p, parse_dates=['observed_by_date'])
           e = e[e['include_in_benchmark'].astype(str).str.lower().eq('true')]
+          assert e['event_id'].is_unique
           assert (e['observed_by_date'] < pd.Timestamp('2022-01-01')).all()
-          assert e['event_id'].nunique() >= 15, e['event_id'].nunique()
+          assert e['event_id'].nunique() == 16, e['event_id'].nunique()
           oof = e[e['observed_by_date'].dt.year.isin([2019, 2020, 2021])]
-          assert oof['event_id'].nunique() >= 10, oof['event_id'].nunique()
+          assert oof['event_id'].nunique() == 12, oof['event_id'].nunique()
+          expected_by_year = {2018: 4, 2019: 5, 2020: 4, 2021: 3}
+          actual_by_year = e.groupby(e['observed_by_date'].dt.year)['event_id'].nunique().to_dict()
+          assert actual_by_year == expected_by_year, actual_by_year
           print('development events:', e['event_id'].nunique())
           print('2019-2021 OOF event anchors:', oof['event_id'].nunique())
-          print(e.groupby(e['observed_by_date'].dt.year)['event_id'].nunique())
+          print('events by year:', actual_by_year)
           PY
       - name: Upload runtime fingerprint
         uses: actions/upload-artifact@v4
