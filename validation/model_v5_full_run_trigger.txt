@@ -1,5 +1,6 @@
 Model v5 full operational-native development trigger.
-Triggered: 2026-08-08 Africa/Lagos.
-Protocol was frozen before source retrieval and scoring.
+Retriggered after security history rewrite: 2026-08-08 Africa/Lagos.
+The prior heavy run was deliberately canceled before repository history was rewritten.
+Protocol content remains unchanged from the preregistered Model v5 design; no v5 performance result had been inspected before this retrigger.
 Sources: NASA GPM IMERG Early V07 + Copernicus CEMS GloFAS reforecasts.
 Target: independently documented flood strictly in the next 1-3 days.
