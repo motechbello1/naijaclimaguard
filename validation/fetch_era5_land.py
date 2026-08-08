@@ -2,13 +2,17 @@
 """Fetch ERA5-Land surface-state variables via Open-Meteo Historical Weather API.
 
 ERA5-Land is used for antecedent soil moisture and evapotranspiration context.
-It is not labelled as NASA data. Requests are split year-by-year to keep hourly
-responses manageable and easier to retry.
+It is not labelled as NASA data.
+
+Requests are split into six-month chunks and retried with backoff so a transient
+Open-Meteo TLS/read timeout cannot invalidate the entire multi-year benchmark.
 """
 from __future__ import annotations
 
 import argparse
+import time
 from pathlib import Path
+
 import pandas as pd
 import requests
 
@@ -34,16 +38,44 @@ DAILY = [
 ]
 
 
-def year_ranges(start: str, end: str):
+def period_ranges(start: str, end: str, months: int = 6):
     start_ts = pd.Timestamp(start)
     end_ts = pd.Timestamp(end)
-    for year in range(start_ts.year, end_ts.year + 1):
-        y0 = max(start_ts, pd.Timestamp(year=year, month=1, day=1))
-        y1 = min(end_ts, pd.Timestamp(year=year, month=12, day=31))
-        yield year, y0.strftime("%Y-%m-%d"), y1.strftime("%Y-%m-%d")
+    cur = start_ts
+    while cur <= end_ts:
+        nxt = cur + pd.DateOffset(months=months)
+        stop = min(end_ts, nxt - pd.Timedelta(days=1))
+        yield cur.strftime("%Y-%m-%d"), stop.strftime("%Y-%m-%d")
+        cur = stop + pd.Timedelta(days=1)
 
 
-def fetch_period(name: str, lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
+def request_json(session: requests.Session, params: dict, label: str, attempts: int = 5) -> dict:
+    last_exc: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            # Separate connect/read timeouts. Six-month chunks should normally
+            # complete well below this limit, while allowing slow archive reads.
+            r = session.get(BASE, params=params, timeout=(30, 180))
+            r.raise_for_status()
+            return r.json()
+        except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as exc:
+            last_exc = exc
+            if attempt == attempts:
+                break
+            delay = min(30, 2 ** attempt)
+            print(f"  retry {attempt}/{attempts - 1} for {label} after {type(exc).__name__}; sleeping {delay}s")
+            time.sleep(delay)
+    raise RuntimeError(f"ERA5-Land request failed after {attempts} attempts for {label}: {last_exc}")
+
+
+def fetch_period(
+    session: requests.Session,
+    name: str,
+    lat: float,
+    lon: float,
+    start: str,
+    end: str,
+) -> pd.DataFrame:
     params = {
         "latitude": lat,
         "longitude": lon,
@@ -54,12 +86,10 @@ def fetch_period(name: str, lat: float, lon: float, start: str, end: str) -> pd.
         "daily": ",".join(DAILY),
         "timezone": "Africa/Lagos",
     }
-    r = requests.get(BASE, params=params, timeout=120)
-    r.raise_for_status()
-    j = r.json()
+    j = request_json(session, params, f"{name} {start}->{end}")
 
     if "hourly" not in j or "daily" not in j:
-        raise RuntimeError(f"ERA5-Land response missing expected sections for {name}: {j}")
+        raise RuntimeError(f"ERA5-Land response missing expected sections for {name} {start}->{end}: {j}")
 
     hourly = pd.DataFrame(j["hourly"])
     hourly["time"] = pd.to_datetime(hourly["time"])
@@ -83,13 +113,17 @@ def main() -> None:
     ap.add_argument("--start", default="2018-01-01")
     ap.add_argument("--end", default="2023-12-31")
     ap.add_argument("--out", default="validation/raw/era5_land_daily.csv")
+    ap.add_argument("--chunk-months", type=int, default=6)
     args = ap.parse_args()
+
+    session = requests.Session()
+    session.headers.update({"User-Agent": "NaijaClimaGuard-Validation-v2/1.0"})
 
     parts = []
     for name, (lat, lon) in LOCATIONS.items():
-        for year, y0, y1 in year_ranges(args.start, args.end):
-            print(f"Fetching ERA5-Land: {name} · {year}")
-            parts.append(fetch_period(name, lat, lon, y0, y1))
+        for p0, p1 in period_ranges(args.start, args.end, args.chunk_months):
+            print(f"Fetching ERA5-Land: {name} · {p0} -> {p1}")
+            parts.append(fetch_period(session, name, lat, lon, p0, p1))
 
     out = pd.concat(parts, ignore_index=True).sort_values(["location", "date"])
     out = out.drop_duplicates(["location", "date"], keep="last")
