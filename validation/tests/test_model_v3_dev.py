@@ -67,6 +67,44 @@ class ModelV3ProtocolTests(unittest.TestCase):
         self.assertNotIn("month", cols)
         self.assertNotIn("day_of_year", cols)
 
+    def test_threshold_frontier_reports_event_and_false_alert_burden(self):
+        scored = pd.DataFrame({
+            "date": pd.date_range("2021-01-01", periods=8, freq="D"),
+            "location": ["A"] * 4 + ["B"] * 4,
+            "label": [0, 0, 1, 1, 0, 1, 0, 1],
+            "event_id": ["", "", "e1", "e1", "", "e2", "", "e2"],
+            "probability": [0.1, 0.2, 0.7, 0.8, 0.2, 0.6, 0.3, 0.9],
+        })
+        events = pd.DataFrame({
+            "event_id": ["e1", "e2"],
+            "location": ["A", "B"],
+            "observed_by_date": [pd.Timestamp("2021-01-04"), pd.Timestamp("2021-01-08")],
+        })
+        frontier = m.threshold_frontier(scored, events)
+        self.assertEqual(len(frontier), 19)
+        self.assertEqual(frontier[0]["threshold"], 0.05)
+        self.assertEqual(frontier[-1]["threshold"], 0.95)
+        self.assertIn("false_positive_location_days_per_1000_negative_rows", frontier[0])
+        self.assertIn("event_detection_rate", frontier[0])
+
+    def test_per_location_diagnostics_keep_locations_separate(self):
+        scored = pd.DataFrame({
+            "date": pd.to_datetime(["2021-01-01", "2021-01-02", "2021-01-03", "2021-01-04"]),
+            "location": ["A", "A", "B", "B"],
+            "label": [0, 1, 0, 1],
+            "event_id": ["", "e1", "", "e2"],
+            "probability": [0.1, 0.8, 0.2, 0.9],
+        })
+        events = pd.DataFrame({
+            "event_id": ["e1", "e2"],
+            "location": ["A", "B"],
+            "observed_by_date": [pd.Timestamp("2021-01-02"), pd.Timestamp("2021-01-04")],
+        })
+        diagnostics = m.per_location_diagnostics(scored, events, threshold=0.5)
+        self.assertEqual(set(diagnostics), {"A", "B"})
+        self.assertEqual(diagnostics["A"]["positive_rows"], 1)
+        self.assertEqual(diagnostics["B"]["positive_rows"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
