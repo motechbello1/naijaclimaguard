@@ -1,0 +1,3 @@
+Execute guarded repository history rewrite after PASS preflight.
+Scope: remove root .env from reachable branch/tag history.
+Credentials were already rotated before execution.
