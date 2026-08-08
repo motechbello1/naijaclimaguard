@@ -1,0 +1,167 @@
+name: Model v3 Full Development — 2018-2021 Only
+
+on:
+  workflow_dispatch:
+    inputs:
+      validation_v2_canonical_confirmed:
+        description: "Confirm Validation v2 CI has established the canonical frozen benchmark"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  START_DATE: "2018-01-01"
+  END_DATE: "2021-12-31"
+  HARD_CUTOFF: "2022-01-01"
+  EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+
+jobs:
+  develop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+
+    steps:
+      - name: Enforce Validation v2 gate
+        env:
+          V2_CONFIRMED: ${{ inputs.validation_v2_canonical_confirmed }}
+        run: |
+          test "$V2_CONFIRMED" = "true" || {
+            echo "Refusing Model v3 full development run until Validation v2 CI is canonical."
+            exit 1
+          }
+
+      - name: Checkout Model v3 branch
+        uses: actions/checkout@v4
+
+      - name: Set up frozen Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            validation/model_v3_requirements.txt
+            validation/model_v3_source_requirements.txt
+
+      - name: Install frozen development and ingestion dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r validation/model_v3_requirements.txt -r validation/model_v3_source_requirements.txt
+
+      - name: Record runtime before data access
+        run: |
+          python --version | tee model-v3-python-version.txt
+          pip freeze | sort | tee model-v3-full-pip-freeze.txt
+
+      - name: Require NASA Earthdata credential
+        run: |
+          test -n "$EARTHDATA_TOKEN" || {
+            echo "EARTHDATA_TOKEN is required for the frozen IMERG source."
+            exit 1
+          }
+
+      - name: Fetch 2018-2021 GloFAS historical discharge only
+        run: python validation/fetch_glofas.py --start "$START_DATE" --end "$END_DATE"
+
+      - name: Fetch 2018-2021 ERA5-Land surface state only
+        run: python validation/fetch_era5_land.py --start "$START_DATE" --end "$END_DATE"
+
+      - name: Fetch 2018-2021 NASA GPM IMERG Final V07 only
+        run: python validation/fetch_nasa_imerg.py --start "$START_DATE" --end "$END_DATE" --batch-size 20
+
+      - name: Check fixed development source coverage and provenance
+        run: python validation/check_sources.py --start "$START_DATE" --end "$END_DATE"
+
+      - name: Build fused development features
+        run: python validation/build_features.py
+
+      - name: Enforce zero post-cutoff feature leakage
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          p = 'validation/features_daily.csv'
+          d = pd.read_csv(p, parse_dates=['date'])
+          cutoff = pd.Timestamp('2022-01-01')
+          assert not d.empty
+          assert (d['date'] < cutoff).all(), d.loc[d['date'] >= cutoff, ['date','location']].head()
+          assert d['date'].min() >= pd.Timestamp('2018-01-01')
+          assert d['date'].max() <= pd.Timestamp('2021-12-31')
+          assert d['location'].nunique() == 5, d['location'].unique()
+          print('feature rows:', len(d))
+          print('date range:', d['date'].min().date(), 'to', d['date'].max().date())
+          print('locations:', sorted(d['location'].unique()))
+          PY
+
+      - name: Enforce dedicated Model v3 event registry
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          p = 'validation/model_v3_event_registry.csv'
+          e = pd.read_csv(p, parse_dates=['observed_by_date'])
+          e = e[e['include_in_benchmark'].astype(str).str.lower().eq('true')]
+          assert (e['observed_by_date'] < pd.Timestamp('2022-01-01')).all()
+          assert e['event_id'].nunique() >= 15
+          oof = e[e['observed_by_date'].dt.year.isin([2019, 2020, 2021])]
+          assert oof['event_id'].nunique() >= 10
+          print('development events:', e['event_id'].nunique())
+          print('OOF events:', oof['event_id'].nunique())
+          PY
+
+      - name: Run Model v3 development candidates
+        run: bash validation/run_model_v3_dev.sh
+
+      - name: Validate development result safety gates
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('validation/model_v3_development_results.json')
+          r = json.loads(p.read_text())
+          assert r['status'] == 'development_only_not_production_validated'
+          assert r['hard_development_cutoff'] == '2022-01-01'
+          assert r['production']['engine_remains'] == 'derived-v2'
+          assert r['production']['model_v3_deployed'] is False
+          assert r['freeze_gate']['ready_to_freeze_for_new_holdout'] is False
+          assert r['data']['development_events'] >= 15
+          print('selected development candidate:', r['selected_candidate']['candidate'])
+          print('development threshold:', r['selected_candidate']['development_threshold'])
+          print('mean temporal-fold PR-AUC:', r['selected_candidate']['mean_fold_pr_auc'])
+          print('freeze gate:', r['freeze_gate'])
+          PY
+
+      - name: Write immutable development status
+        run: |
+          {
+            echo "Model v3 full development run"
+            echo "Development period: 2018-01-01 through 2021-12-31"
+            echo "Hard cutoff: 2022-01-01"
+            echo "Validation v2 canonical gate confirmed at dispatch: ${{ inputs.validation_v2_canonical_confirmed }}"
+            echo "Production engine remains: derived-v2"
+            echo "Model v3 deployment: false"
+            echo "Final new-holdout freeze: false"
+            echo "Commit: $GITHUB_SHA"
+          } > validation/model_v3_development_status.txt
+
+      - name: Upload Model v3 development evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-v3-development-${{ github.run_number }}
+          if-no-files-found: warn
+          retention-days: 90
+          path: |
+            model-v3-python-version.txt
+            model-v3-full-pip-freeze.txt
+            validation/raw/nasa_imerg_daily.csv
+            validation/raw/glofas_daily.csv
+            validation/raw/era5_land_daily.csv
+            validation/features_daily.csv
+            validation/source_quality.json
+            validation/model_v3_event_registry.csv
+            validation/model_v3_requirements.txt
+            validation/model_v3_source_requirements.txt
+            validation/MODEL_V3_PROTOCOL.md
+            validation/model_v3_development_results.json
+            validation/model_v3_development_status.txt
