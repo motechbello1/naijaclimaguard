@@ -12,47 +12,82 @@ export function getRiskLevel(score: number) {
   return RISK_LEVELS.EXTREME;
 }
 
+/**
+ * Public historical milestones only. This is intentionally not presented as a
+ * NaijaClimaGuard prediction timeline. Validation v2 reconstructs what data and
+ * forecasts were actually available at T-72/T-48/T-24 before any lead-time
+ * claim is published.
+ */
 export const LOKOJA_TIMELINE = [
-  { date: "Oct 5, 2022", event: "Anomalous rainfall accumulation detected upstream", type: "prediction" as const, detail: "ML model flags Kogi State risk at 78/100", score: 78 },
-  { date: "Oct 6, 2022", event: "Risk escalates to EXTREME — 92/100", type: "prediction" as const, detail: "GloFAS confirms Niger-Benue confluence surge pattern", score: 92 },
-  { date: "Oct 7, 2022", event: "NEMA issues official flood advisory", type: "government" as const, detail: "Government advisory — 48 hours after our detection", score: 92 },
-  { date: "Oct 9, 2022", event: "Catastrophic flooding hits Lokoja", type: "disaster" as const, detail: "1.4 million people affected across Kogi, Anambra, Bayelsa, Delta", score: 95 },
+  {
+    date: "Sep 13, 2022",
+    event: "Upstream Lagdo release period begins",
+    type: "prediction" as const,
+    detail: "An upstream hydrological milestone used in the ongoing historical reconstruction; not a NaijaClimaGuard prediction.",
+    score: "UP",
+  },
+  {
+    date: "Sep 28, 2022",
+    event: "Flooding already documented in Lokoja communities",
+    type: "disaster" as const,
+    detail: "Public reporting documented submerged homes, roads, and farmland in Lokoja before the previously published Oct 5–9 website timeline.",
+    score: "OBS",
+  },
+  {
+    date: "Oct 1, 2022",
+    event: "Kogi authorities describe active flood response",
+    type: "government" as const,
+    detail: "State reporting cited earlier NiHSA/NiMet predictions and evacuation messaging. This is why the former '48 hours before government' claim has been withdrawn.",
+    score: "GOV",
+  },
+  {
+    date: "Oct 6, 2022",
+    event: "NiHSA-recorded Lokoja hydrological peak",
+    type: "government" as const,
+    detail: "NiHSA's 2023 Annual Flood Outlook reports a 2022 maximum discharge of about 25,424 m³/s at Lokoja on Oct 6.",
+    score: "Q",
+  },
 ];
 
 export const PRICING = [
   {
     name: "Explorer", price: "Free", period: "", description: "For researchers & individuals",
-    features: ["3 locations", "Daily updates", "7-day forecast", "National risk map", "Email alerts"],
+    features: ["Saved locations", "Public My Area risk check", "Dashboard access", "Current risk monitoring", "Email alert rules"],
     cta: "Start Free", highlighted: false,
   },
   {
     name: "Professional", price: "₦15,000", period: "/month", description: "For agribusiness, insurers & NGOs",
-    features: ["50 locations", "Hourly updates", "72-hour forecast", "Full API (10K calls/mo)", "SMS + Email + Webhook", "PDF risk reports", "Historical data"],
-    cta: "Start 14-Day Trial", highlighted: true,
+    features: ["Expanded location monitoring", "Dashboard risk views", "REST API access", "Email alert rules", "Downloadable situation reports", "Historical views"],
+    cta: "Choose Professional", highlighted: true,
   },
   {
     name: "Enterprise", price: "Custom", period: "", description: "For banks, government & reinsurers",
-    features: ["Unlimited locations", "Real-time streaming", "Custom models", "Unlimited API", "Dedicated SLA", "Custom integrations", "Compliance reports", "On-premise option"],
+    features: ["Custom location requirements", "API and data integration planning", "Institutional reporting", "Deployment support", "Technical onboarding", "Custom workflow integrations"],
     cta: "Contact Sales", highlighted: false,
   },
 ];
 
 export const API_EXAMPLE = {
-  request: `curl -X GET "https://api.naijaclimaguard.com/v1/risk" \\
-  -H "Authorization: Bearer ncg_sk_live_..." \\
-  -d '{"latitude": 7.7337, "longitude": 6.6906}'`,
+  request: `curl "https://naijaclimaguard.vercel.app/api/v1/risk?latitude=7.8023&longitude=6.7333"`,
   response: `{
-  "location": { "state": "Kogi", "lga": "Lokoja" },
-  "risk_assessment": {
-    "current_score": 67,
-    "level": "HIGH",
-    "confidence": 0.94,
-    "trend": "RISING"
+  "risk": {
+    "score": 57,
+    "level": "WATCH",
+    "flood_type": "mixed"
   },
-  "forecast": [
-    { "hour": 24, "score": 72, "level": "HIGH" },
-    { "hour": 48, "score": 79, "level": "EXTREME" }
-  ],
-  "model": { "version": "2.1.0", "roc_auc": 0.9928 }
+  "factors": {
+    "rainfall_7d": 0.42,
+    "burst_intensity": 0.51,
+    "soil_saturation": 0.38
+  },
+  "hourly": {
+    "max_mm_per_hour": 8.4,
+    "max_3h_mm": 19.7,
+    "classification": "light"
+  },
+  "meta": {
+    "model": "derived-v2",
+    "data_source": "Open-Meteo forecast API · daily + hourly"
+  }
 }`,
 };

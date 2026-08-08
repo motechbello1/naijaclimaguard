@@ -1,13 +1,12 @@
 "use client";
 
 /**
- * Layer 2: Action — the REAL alert console. Nothing scripted.
- *  · Lists your real saved locations and real alert rules (Prisma).
- *  · Create / pause / delete alert rules — real CRUD.
- *  · "Run live check" evaluates every rule against LIVE Open-Meteo data
- *    via /api/alerts/check and renders the actual results.
- *  · Email channel is live once RESEND_API_KEY is set; SMS is partner-ready
- *    and shown disabled — never simulated.
+ * Layer 2: Action — real alert-rule console.
+ *  · Lists saved locations and alert rules from Prisma.
+ *  · Create / pause / delete alert rules.
+ *  · "Run live check" evaluates rules against current Open-Meteo inputs.
+ *  · Email can send through Resend when configured.
+ *  · SMS is intentionally disabled until the user model stores a real phone number.
  */
 
 import AppShell from "@/components/shared/AppShell";
@@ -25,7 +24,7 @@ interface AlertRule {
 }
 interface CheckResult {
   location: string; score?: number; threshold?: number;
-  status: string; emailStatus?: string;
+  status: string; emailStatus?: string; smsStatus?: string;
 }
 
 export default function ActionPage() {
@@ -111,7 +110,7 @@ export default function ActionPage() {
               <Zap className="h-6 w-6 text-radar" /> Layer 2: Action
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Real alert rules · evaluated against live data · nothing simulated
+              Alert rules evaluated against the current disclosed live risk index
             </p>
           </div>
           <button onClick={runCheck} disabled={checking || alerts.length === 0}
@@ -121,17 +120,16 @@ export default function ActionPage() {
           </button>
         </div>
 
-        {/* Live check results — real output */}
         {checkResults && (
           <div className="glass-card rounded-2xl p-5 animate-slide-up">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold">Live evaluation results</h2>
-        <div className="flex flex-col gap-1 items-end">
+              <div className="flex flex-col gap-1 items-end">
                 <span className={`flex items-center gap-1.5 text-xs font-mono ${channels?.email === "live" ? "text-radar" : "text-cyan"}`}>
-                  <MailCheck className="h-3.5 w-3.5" /> Email: {channels?.email === "live" ? "✓ live" : "add RESEND_API_KEY"}
+                  <MailCheck className="h-3.5 w-3.5" /> Email: {channels?.email === "live" ? "✓ live" : "Resend credential required"}
                 </span>
-                <span className={`flex items-center gap-1.5 text-xs font-mono ${channels?.sms === "live" ? "text-radar" : "text-slate-400"}`}>
-                  <MessageSquareOff className="h-3.5 w-3.5" /> SMS: {channels?.sms === "live" ? "✓ live" : "add TERMII_API_KEY"}
+                <span className="flex items-center gap-1.5 text-xs font-mono text-slate-400">
+                  <MessageSquareOff className="h-3.5 w-3.5" /> SMS: phone capture not implemented
                 </span>
               </div>
             </div>
@@ -160,7 +158,6 @@ export default function ActionPage() {
           </div>
         )}
 
-        {/* Create rule */}
         <div className="glass-card rounded-2xl p-6">
           <h2 className="text-sm font-semibold mb-4">Create an alert rule</h2>
           {locations.length === 0 && !loading ? (
@@ -190,17 +187,16 @@ export default function ActionPage() {
           )}
           <p className="mt-4 text-xs text-slate-500 flex items-center gap-2">
             <MessageSquareOff className="h-3.5 w-3.5" />
-            Channels: Email (Resend) + SMS (Termii). Add API keys in Vercel env vars to activate. Never simulated.
+            Delivery: email through Resend when configured. SMS is not active until account phone-number support is implemented.
           </p>
         </div>
 
-        {/* Existing rules — real data */}
         <div className="glass-card rounded-2xl p-6">
           <h2 className="text-sm font-semibold mb-4">Your alert rules</h2>
           {loading ? (
             <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/50" />)}</div>
           ) : alerts.length === 0 ? (
-            <p className="text-sm text-slate-500">No rules yet — create your first above. When live risk crosses your threshold, the engine records it and notifies you.</p>
+            <p className="text-sm text-slate-500">No rules yet — create your first above. When the current risk index crosses your threshold, the engine records the event and attempts configured email delivery.</p>
           ) : (
             <div className="space-y-2">
               {alerts.map((a) => (

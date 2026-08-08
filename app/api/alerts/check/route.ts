@@ -5,7 +5,11 @@ import { prisma } from "@/lib/db";
 
 /**
  * GET /api/alerts/check
- * Real alert engine with LIVE email (Resend) + CONNECTED SMS (Termii).
+ * Threshold alert engine using the current disclosed derived risk formula.
+ *
+ * Email can be delivered through Resend when configured. SMS remains disabled
+ * until the user model stores a real phone number; an email address must never
+ * be passed to Termii as a destination number.
  */
 
 function deriveScore(daily: any): number {
@@ -34,43 +38,21 @@ async function sendEmail(to: string, locationName: string, score: number, thresh
       body: JSON.stringify({
         from: process.env.ALERT_FROM_EMAIL ?? "NaijaClimaGuard <onboarding@resend.dev>",
         to: [to],
-        subject: `⚠ Flood risk ${score}/100 at ${locationName}`,
+        subject: `Flood-risk threshold crossed at ${locationName}`,
         html: `
           <div style="font-family:Arial,sans-serif;max-width:520px">
-            <h2 style="color:#EF4444">⚠ Flood Risk Alert — ${locationName}</h2>
-            <p>Live risk is now <strong>${score}/100</strong>, crossing your threshold of ${threshold}.</p>
-            <p style="color:#555">Based on live satellite-derived rainfall and soil moisture data.</p>
+            <h2 style="color:#EF4444">Flood-Risk Alert — ${locationName}</h2>
+            <p>The current NaijaClimaGuard risk index is <strong>${score}/100</strong>, crossing your configured threshold of ${threshold}.</p>
+            <p style="color:#555">This index is calculated from current Open-Meteo precipitation and evapotranspiration context using the disclosed live heuristic model.</p>
             <p><a href="https://naijaclimaguard.vercel.app/my-area" style="color:#10B981;font-weight:bold">Open NaijaClimaGuard →</a></p>
             <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
-            <p style="font-size:12px;color:#999">This is a real alert from NaijaClimaGuard's live monitoring engine. Every value is derived from current Open-Meteo weather data.</p>
+            <p style="font-size:12px;color:#999">Decision-support signal only. Follow official NiHSA, NiMet, NEMA, SEMA, and local emergency guidance where applicable.</p>
           </div>`,
       }),
     });
     return res.ok ? "email_sent" : "email_failed";
   } catch {
     return "email_failed";
-  }
-}
-
-async function sendSMS(phone: string, locationName: string, score: number) {
-  const key = process.env.TERMII_API_KEY;
-  if (!key) return "sms_pending_credential";
-  try {
-    const res = await fetch("https://v3.api.termii.com/api/sms/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        api_key: key,
-        to: phone,
-        from: process.env.TERMII_SENDER_ID ?? "NCGuard",
-        sms: `FLOOD ALERT: ${locationName} risk is ${score}/100. Take action now. Check naijaclimaguard.vercel.app`,
-        type: "plain",
-        channel: "generic",
-      }),
-    });
-    return res.ok ? "sms_sent" : "sms_failed";
-  } catch {
-    return "sms_failed";
   }
 }
 
@@ -111,8 +93,7 @@ export async function GET() {
 
     if (crossed && !recentlyNotified) {
       const emailStatus = await sendEmail(user.email, location.name, score, alert.threshold);
-      // SMS if user has a phone (we'd need to add phone field — for now use email user)
-      const smsStatus = await sendSMS(user.email, location.name, score); // placeholder — phone field needed
+      const smsStatus = "sms_disabled_phone_not_collected";
       await prisma.alert.update({
         where: { id: alert.id },
         data: { lastNotifiedAt: new Date() },
@@ -120,7 +101,9 @@ export async function GET() {
       results.push({ location: location.name, score, threshold: alert.threshold, status: "triggered", emailStatus, smsStatus });
     } else {
       results.push({
-        location: location.name, score, threshold: alert.threshold,
+        location: location.name,
+        score,
+        threshold: alert.threshold,
         status: crossed ? "already_notified" : "below_threshold",
       });
     }
@@ -130,8 +113,9 @@ export async function GET() {
     checkedAt: new Date().toISOString(),
     channels: {
       email: process.env.RESEND_API_KEY ? "live" : "pending_credential",
-      sms: process.env.TERMII_API_KEY ? "live" : "pending_credential",
+      sms: "integration_pending_phone_field",
     },
+    model: "derived daily rainfall / antecedent-wetness threshold index",
     results,
   });
 }

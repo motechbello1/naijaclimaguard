@@ -49,21 +49,21 @@ export default function LandingPage() {
         <div className="relative z-10 mx-auto max-w-7xl px-4 text-center animate-fade-in">
           <div className="inline-flex items-center gap-2 rounded-full border border-radar/20 bg-radar/5 px-4 py-1.5 mb-8">
             <Zap className="h-3.5 w-3.5 text-radar" />
-            <span className="text-xs font-medium text-radar">Validated against the 2022 Nigerian Megaflood</span>
+            <span className="text-xs font-medium text-radar">Nigeria-focused flood-risk decision support</span>
           </div>
           <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight">
-            <span>Predict floods</span><br />
-            <span className="text-radar">before they happen.</span>
+            <span>Understand flood risk</span><br />
+            <span className="text-radar">before decisions are made.</span>
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-lg sm:text-xl text-slate-500 dark:text-slate-400 leading-relaxed">
-            Africa&apos;s first physical risk intelligence API. We fuse NASA satellite rainfall and GloFAS river discharge to deliver 48-hour advance flood warnings with 99.28% accuracy.
+            NaijaClimaGuard turns live weather signals into location-specific flood-risk intelligence. Our Validation v2 pipeline is independently testing a fusion of NASA GPM IMERG rainfall, Copernicus/ECMWF GloFAS river discharge, and ERA5-Land surface-state data against documented Nigerian flood events.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/register" className="group flex items-center gap-2 rounded-lg bg-radar px-7 py-3.5 text-base font-semibold text-white transition-all duration-200 ease-out hover:brightness-110 active:scale-[0.98]" style={{ boxShadow: "0 2px 8px rgba(16, 185, 129, 0.18)" }}>
               Start Free <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
             <Link href="#validation" className="rounded-lg border border-slate-200 dark:border-midnight-border px-7 py-3.5 text-base font-medium hover:border-radar/40 transition-all duration-200">
-              See the Proof
+              See Validation Status
             </Link>
           </div>
         </div>
@@ -74,10 +74,10 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { icon: Activity, value: "0.9928", unit: "ROC-AUC", label: "Model Accuracy" },
-              { icon: Clock, value: "48", unit: "Hours", label: "Advance Warning" },
-              { icon: Users, value: "1.4M", unit: "People", label: "Validated Coverage" },
-              { icon: Award, value: "TRL-5", unit: "Certified", label: "Technology Readiness" },
+              { icon: Activity, value: "Live", unit: "API", label: "Current Risk Monitoring" },
+              { icon: Satellite, value: "3", unit: "Data Families", label: "Validation v2 Architecture" },
+              { icon: Brain, value: "XGBoost", unit: "v2", label: "Independent Revalidation" },
+              { icon: Shield, value: "Nigeria", unit: "Focus", label: "Local Decision Support" },
             ].map((m) => (
               <div key={m.label} className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-radar/10 border border-radar/20">
@@ -100,8 +100,8 @@ export default function LandingPage() {
       <section id="validation" className="py-24">
         <div className="mx-auto max-w-7xl px-4">
           <div className="text-center mb-16">
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold">We saw the megaflood coming.</h2>
-            <p className="mt-4 max-w-2xl mx-auto text-slate-500 dark:text-slate-400 text-lg">48 hours before government advisories.</p>
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold">Lokoja 2022 — rebuilding the evidence.</h2>
+            <p className="mt-4 max-w-2xl mx-auto text-slate-500 dark:text-slate-400 text-lg">The case study is being independently reconstructed from documented flood dates, Nigerian hydrology, NASA rainfall, and archived forecast inputs. No government-advantage or fixed lead-time claim is published until that replay is complete.</p>
           </div>
           <div className="max-w-3xl mx-auto">
             {LOKOJA_TIMELINE.map((item, i) => (
@@ -113,8 +113,8 @@ export default function LandingPage() {
                 <div className="glass-card rounded-xl p-5 flex-1">
                   <div className="flex items-center gap-3 mb-1">
                     <span className="text-xs font-mono font-medium text-slate-400">{item.date}</span>
-                    {item.type === "prediction" && <span className="text-[10px] font-bold uppercase tracking-wider bg-radar/10 text-radar px-2 py-0.5 rounded-full">Our Prediction</span>}
-                    {item.type === "government" && <span className="text-[10px] font-bold uppercase tracking-wider bg-amber/10 text-amber px-2 py-0.5 rounded-full">48hrs Later</span>}
+                    {item.type === "prediction" && <span className="text-[10px] font-bold uppercase tracking-wider bg-radar/10 text-radar px-2 py-0.5 rounded-full">Historical Signal</span>}
+                    {item.type === "government" && <span className="text-[10px] font-bold uppercase tracking-wider bg-amber/10 text-amber px-2 py-0.5 rounded-full">Official Record</span>}
                   </div>
                   <h3 className="text-base font-semibold">{item.event}</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{item.detail}</p>
@@ -123,8 +123,8 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="mt-16 max-w-3xl mx-auto glass-card rounded-xl p-8 text-center">
-            <p className="text-2xl font-display font-bold">48-hour head start. 1.4 million lives at stake.</p>
-            <p className="mt-2 text-slate-500 dark:text-slate-400">If our API had been integrated into emergency response, evacuation could have begun two full days earlier.</p>
+            <p className="text-2xl font-display font-bold">Historical case study under independent revalidation.</p>
+            <p className="mt-2 text-slate-500 dark:text-slate-400">Validation v2 separates documented flood onset from the hydrological peak and tests what information was actually available at T−72, T−48, and T−24.</p>
           </div>
         </div>
       </section>
@@ -137,9 +137,9 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-8 stagger">
             {[
-              { icon: Satellite, step: "01", title: "Ingest", heading: "Satellite & Hydrological Data", desc: "NASA GPM IMERG rainfall + GloFAS river discharge + ERA5 soil moisture — fused every 6 hours." },
-              { icon: Brain, step: "02", title: "Predict", heading: "ML Fusion Model", desc: "Ensemble gradient-boosted model generates 72-hour flood risk scores. ROC-AUC 0.9928." },
-              { icon: Bell, step: "03", title: "Alert", heading: "Multi-Channel Delivery", desc: "REST API, dashboard, SMS, email, webhook, and PDF reports. Integrate into your existing systems." },
+              { icon: Satellite, step: "01", title: "Monitor", heading: "Live Risk Signals", desc: "The current public risk API uses live Open-Meteo precipitation, hourly rainfall intensity, and evapotranspiration context to produce a disclosed risk score." },
+              { icon: Brain, step: "02", title: "Validate", heading: "NASA + GloFAS + ERA5-Land", desc: "Validation v2 tests an XGBoost fusion model using NASA GPM IMERG rainfall, Copernicus/ECMWF GloFAS discharge, ERA5-Land surface state, and independent Nigerian flood-event labels." },
+              { icon: Bell, step: "03", title: "Deliver", heading: "Decision Support", desc: "REST API, dashboard, email alert rules, and downloadable situation reports support operational workflows. Additional delivery channels remain under integration." },
             ].map((s) => (
               <div key={s.step} className="glass-card rounded-2xl p-8 hover:border-radar/30 transition-all duration-200">
                 <span className="font-mono text-xs text-slate-400">{s.step}</span>
@@ -163,10 +163,10 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-2 gap-6">
             {[
-              { icon: Shield, title: "Insurance & Reinsurance", desc: "Price climate risk into policies with location-specific flood scores." },
-              { icon: Sprout, title: "Agribusiness & Farming", desc: "Protect crop investments with advance flood warnings and planting intelligence." },
-              { icon: Landmark, title: "Government & NEMA", desc: "Augment early warning systems with AI-powered 48-hour advance predictions." },
-              { icon: Building2, title: "Infrastructure & Lending", desc: "Assess physical climate risk for investment portfolios and loan decisions." },
+              { icon: Shield, title: "Insurance & Reinsurance", desc: "Explore location-specific flood-risk signals for climate-risk assessment workflows." },
+              { icon: Sprout, title: "Agribusiness & Farming", desc: "Monitor changing rainfall and flood-risk conditions around crop and field locations." },
+              { icon: Landmark, title: "Government & Emergency Agencies", desc: "Augment early-warning workflows with location-specific, auditable risk signals and integration-ready APIs." },
+              { icon: Building2, title: "Infrastructure & Lending", desc: "Support physical climate-risk screening for assets, projects, and lending decisions." },
             ].map((uc) => (
               <div key={uc.title} className="glass-card rounded-2xl p-8 hover:border-radar/20 transition-all">
                 <div className="flex items-start gap-4">
@@ -193,8 +193,8 @@ export default function LandingPage() {
                 <Code className="h-3.5 w-3.5 text-radar" />
                 <span className="text-xs font-medium text-radar">Developer-First</span>
               </div>
-              <h2 className="font-display text-3xl sm:text-4xl font-bold">One API call.<br /><span className="text-radar">Complete risk intelligence.</span></h2>
-              <p className="mt-4 text-slate-500 dark:text-slate-400 text-lg">Location-specific flood risk scores, 72-hour forecasts, and model confidence in a single REST call.</p>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold">One API call.<br /><span className="text-radar">Auditable risk context.</span></h2>
+              <p className="mt-4 text-slate-500 dark:text-slate-400 text-lg">The current REST endpoint returns a location-specific risk score, contributing factors, recent rainfall intensity, source attribution, and model metadata.</p>
             </div>
             <div className="rounded-2xl border border-slate-200 dark:border-midnight-border bg-white dark:bg-midnight overflow-hidden shadow-xl dark:shadow-none">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-midnight-border px-4">
@@ -279,7 +279,7 @@ export default function LandingPage() {
             <Link href="/about" className="text-xs text-slate-400 hover:text-radar transition-colors">About</Link>
             <Link href="/how-to-use" className="text-xs text-slate-400 hover:text-radar transition-colors">How to Use</Link>
             <Link href="/contact" className="text-xs text-slate-400 hover:text-radar transition-colors">Contact Sales</Link>
-            <span className="text-xs text-slate-400">Data: NASA GPM IMERG · ECMWF GloFAS · USGS</span>
+            <span className="text-xs text-slate-400">Live: Open-Meteo · Validation v2: NASA GPM IMERG + Copernicus/ECMWF GloFAS + ERA5-Land</span>
           </div>
         </div>
       </footer>
