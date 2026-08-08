@@ -1,0 +1,98 @@
+{
+  "status": "historical_benchmark_complete_model_not_production_ready",
+  "execution_note": "Local frozen-model reproduction using all seven successful NASA IMERG yearly GitHub artifacts plus the existing full GloFAS and ERA5-Land artifacts. Hyperparameters, feature set, chronological cutoff, event windows, and threshold were not changed in response to test performance.",
+  "validation_type": "historical independent-event hindcast; not a true issue-time 48/72-hour forecast benchmark",
+  "source_stack": [
+    "NASA GPM IMERG Final V07 daily precipitation",
+    "Copernicus/ECMWF GloFAS v4 historical discharge",
+    "ERA5-Land surface-state variables"
+  ],
+  "data_qa": {
+    "fused_location_days": 12785,
+    "locations": 5,
+    "date_start": "2018-01-01",
+    "date_end": "2024-12-31",
+    "missing_nasa_imerg_core": 0,
+    "missing_glofas_core": 0,
+    "missing_era5_topsoil_core": 0,
+    "nasa_years_complete": [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+  },
+  "protocol": {
+    "cutoff": "2022-01-01",
+    "threshold": 0.5,
+    "threshold_origin": "predeclared fixed threshold; not optimized on test",
+    "positive_window": "event date minus 3 days through event date plus 1 day",
+    "uncertainty_exclusion_window_days": 14,
+    "train_rows": 7041,
+    "test_rows": 5019,
+    "train_positive_rows": 55,
+    "test_positive_rows": 100,
+    "independent_feature_covered_train_events": 11,
+    "independent_test_events": 20
+  },
+  "features": {
+    "used_count": 23,
+    "dropped_low_coverage": {
+      "et0_fao_evapotranspiration": 0.0,
+      "nasa_rain_minus_et0": 0.0,
+      "water_balance_7d": 0.0
+    },
+    "top_gain_features_diagnostic": [
+      "day_of_year",
+      "month",
+      "nasa_rain_30d_sum",
+      "soil_moisture_28_to_100cm",
+      "soil_moisture_7d_mean"
+    ]
+  },
+  "frozen_model": {
+    "type": "XGBoost",
+    "n_estimators": 350,
+    "max_depth": 4,
+    "learning_rate": 0.04,
+    "min_child_weight": 3,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "reg_lambda": 2.0,
+    "reg_alpha": 0.1,
+    "random_state": 42,
+    "tree_method": "hist",
+    "scale_pos_weight": 127.01818181818182
+  },
+  "training_diagnostic": {
+    "roc_auc": 0.9999999999999999,
+    "pr_auc": 1.0,
+    "precision_at_0_5": 0.9322033898305084,
+    "recall_at_0_5": 1.0,
+    "f1_at_0_5": 0.9649122807017544,
+    "brier_score": 0.0007949916762299836,
+    "confusion_matrix": {"tn": 6982, "fp": 4, "fn": 0, "tp": 55}
+  },
+  "chronological_test": {
+    "roc_auc": 0.7147814596462696,
+    "pr_auc": 0.0572282380431264,
+    "precision_at_0_5": 0.09375,
+    "recall_at_0_5": 0.03,
+    "f1_at_0_5": 0.045454545454545456,
+    "brier_score": 0.022672973573207855,
+    "false_alarm_ratio": 0.90625,
+    "miss_rate": 0.97,
+    "confusion_matrix": {"tn": 4890, "fp": 29, "fn": 97, "tp": 3},
+    "event_detection_at_0_5": {"detected": 1, "evaluated": 20, "rate": 0.05}
+  },
+  "per_location_test": {
+    "Hadejia": {"roc_auc": 0.6120973044049967, "pr_auc": 0.022712617427018557, "precision": 0.0, "recall": 0.0, "tp": 0, "fp": 18, "fn": 15},
+    "Lokoja": {"roc_auc": 0.7866088631984586, "pr_auc": 0.3606484751080532, "precision": 0.0, "recall": 0.0, "tp": 0, "fp": 0, "fn": 10},
+    "Makurdi": {"roc_auc": 0.8063390313390314, "pr_auc": 0.19408277228456353, "precision": 0.6, "recall": 0.1, "tp": 3, "fp": 2, "fn": 27},
+    "Onitsha": {"roc_auc": 0.6312755102040817, "pr_auc": 0.06231578120620327, "precision": 0.0, "recall": 0.0, "tp": 0, "fp": 2, "fn": 20},
+    "Yenagoa": {"roc_auc": 0.7700105152471083, "pr_auc": 0.09015713926314585, "precision": 0.0, "recall": 0.0, "tp": 0, "fp": 7, "fn": 25}
+  },
+  "event_level_note": "At the fixed 0.50 threshold, only Makurdi 2022-09-26 had a threshold crossing before/on the documented event in the historical hindcast window (first crossing 2022-09-23, 72 hours). This is observational hindcast timing and must not be presented as a true operational 72-hour forecast claim.",
+  "audit_interpretation": [
+    "The near-perfect training metrics versus much weaker chronological test metrics are strong evidence of overfitting / temporal generalization failure.",
+    "Calendar features (day_of_year and month) dominate gain importance, indicating substantial reliance on seasonal/event timing patterns in the small pre-2022 event set.",
+    "The test ROC-AUC shows some ranking signal, but PR-AUC and fixed-threshold event detection are too weak for production warning claims.",
+    "Do not tune the threshold, features, or hyperparameters using this 2022-2024 test set. Any improved model requires a new development/validation protocol with a separate untouched holdout or prospective NiHSA shadow pilot.",
+    "Do not restore the old 0.9928, 91% precision, 73% recall, 10 false alarms, or 48-hours-before-government claims."
+  ]
+}

@@ -1,0 +1,1 @@
+GESDISC EULA accepted; NASA smoke test passed. Trigger parallel historical validation on 2026-08-08.

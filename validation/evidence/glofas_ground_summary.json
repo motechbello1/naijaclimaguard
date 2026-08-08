@@ -1,0 +1,13 @@
+{
+  "status": "calibration_sparse",
+  "matched_observations": 4,
+  "locations": [
+    "Lokoja",
+    "Makurdi"
+  ],
+  "mean_absolute_error_m3s": 5164.2075,
+  "mean_relative_error": -0.2546742999164218,
+  "median_ratio_glofas_to_ground": 0.7074677710105708,
+  "pearson_r": 0.6693251385745659,
+  "note": "Do not present this as a national GloFAS accuracy score. It is a sparse local cell/reach plausibility check. The added Makurdi 2022-09-30 same-day official observation materially changes the earlier fragile three-point correlation, reinforcing the need for Nigerian gauge calibration and reach selection before raw GloFAS discharge is treated as local ground truth."
+}

@@ -1,0 +1,5 @@
+observation_id,date,location,water_level_m,observed_discharge_m3s,glofas_discharge_m3s,error_m3s,absolute_error_m3s,relative_error,ratio_glofas_to_ground,glofas_model,source
+lokoja-2022-10-06,2022-10-06,Lokoja,13.22,25424.0,14027.13,-11396.87,11396.87,-0.44827210509754567,0.5517278949024543,consolidated_v4,Copernicus/ECMWF GloFAS v4 via Open-Meteo Flood API
+makurdi-2022-09-30,2022-09-30,Makurdi,11.73,13698.0,13898.53,200.53000000000065,200.53000000000065,0.01463936341071694,1.014639363410717,consolidated_v4,Copernicus/ECMWF GloFAS v4 via Open-Meteo Flood API
+lokoja-2024-10-21,2024-10-21,Lokoja,10.88,18905.4,12530.41,-6374.990000000002,6374.990000000002,-0.3372047139970591,0.6627952860029409,consolidated_v4,Copernicus/ECMWF GloFAS v4 via Open-Meteo Flood API
+makurdi-2024-10-21,2024-10-21,Makurdi,10.68,10830.48,8146.04,-2684.4399999999996,2684.4399999999996,-0.2478597439817995,0.7521402560182006,consolidated_v4,Copernicus/ECMWF GloFAS v4 via Open-Meteo Flood API
