@@ -1,0 +1,10 @@
+PASS
+Root .env removed from all rewritten branch/tag history reachable by the push.
+Other workflow runs were stopped before rewrite.
+Force-push dry run passed before real ref updates.
+Old main: 2c7bc66d1ac5aaeecb9a78ef864c8b446fb710c1
+Rewritten main before provenance commit: 77995f452ac1e4e5429b8053894215e1a1d484b3
+Current main tree before provenance file: 44d798d9f86b4d7c9b964d1fbdcccb6a624850bb
+Frozen Model v4 artifact SHA-256: 83c886e722bff7d8f3cd3f0093316531579e3b5e11316201895429405cc18076
+Model v4 freeze manifest SHA-256 before post-rewrite refreeze: ed2faa59bdc61077cf3928959cd33774498a659d5e00538b0161679cbd8fb737
+Frozen event-registry SHA-256: 107a761e693932ba27057cb3281b9b5e05493d5d3de3ded89982c7bd4ca7e5b0
