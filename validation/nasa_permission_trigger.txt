@@ -1,1 +1,1 @@
-GESDISC EULA accepted by user on 2026-08-08. Re-trigger focused NASA IMERG permission smoke test after licence acceptance.
+GESDISC EULA accepted and redirect handling fixed on 2026-08-08. Re-trigger focused NASA IMERG extraction smoke test.
