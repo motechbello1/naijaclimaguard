@@ -32,7 +32,8 @@ from sklearn.metrics import (
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_EVENTS = HERE / "event_registry.csv"
-MIN_EVENTS_FOR_HEADLINE_METRICS = 20
+MIN_TRAIN_EVENTS_FOR_HEADLINE_METRICS = 10
+MIN_TEST_EVENTS_FOR_HEADLINE_METRICS = 20
 
 
 def load_events(path: Path) -> pd.DataFrame:
@@ -219,18 +220,34 @@ def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: flo
     scored["probability"] = p
     scored["prediction"] = pred
 
-    test_events = events[events["observed_by_date"] >= pd.Timestamp(cutoff)].copy()
+    cut = pd.Timestamp(cutoff)
+    train_events = events[events["observed_by_date"] < cut].copy()
+    test_events = events[events["observed_by_date"] >= cut].copy()
+    train_event_count = int(train_events["event_id"].nunique())
     test_event_count = int(test_events["event_id"].nunique())
-    publishable = test_event_count >= MIN_EVENTS_FOR_HEADLINE_METRICS
+    train_gate = train_event_count >= MIN_TRAIN_EVENTS_FOR_HEADLINE_METRICS
+    test_gate = test_event_count >= MIN_TEST_EVENTS_FOR_HEADLINE_METRICS
+    publishable = train_gate and test_gate
+    reasons: List[str] = []
+    if not train_gate:
+        reasons.append(
+            f"Only {train_event_count} independent training events; minimum is "
+            f"{MIN_TRAIN_EVENTS_FOR_HEADLINE_METRICS}."
+        )
+    if not test_gate:
+        reasons.append(
+            f"Only {test_event_count} independent test events; minimum is "
+            f"{MIN_TEST_EVENTS_FOR_HEADLINE_METRICS}."
+        )
+    if not publishable:
+        reasons.append("Do not use these metrics as pitch headline claims.")
+
     event_rows = event_lead_time_table(scored, events, threshold)
     detected_events = sum(bool(r["detected_before_or_on_event"]) for r in event_rows)
 
     result: Dict[str, object] = {
-        "status": "publishable" if publishable else "exploratory_only",
-        "reason": None if publishable else (
-            f"Only {test_event_count} independent test events; minimum for headline metrics is "
-            f"{MIN_EVENTS_FOR_HEADLINE_METRICS}. Do not use these metrics as pitch headline claims."
-        ),
+        "status": "publishable_historical_hindcast" if publishable else "exploratory_only",
+        "reason": None if publishable else " ".join(reasons),
         "model": "XGBoost",
         "validation_type": "historical independent-event hindcast; not yet a true issue-time 48/72h forecast benchmark",
         "source_stack": [
@@ -240,12 +257,16 @@ def evaluate(df: pd.DataFrame, events: pd.DataFrame, cutoff: str, threshold: flo
         ],
         "cutoff": cutoff,
         "threshold": threshold,
+        "threshold_origin": "Predeclared fixed threshold; not optimized on the chronological test set.",
         "features": cols,
         "train_rows": int(len(train)),
         "test_rows": int(len(test)),
         "train_positive_rows": positives,
         "test_positive_rows": int(y_test.sum()),
+        "independent_train_events": train_event_count,
         "independent_test_events": test_event_count,
+        "minimum_train_events_for_headline_metrics": MIN_TRAIN_EVENTS_FOR_HEADLINE_METRICS,
+        "minimum_test_events_for_headline_metrics": MIN_TEST_EVENTS_FOR_HEADLINE_METRICS,
         **binary_metrics(y_test, p, pred),
         "event_detection_rate": float(detected_events / len(event_rows)) if event_rows else None,
         "detected_test_events": int(detected_events),
