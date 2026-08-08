@@ -1,0 +1,115 @@
+name: Validation v2 Historical Parallel PR Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "validation/**"
+
+permissions:
+  contents: read
+
+env:
+  EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+
+jobs:
+  nasa-year:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'validation-v2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        year: [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install NASA dependencies
+        run: pip install "earthaccess>=0.15,<1" "fsspec>=2024.6,<2027" "h5py>=3.11,<4" "pandas<3" "numpy<3" "aiohttp>=3.9,<4"
+      - name: Verify Earthdata secret
+        run: test -n "$EARTHDATA_TOKEN" || { echo "EARTHDATA_TOKEN missing"; exit 1; }
+      - name: Extract IMERG Final V07 for ${{ matrix.year }}
+        run: |
+          python validation/fetch_nasa_imerg.py \
+            --start "${{ matrix.year }}-01-01" \
+            --end "${{ matrix.year }}-12-31" \
+            --out "nasa_imerg_${{ matrix.year }}.csv" \
+            --batch-size 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nasa-imerg-${{ matrix.year }}
+          retention-days: 7
+          path: nasa_imerg_${{ matrix.year }}.csv
+
+  benchmark:
+    needs: nasa-year
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/requirements.txt
+      - name: Install validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r validation/requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: nasa-imerg-*
+          path: nasa-years
+          merge-multiple: true
+      - name: Merge NASA yearly extracts
+        run: |
+          mkdir -p validation/raw
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          files=sorted(Path('nasa-years').glob('nasa_imerg_*.csv'))
+          assert len(files)==7, files
+          d=pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
+          d['date']=pd.to_datetime(d['date'])
+          d=d.sort_values(['location','date']).drop_duplicates(['location','date'])
+          expected=((pd.Timestamp('2024-12-31')-pd.Timestamp('2018-01-01')).days+1)*5
+          print('NASA rows:', len(d), 'expected:', expected)
+          assert len(d) >= expected*0.98
+          d.to_csv('validation/raw/nasa_imerg_daily.csv', index=False)
+          PY
+      - name: Fetch GloFAS historical
+        run: python validation/fetch_glofas.py --start 2018-01-01 --end 2024-12-31
+      - name: Compare GloFAS with Nigerian ground observations
+        run: python validation/compare_glofas_ground.py
+      - name: Fetch ERA5-Land
+        run: python validation/fetch_era5_land.py --start 2018-01-01 --end 2024-12-31
+      - name: Check provenance and coverage
+        run: python validation/check_sources.py --start 2018-01-01 --end 2024-12-31
+      - name: Build fused features
+        run: python validation/build_features.py
+      - name: Run chronological benchmark
+        run: |
+          python validation/validate_v2.py \
+            --features validation/features_daily.csv \
+            --events validation/event_registry.csv \
+            --cutoff 2022-01-01 \
+            --threshold 0.50 \
+            --output validation/validation_results.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validation-historical-parallel-${{ github.run_number }}
+          retention-days: 30
+          path: |
+            validation/raw/nasa_imerg_daily.csv
+            validation/raw/glofas_daily.csv
+            validation/raw/era5_land_daily.csv
+            validation/features_daily.csv
+            validation/source_quality.json
+            validation/validation_results.json
+            validation/event_registry.csv
+            validation/glofas_ground_comparison.csv
+            validation/glofas_ground_summary.json
