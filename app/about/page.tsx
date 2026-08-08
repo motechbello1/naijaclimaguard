@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Shield, Target, Users, Satellite, Brain, Globe, Award, ArrowRight, CheckCircle } from "lucide-react";
+import { Activity, Shield, Target, Users, Satellite, Brain, Globe, Award, ArrowRight, CheckCircle } from "lucide-react";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 
 export default function AboutPage() {
