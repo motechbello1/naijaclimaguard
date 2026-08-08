@@ -1,0 +1,2 @@
+Non-destructive secret-history rewrite preflight trigger.
+No repository refs are modified by this workflow.
