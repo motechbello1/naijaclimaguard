@@ -2,6 +2,11 @@ name: Model v4 Prospective Shadow Forecast
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - validation/prospective/model_v4_manual_trigger.txt
   schedule:
     # 06:17 UTC = 07:17 Africa/Lagos. This gives the previous UTC day time
     # to close and NASA IMERG Early time to reach its near-real-time archive.
