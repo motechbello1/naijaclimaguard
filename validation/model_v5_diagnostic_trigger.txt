@@ -1,1 +1,1 @@
-Inspect latest full Model v5 run launched from single-date archived GloFAS trigger 0be25020ad44fd787ba7837166b65f1c2a858283 plus latest three-date smoke.
+Refresh diagnostic after single-date full-run trigger 0be25020ad44fd787ba7837166b65f1c2a858283 is registered by Actions.
