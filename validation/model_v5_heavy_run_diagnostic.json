@@ -1174,11 +1174,13 @@
       {
         "id": 93231333752,
         "name": "glofas (2024, 4, 10 11 12)",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "failure",
         "started_at": "2026-08-09T10:22:20Z",
-        "completed_at": null,
-        "failed_steps": [],
+        "completed_at": "2026-08-09T10:28:14Z",
+        "failed_steps": [
+          "Fetch archived operational GloFAS forecasts"
+        ],
         "steps": [
           {
             "name": "Set up job",
@@ -1207,23 +1209,28 @@
           },
           {
             "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "failure"
           },
           {
             "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "skipped"
           },
           {
             "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "skipped"
           },
           {
             "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
           }
         ]
       },
