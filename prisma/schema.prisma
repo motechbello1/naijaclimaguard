@@ -28,18 +28,20 @@ enum ObservationQuality {
 }
 
 model User {
-  id                  String              @id @default(cuid())
-  email               String              @unique
-  name                String?
-  passwordHash        String
-  plan                String              @default("FREE")
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  locations           Location[]
-  alerts              Alert[]
-  reports             Report[]
-  evidenceEvents      EvidenceEvent[]
-  agencyCommandCases  AgencyCommandCase[] @relation("AgencyCommandCreator")
+  id                     String                       @id @default(cuid())
+  email                  String                       @unique
+  name                   String?
+  passwordHash           String
+  plan                   String                       @default("FREE")
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  locations              Location[]
+  alerts                 Alert[]
+  reports                Report[]
+  evidenceEvents         EvidenceEvent[]
+  agencyCommandCases     AgencyCommandCase[]          @relation("AgencyCommandCreator")
+  deliveryPreference     DeliveryPreference?
+  phoneVerificationCodes PhoneVerificationChallenge[]
 }
 
 model Location {
@@ -110,6 +112,41 @@ model EvidenceEvent {
   @@index([eventType, occurredAt])
 }
 
+model DeliveryPreference {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneE164         String?
+  phoneVerifiedAt   DateTime?
+  preferredLanguage String   @default("ENGLISH")
+  emailEnabled      Boolean  @default(true)
+  smsEnabled        Boolean  @default(false)
+  whatsappEnabled   Boolean  @default(false)
+  voiceEnabled      Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([phoneE164])
+}
+
+/// Short-lived OTP challenge for verifying a delivery phone number. Only the
+/// salted/peppered code hash is stored; plaintext verification codes are never persisted.
+model PhoneVerificationChallenge {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneE164  String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([phoneE164, createdAt])
+  @@index([expiresAt])
+}
+
 model IntelligenceSource {
   id                      String                    @id @default(cuid())
   slug                    String                    @unique
@@ -172,8 +209,6 @@ model IntelligenceObservation {
   @@index([latitude, longitude, observedAt])
 }
 
-/// Operational handling record for an immutable authenticated official advisory.
-/// The source observation is never edited; this records the agency response lifecycle.
 model AgencyCommandCase {
   id              String                  @id @default(cuid())
   observationId   String                  @unique
