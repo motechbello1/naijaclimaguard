@@ -5,3 +5,4 @@ Eligible archive period begins 2019-11-05; walk-forward scoring targets 2020-202
 Sources: NASA GPM IMERG Early V07 + Copernicus CEMS GloFAS archived operational control forecasts at +24/+48/+72 hours.
 Candidate hyperparameters, PR-AUC ranking, ablations, >=75% event detection, >=10% precision, and <=10 false positives per 1,000 negative rows remain unchanged.
 No Model v5 performance result existed before this trigger.
+Manual start requested by user: 2026-08-09T06:04+01:00.
