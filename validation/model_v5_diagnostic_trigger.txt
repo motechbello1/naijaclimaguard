@@ -1,1 +1,1 @@
-Inspect latest full Model v5 consistent-control run after 2022 and 2024 GloFAS smoke run 31308591641 passed end-to-end. Report the 15 quarter jobs and develop-stage state.
+Inspect optimized bounded-concurrency Model v5 full run launched by d1647e98a9193e6243568c461930bb5c9234e3bd. Confirm protocol, 15 GloFAS quarter jobs, bounded daily worker state, and develop-stage status.
