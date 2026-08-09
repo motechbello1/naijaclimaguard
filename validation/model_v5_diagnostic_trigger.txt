@@ -1,1 +1,1 @@
-Inspect repaired Model v5 full-development run launched at 5f91d4fff6b5159ea1340333431ec383ecf1cfe2 and latest archived-operational GloFAS smoke.
+Inspect latest Model v5 runs after switching archived operational GloFAS retrieval to valid one-issue-date requests and three-day smoke test.
