@@ -1,1 +1,1 @@
-Refresh diagnostic after single-date full-run trigger 0be25020ad44fd787ba7837166b65f1c2a858283 is registered by Actions.
+Inspect latest Model v5 heavy run and three-era GloFAS archive smoke after mapping/parser commits 2e86ddd33b9f47427388317650d1ee863233670c and c4a2d1f067a26a90815a148389b5a5ebd5659277.
