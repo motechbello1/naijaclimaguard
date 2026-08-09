@@ -1,1 +1,1 @@
-Inspect latest Model v5 smoke after commit ad1ae15c8aace5d3a4df57e24b24d0161fbccad6 switched to three single-date archived operational requests.
+Refresh latest Model v5 diagnostic after single-date GloFAS fetcher commit 1f095fac3bffb2457c8e540d4557cbf1c0f69605 and three-date smoke workflow ad1ae15c8aace5d3a4df57e24b24d0161fbccad6.
