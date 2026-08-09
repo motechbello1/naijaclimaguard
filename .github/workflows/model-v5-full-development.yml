@@ -27,10 +27,12 @@ jobs:
           test -f validation/MODEL_V5_PROTOCOL.md
           test -f validation/model_v4_event_registry.csv
           python - <<'PY'
-          import pandas as pd
-          events = pd.read_csv('validation/model_v4_event_registry.csv')
-          enabled = events[events['include_in_benchmark'].astype(str).str.lower().eq('true')]
-          assert enabled['event_id'].nunique() == 35
+          import csv
+          with open('validation/model_v4_event_registry.csv', newline='', encoding='utf-8') as f:
+              rows = list(csv.DictReader(f))
+          enabled = [r for r in rows if str(r.get('include_in_benchmark', '')).lower() == 'true']
+          event_ids = {r.get('event_id') for r in enabled if r.get('event_id')}
+          assert len(event_ids) == 35, f'Expected 35 enabled unique events, found {len(event_ids)}'
           print('Frozen 35-event registry verified')
           PY
 
