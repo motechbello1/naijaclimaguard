@@ -1,8 +1,19 @@
 import { prisma } from "@/lib/db";
 import { fetchDerivedV2Risk } from "@/lib/risk/derived-v2";
 import { findOfficialSafetyState, OfficialSafetyState } from "@/lib/intelligence/official-advisory";
+import { DeliveryChannel, sendLastMileMessage } from "@/lib/delivery/provider";
 
 const NOTIFICATION_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+
+interface DeliveryPreferenceForAlert {
+  phoneE164: string | null;
+  phoneVerifiedAt: Date | null;
+  preferredLanguage: string;
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+  whatsappEnabled: boolean;
+  voiceEnabled: boolean;
+}
 
 export interface AlertRuleForEvaluation {
   id: string;
@@ -19,8 +30,17 @@ export interface AlertRuleForEvaluation {
   user: {
     id: string;
     email: string;
+    deliveryPreference?: DeliveryPreferenceForAlert | null;
   };
 }
+
+export type LastMileStatus =
+  | "sent"
+  | "failed"
+  | "not_configured"
+  | "not_selected"
+  | "unverified_phone"
+  | "disabled_by_preference";
 
 export interface AlertEvaluationResult {
   alertId: string;
@@ -46,8 +66,11 @@ export interface AlertEvaluationResult {
     | "email_sent"
     | "email_failed"
     | "email_pending_credential"
+    | "email_disabled_by_preference"
     | "email_not_selected";
-  smsStatus?: "sms_disabled_phone_not_collected" | "sms_not_selected";
+  smsStatus?: LastMileStatus;
+  whatsappStatus?: LastMileStatus;
+  voiceStatus?: LastMileStatus;
   deliveryRecorded?: boolean;
 }
 
@@ -97,9 +120,9 @@ async function sendEmail(
       ].join("\n\n")
     : [
         `Flood-risk alert — ${locationName}`,
-        `The current NaijaClimaGuard risk index is ${score}/100, crossing your configured threshold of ${threshold}.`,
-        "This index is calculated from current Open-Meteo precipitation, recent rainfall intensity, and evapotranspiration context using the disclosed derived-v2 model.",
-        "Follow official NiHSA, NiMet, NEMA, SEMA, and local emergency guidance where applicable.",
+        `Current NaijaClimaGuard risk is ${score}/100, above your warning level of ${threshold}.`,
+        "Check the app for the action steps for this place.",
+        "Always follow official emergency instructions and visible local conditions.",
       ].join("\n\n");
 
   try {
@@ -124,15 +147,51 @@ async function sendEmail(
   }
 }
 
+function lastMileText(
+  locationName: string,
+  score: number,
+  official: OfficialSafetyState | null,
+) {
+  if (official) {
+    return `${official.headline} for ${locationName}. ${official.instruction} Authority: ${official.authority}. Follow official emergency instructions now.`;
+  }
+  return `NaijaClimaGuard flood warning for ${locationName}. Risk is ${score}/100. Open NaijaClimaGuard for your action steps and follow official emergency instructions.`;
+}
+
+async function deliverPhoneChannel(input: {
+  selected: boolean;
+  enabled: boolean;
+  channel: DeliveryChannel;
+  preference?: DeliveryPreferenceForAlert | null;
+  message: string;
+  location: string;
+  triggerReason: "model_threshold" | "official_advisory";
+}): Promise<LastMileStatus> {
+  if (!input.selected) return "not_selected";
+  if (!input.enabled) return "disabled_by_preference";
+  const phone = input.preference?.phoneE164;
+  if (!phone || !input.preference?.phoneVerifiedAt) return "unverified_phone";
+
+  const result = await sendLastMileMessage({
+    channel: input.channel,
+    to: phone,
+    message: input.message,
+    language: input.preference.preferredLanguage,
+    metadata: {
+      purpose: "flood_alert",
+      location: input.location,
+      triggerReason: input.triggerReason,
+      templateLanguage: "ENGLISH",
+      preferredLanguage: input.preference.preferredLanguage,
+    },
+  });
+  return result.status;
+}
+
 function coordinateKey(latitude: number, longitude: number) {
   return `${latitude.toFixed(5)},${longitude.toFixed(5)}`;
 }
 
-/**
- * Evaluate alert rules against derived-v2 plus an independent official-safety
- * overlay. An official advisory may trigger a user warning even when the model
- * threshold is not crossed; it never changes the underlying model score.
- */
 export async function evaluateAlertRules(
   rules: AlertRuleForEvaluation[],
   now = new Date()
@@ -227,16 +286,50 @@ export async function evaluateAlertRules(
       continue;
     }
 
+    const preference = alert.user.deliveryPreference;
     const wantsEmail = channels.includes("EMAIL");
-    const wantsSms = channels.includes("SMS");
-    const emailStatus = wantsEmail
-      ? await sendEmail(alert.user.email, alert.location.name, score, alert.threshold, official)
-      : "email_not_selected";
-    const smsStatus = wantsSms
-      ? "sms_disabled_phone_not_collected"
-      : "sms_not_selected";
+    const emailAllowed = preference?.emailEnabled ?? true;
+    const emailStatus = !wantsEmail
+      ? "email_not_selected"
+      : !emailAllowed
+        ? "email_disabled_by_preference"
+        : await sendEmail(alert.user.email, alert.location.name, score, alert.threshold, official);
 
-    const deliveryRecorded = emailStatus === "email_sent";
+    const message = lastMileText(alert.location.name, score, official);
+    const smsStatus = await deliverPhoneChannel({
+      selected: channels.includes("SMS"),
+      enabled: preference?.smsEnabled ?? false,
+      channel: "SMS",
+      preference,
+      message,
+      location: alert.location.name,
+      triggerReason,
+    });
+    const whatsappStatus = await deliverPhoneChannel({
+      selected: channels.includes("WHATSAPP"),
+      enabled: preference?.whatsappEnabled ?? false,
+      channel: "WHATSAPP",
+      preference,
+      message,
+      location: alert.location.name,
+      triggerReason,
+    });
+    const voiceStatus = await deliverPhoneChannel({
+      selected: channels.includes("VOICE"),
+      enabled: preference?.voiceEnabled ?? false,
+      channel: "VOICE",
+      preference,
+      message,
+      location: alert.location.name,
+      triggerReason,
+    });
+
+    const deliveryRecorded =
+      emailStatus === "email_sent" ||
+      smsStatus === "sent" ||
+      whatsappStatus === "sent" ||
+      voiceStatus === "sent";
+
     if (deliveryRecorded) {
       await prisma.alert.update({
         where: { id: alert.id },
@@ -256,6 +349,8 @@ export async function evaluateAlertRules(
       status: "triggered",
       emailStatus,
       smsStatus,
+      whatsappStatus,
+      voiceStatus,
       deliveryRecorded,
     });
   }
@@ -269,6 +364,7 @@ export async function getActiveAlertRulesForUser(
   const user = await prisma.user.findUnique({
     where: { email },
     include: {
+      deliveryPreference: true,
       alerts: {
         where: { active: true },
         include: { location: true },
@@ -283,7 +379,7 @@ export async function getActiveAlertRulesForUser(
     channels: alert.channels,
     lastNotifiedAt: alert.lastNotifiedAt,
     location: alert.location,
-    user: { id: user.id, email: user.email },
+    user: { id: user.id, email: user.email, deliveryPreference: user.deliveryPreference },
   }));
 }
 
@@ -303,7 +399,7 @@ export async function getBackgroundAlertBatch(
     orderBy: { id: "asc" },
     skip: offset,
     take: safeLimit,
-    include: { location: true, user: true },
+    include: { location: true, user: { include: { deliveryPreference: true } } },
   });
 
   return {
@@ -318,7 +414,11 @@ export async function getBackgroundAlertBatch(
       channels: alert.channels,
       lastNotifiedAt: alert.lastNotifiedAt,
       location: alert.location,
-      user: { id: alert.user.id, email: alert.user.email },
+      user: {
+        id: alert.user.id,
+        email: alert.user.email,
+        deliveryPreference: alert.user.deliveryPreference,
+      },
     })),
   };
 }
