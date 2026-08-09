@@ -19,7 +19,6 @@ import cdsapi
 import cfgrib
 import numpy as np
 import pandas as pd
-import requests
 import xarray as xr
 
 EWDS_URL = "https://ewds.climate.copernicus.eu/api"
@@ -165,15 +164,33 @@ def extract_archive(archive: Path) -> list[dict]:
     return rows
 
 
+def selected_expected_dates(year: int, months: list[int]) -> pd.DatetimeIndex:
+    chunks: list[pd.DatetimeIndex] = []
+    for month in months:
+        month_start = pd.Timestamp(year=year, month=month, day=1)
+        month_end = pd.Timestamp(year=year, month=month, day=calendar.monthrange(year, month)[1])
+        start = max(month_start, ARCHIVE_START)
+        if month_end >= start:
+            chunks.append(pd.date_range(start, month_end, freq="D"))
+    if not chunks:
+        return pd.DatetimeIndex([])
+    values = np.concatenate([chunk.values for chunk in chunks])
+    return pd.DatetimeIndex(values)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, required=True)
+    ap.add_argument("--months", nargs="+", type=int, default=list(range(1, 13)), help="Months to retrieve; defaults to all 12")
     ap.add_argument("--lead-hours", nargs="+", type=int, default=[24, 48, 72])
     ap.add_argument("--raw-dir", required=True)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     if args.year < 2019:
         raise ValueError("Operational GloFAS river-discharge archive begins 2019-11-05")
+    months = sorted(set(args.months))
+    if not months or any(month < 1 or month > 12 for month in months):
+        raise ValueError("--months must contain values from 1 through 12")
     if sorted(set(args.lead_hours)) != [24, 48, 72]:
         raise ValueError("Model v5 contract requires exactly 24, 48, 72 hour leads")
     key = os.getenv("EWDS_API_KEY")
@@ -183,28 +200,34 @@ def main() -> None:
     raw_dir.mkdir(parents=True, exist_ok=True)
     client = cdsapi.Client(url=EWDS_URL, key=key)
     rows: list[dict] = []
-    for month in range(1, 13):
+    for month in months:
         archive = retrieve_month(client, args.year, month, args.lead_hours, raw_dir)
         if archive is not None:
             rows.extend(extract_archive(archive))
     out = pd.DataFrame(rows)
     if out.empty:
-        raise RuntimeError(f"No operational GloFAS rows extracted for {args.year}")
+        raise RuntimeError(f"No operational GloFAS rows extracted for {args.year}; months={months}")
     out["issue_date"] = pd.to_datetime(out["issue_date"]).dt.strftime("%Y-%m-%d")
     out = out.sort_values(["issue_date", "location", "lead_time_hours"]).drop_duplicates(
         ["issue_date", "location", "lead_time_hours"], keep="last"
     )
     if out["location"].nunique() != len(LOCATIONS):
         raise RuntimeError("Operational GloFAS output does not contain all five pilot locations")
-    expected_dates = pd.date_range(max(pd.Timestamp(f"{args.year}-01-01"), ARCHIVE_START), pd.Timestamp(f"{args.year}-12-31"), freq="D")
+    expected_dates = selected_expected_dates(args.year, months)
     expected_rows = len(expected_dates) * len(LOCATIONS) * 3
     coverage = len(out) / expected_rows if expected_rows else 0.0
     if coverage < 0.90:
-        raise RuntimeError(f"Operational GloFAS coverage below 90% for {args.year}: {len(out)}/{expected_rows} ({coverage:.1%})")
+        raise RuntimeError(
+            f"Operational GloFAS coverage below 90% for {args.year}, months={months}: "
+            f"{len(out)}/{expected_rows} ({coverage:.1%})"
+        )
     path = Path(args.out)
     path.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(path, index=False)
-    print(f"Wrote {len(out):,} operational GloFAS rows for {args.year}; coverage={coverage:.1%}; path={path}")
+    print(
+        f"Wrote {len(out):,} operational GloFAS rows for {args.year}, months={months}; "
+        f"coverage={coverage:.1%}; path={path}"
+    )
 
 
 if __name__ == "__main__":
