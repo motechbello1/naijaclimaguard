@@ -3,8 +3,9 @@ import { translatePlatformText as translateCorePlatformText } from "./platform-c
 import { REPORT_COPY } from "./pages/report";
 import { EVIDENCE_OUTLOOK_COPY } from "./pages/evidence-outlook";
 import { PROFILE_COMMAND_COPY } from "./pages/profile-command";
+import { DASHBOARD_COPY } from "./pages/dashboard";
 
-const PAGE_PACKS = [REPORT_COPY, EVIDENCE_OUTLOOK_COPY, PROFILE_COMMAND_COPY];
+const PAGE_PACKS = [REPORT_COPY, EVIDENCE_OUTLOOK_COPY, PROFILE_COMMAND_COPY, DASHBOARD_COPY];
 
 export function translatePlatformText(locale: AppLocale, source: string): string {
   if (locale === "en") return source;
