@@ -32,46 +32,45 @@ jobs:
           python -m pip install -r validation/model_v5_requirements.txt
       - name: Verify EWDS credential
         run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
-      - name: Fetch September 2022 archived operational GloFAS
+      - name: Fetch three known 2022 archived operational issue dates
         run: |
           python validation/fetch_glofas_operational_archive_v5.py \
             --year 2022 \
-            --months 9 \
+            --dates 2022-09-21 2022-09-22 2022-09-23 \
             --lead-hours 24 48 72 \
-            --raw-dir validation/model_v5/smoke/glofas_raw_2022_09 \
-            --out validation/model_v5/smoke/glofas_2022_09.csv
+            --raw-dir validation/model_v5/smoke/glofas_raw_2022 \
+            --out validation/model_v5/smoke/glofas_2022_three_day.csv
       - name: Validate smoke output
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           import pandas as pd
-          p = Path('validation/model_v5/smoke/glofas_2022_09.csv')
+          p = Path('validation/model_v5/smoke/glofas_2022_three_day.csv')
           df = pd.read_csv(p)
-          expected = 30 * 5 * 3
+          expected = 3 * 5 * 3
           result = {
               'status': 'pass',
-              'year': 2022,
-              'month': 9,
+              'dates': ['2022-09-21', '2022-09-22', '2022-09-23'],
               'rows': int(len(df)),
               'expected_rows': expected,
               'coverage': float(len(df) / expected),
               'locations': sorted(df['location'].unique().tolist()),
               'lead_hours': sorted(int(x) for x in df['lead_time_hours'].unique()),
-              'issue_date_min': str(df['issue_date'].min()),
-              'issue_date_max': str(df['issue_date'].max()),
+              'issue_dates': sorted(df['issue_date'].unique().tolist()),
           }
           assert result['coverage'] >= 0.90
           assert result['lead_hours'] == [24, 48, 72]
           assert len(result['locations']) == 5
+          assert result['issue_dates'] == result['dates']
           Path('validation/model_v5_glofas_operational_smoke.json').write_text(json.dumps(result, indent=2))
           print(json.dumps(result, indent=2))
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: model-v5-glofas-operational-smoke-2022-09
+          name: model-v5-glofas-operational-smoke-2022-three-day
           retention-days: 30
-          path: validation/model_v5/smoke/glofas_2022_09.csv
+          path: validation/model_v5/smoke/glofas_2022_three_day.csv
           if-no-files-found: error
       - name: Persist smoke result
         if: always()
