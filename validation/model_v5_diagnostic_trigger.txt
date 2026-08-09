@@ -1,1 +1,1 @@
-Trigger exact heavy-run diagnosis after protocol dependency fix and full-development retrigger.
+Inspect latest Model v5 full-development and archived-operational GloFAS smoke workflow states after operational-source switch.
