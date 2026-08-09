@@ -1,50 +1,273 @@
 {
   "dataset": "cems-glofas-reforecast",
-  "system_version": "version_4_0",
   "probe_hyear": 2022,
-  "probe_hmonth": "01",
-  "reference_year_for_day_schedule": 2024,
   "lead_hours": [
-    24,
-    48,
-    72
+    24
   ],
-  "day_results": {
-    "01": {
+  "results": {
+    "documented_reference_2024_day01": {
       "ok": false,
-      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['01'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24', '48', '72'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}"
+      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['01'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}",
+      "request": {
+        "system_version": [
+          "version_4_0"
+        ],
+        "hydrological_model": [
+          "lisflood"
+        ],
+        "product_type": [
+          "control_reforecast"
+        ],
+        "variable": [
+          "river_discharge_in_the_last_24_hours"
+        ],
+        "hyear": [
+          "2022"
+        ],
+        "hmonth": [
+          "01"
+        ],
+        "hday": [
+          "01"
+        ],
+        "leadtime_hour": [
+          "24"
+        ],
+        "area": [
+          13.0,
+          5.0,
+          4.0,
+          11.0
+        ],
+        "data_format": "grib2",
+        "download_format": "zip"
+      }
     },
-    "04": {
+    "target_year_weekday_day03": {
       "ok": false,
-      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['04'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24', '48', '72'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}"
+      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['03'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}",
+      "request": {
+        "system_version": [
+          "version_4_0"
+        ],
+        "hydrological_model": [
+          "lisflood"
+        ],
+        "product_type": [
+          "control_reforecast"
+        ],
+        "variable": [
+          "river_discharge_in_the_last_24_hours"
+        ],
+        "hyear": [
+          "2022"
+        ],
+        "hmonth": [
+          "01"
+        ],
+        "hday": [
+          "03"
+        ],
+        "leadtime_hour": [
+          "24"
+        ],
+        "area": [
+          13.0,
+          5.0,
+          4.0,
+          11.0
+        ],
+        "data_format": "grib2",
+        "download_format": "zip"
+      }
     },
-    "08": {
+    "global_lisflood": {
       "ok": false,
-      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['08'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24', '48', '72'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}"
+      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['01'], 'hmonth': ['01'], 'hydrological_model': ['global_lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}",
+      "request": {
+        "system_version": [
+          "version_4_0"
+        ],
+        "hydrological_model": [
+          "global_lisflood"
+        ],
+        "product_type": [
+          "control_reforecast"
+        ],
+        "variable": [
+          "river_discharge_in_the_last_24_hours"
+        ],
+        "hyear": [
+          "2022"
+        ],
+        "hmonth": [
+          "01"
+        ],
+        "hday": [
+          "01"
+        ],
+        "leadtime_hour": [
+          "24"
+        ],
+        "area": [
+          13.0,
+          5.0,
+          4.0,
+          11.0
+        ],
+        "data_format": "grib2",
+        "download_format": "zip"
+      }
     },
-    "11": {
+    "no_area": {
       "ok": false,
-      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['11'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24', '48', '72'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}"
+      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'data_format': ['grib'], 'hday': ['01'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}",
+      "request": {
+        "system_version": [
+          "version_4_0"
+        ],
+        "hydrological_model": [
+          "lisflood"
+        ],
+        "product_type": [
+          "control_reforecast"
+        ],
+        "variable": [
+          "river_discharge_in_the_last_24_hours"
+        ],
+        "hyear": [
+          "2022"
+        ],
+        "hmonth": [
+          "01"
+        ],
+        "hday": [
+          "01"
+        ],
+        "leadtime_hour": [
+          "24"
+        ],
+        "data_format": "grib2",
+        "download_format": "zip"
+      }
     },
-    "15": {
+    "netcdf_unarchived": {
       "ok": false,
-      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['15'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24', '48', '72'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}"
+      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['netcdf'], 'hday': ['01'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}",
+      "request": {
+        "system_version": [
+          "version_4_0"
+        ],
+        "hydrological_model": [
+          "lisflood"
+        ],
+        "product_type": [
+          "control_reforecast"
+        ],
+        "variable": [
+          "river_discharge_in_the_last_24_hours"
+        ],
+        "hyear": [
+          "2022"
+        ],
+        "hmonth": [
+          "01"
+        ],
+        "hday": [
+          "01"
+        ],
+        "leadtime_hour": [
+          "24"
+        ],
+        "area": [
+          13.0,
+          5.0,
+          4.0,
+          11.0
+        ],
+        "data_format": "netcdf",
+        "download_format": "unarchived"
+      }
     },
-    "18": {
+    "operational_system": {
       "ok": false,
-      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['18'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24', '48', '72'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}"
+      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['01'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24'], 'product_type': ['control_reforecast'], 'system_version': ['operational'], 'variable': ['river_discharge_in_the_last_24_hours']}",
+      "request": {
+        "system_version": [
+          "operational"
+        ],
+        "hydrological_model": [
+          "lisflood"
+        ],
+        "product_type": [
+          "control_reforecast"
+        ],
+        "variable": [
+          "river_discharge_in_the_last_24_hours"
+        ],
+        "hyear": [
+          "2022"
+        ],
+        "hmonth": [
+          "01"
+        ],
+        "hday": [
+          "01"
+        ],
+        "leadtime_hour": [
+          "24"
+        ],
+        "area": [
+          13.0,
+          5.0,
+          4.0,
+          11.0
+        ],
+        "data_format": "grib2",
+        "download_format": "zip"
+      }
     },
-    "22": {
+    "with_reference_year_2022": {
       "ok": false,
-      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['22'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24', '48', '72'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}"
-    },
-    "25": {
-      "ok": false,
-      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['25'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24', '48', '72'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}"
-    },
-    "29": {
-      "ok": false,
-      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['29'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24', '48', '72'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours']}"
+      "error": "400 Client Error: Bad Request for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-reforecast/execution\ninvalid request\nRequest has not produced a valid combination of values, please check your selection.\n{'area': ['13.0', '5.0', '4.0', '11.0'], 'data_format': ['grib'], 'hday': ['01'], 'hmonth': ['01'], 'hydrological_model': ['lisflood'], 'hyear': ['2022'], 'leadtime_hour': ['24'], 'product_type': ['control_reforecast'], 'system_version': ['version_4_0'], 'variable': ['river_discharge_in_the_last_24_hours'], 'year': ['2022']}",
+      "request": {
+        "system_version": [
+          "version_4_0"
+        ],
+        "hydrological_model": [
+          "lisflood"
+        ],
+        "product_type": [
+          "control_reforecast"
+        ],
+        "variable": [
+          "river_discharge_in_the_last_24_hours"
+        ],
+        "hyear": [
+          "2022"
+        ],
+        "hmonth": [
+          "01"
+        ],
+        "hday": [
+          "01"
+        ],
+        "leadtime_hour": [
+          "24"
+        ],
+        "area": [
+          13.0,
+          5.0,
+          4.0,
+          11.0
+        ],
+        "data_format": "grib2",
+        "download_format": "zip",
+        "year": [
+          "2022"
+        ]
+      }
     }
-  }
+  },
+  "first_success": null
 }
