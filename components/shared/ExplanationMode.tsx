@@ -77,7 +77,7 @@ const GUIDES: Record<string, PageGuide> = {
 };
 
 export function ExplanationModeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ExplanationMode>("standard");
+  const [mode, setModeState] = useState<ExplanationMode>("simple");
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -114,16 +114,16 @@ export function ExplanationModeControl() {
     <div
       className="flex items-center gap-2 sm:gap-3 rounded-xl border border-slate-200 dark:border-midnight-border bg-white/70 dark:bg-midnight-light/70 px-2 sm:px-3 py-2"
       aria-label="Explanation detail level"
-      title="Drag to change how technical the dashboard explanations are"
+      title="Choose how much technical detail you want to see"
     >
       <SlidersHorizontal className="hidden sm:block h-4 w-4 text-radar shrink-0" />
       <div className="w-[118px] sm:w-[160px]">
         <div className="flex items-center justify-between gap-2 mb-1">
-          <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-wider text-slate-400">Explanation</span>
+          <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-wider text-slate-400">Detail</span>
           <span className="text-[11px] sm:text-xs font-semibold text-radar">{MODE_LABELS[mode]}</span>
         </div>
         <input
-          aria-label="Explanation detail: Simple, Standard, or Technical"
+          aria-label="Detail level: Simple, Standard, or Technical"
           aria-valuetext={MODE_LABELS[mode]}
           type="range"
           min={0}
@@ -134,7 +134,7 @@ export function ExplanationModeControl() {
           className="w-full accent-emerald-500 cursor-pointer"
         />
         <div className="flex justify-between text-[8px] sm:text-[9px] text-slate-400 leading-none mt-0.5" aria-hidden="true">
-          <span>Simple</span><span>Standard</span><span>Technical</span>
+          <span>Simple</span><span>More</span><span>Technical</span>
         </div>
       </div>
     </div>
@@ -144,7 +144,7 @@ export function ExplanationModeControl() {
 export function PageExplanation({ pathname }: { pathname: string }) {
   const { mode } = useExplanationMode();
   const guide = GUIDES[pathname];
-  if (!guide) return null;
+  if (!guide || mode === "simple") return null;
 
   return (
     <div className="mb-5 flex items-start gap-3 rounded-xl border border-radar/15 bg-radar/[0.04] px-4 py-3" role="note">
@@ -153,7 +153,7 @@ export function PageExplanation({ pathname }: { pathname: string }) {
       </div>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">What this page means</p>
+          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">About this page</p>
           <span className="text-[10px] uppercase tracking-wider text-radar font-semibold">{MODE_LABELS[mode]}</span>
         </div>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{guide[mode]}</p>
