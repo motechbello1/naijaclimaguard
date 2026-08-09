@@ -8,12 +8,19 @@ on:
       - ".github/workflows/production-db-migration.yml"
       - "prisma/schema.prisma"
       - "prisma/migrations/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "ops/production_migration_mode.txt"
+      - ".github/workflows/production-db-migration.yml"
+      - "prisma/schema.prisma"
+      - "prisma/migrations/**"
 
 permissions:
   contents: read
 
 concurrency:
-  group: naijaclimaguard-production-db-migration
+  group: naijaclimaguard-production-db-migration-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -56,14 +63,18 @@ jobs:
             preflight|apply) ;;
             *) echo "Mode must be preflight or apply"; exit 2 ;;
           esac
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "$mode" != "preflight" ]; then
+            echo "Apply mode is forbidden on pull_request events"
+            exit 2
+          fi
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
           echo "Migration gate mode: $mode"
       - name: Stop safely after preflight
         if: steps.mode.outputs.mode == 'preflight'
         run: echo "Preflight complete. No production database mutation was performed."
       - name: Apply committed Prisma migrations
-        if: steps.mode.outputs.mode == 'apply'
+        if: github.event_name == 'push' && steps.mode.outputs.mode == 'apply'
         run: npx prisma migrate deploy
       - name: Verify migration status after apply
-        if: steps.mode.outputs.mode == 'apply'
+        if: github.event_name == 'push' && steps.mode.outputs.mode == 'apply'
         run: npx prisma migrate status
