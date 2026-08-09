@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """Fetch archived operational GloFAS control forecasts for Model v5.
 
-EWDS archived forecasts are requested one issue date at a time. Multi-day archive
-requests are rejected by the current service contract, while large multi-day
-areas can also exceed request cost limits. A single daily Nigeria bounding box
-keeps the request valid and lets us extract all five pilot locations from one
-forecast file.
+Important archive contract details, verified before Model v5 scoring:
+- Requests are issued one forecast date at a time.
+- The current EWDS forecast catalogue exposes three historical system selections:
+  * version_2_1 for forecasts issued 2019-11-05 through 2021-05-25
+  * version_3_1 for forecasts issued 2021-05-26 through 2023-07-25
+  * operational for forecasts issued 2023-07-26 onward
+- GloFAS v2.1 uses the legacy htessel_lisflood hydrological-model selector;
+  v3.1 and current operations use lisflood.
+- Only +24/+48/+72 h control-forecast discharge is retained.
+
+The numerical ML protocol, labels, candidates and freeze thresholds are not
+changed by this source-contract mapping.
 """
 from __future__ import annotations
 
@@ -25,8 +32,11 @@ import xarray as xr
 
 EWDS_URL = "https://ewds.climate.copernicus.eu/api"
 DATASET = "cems-glofas-forecast"
-AREA = [13.0, 5.0, 4.0, 11.0]  # North, West, South, East; covers all pilot sites.
+AREA = [13.0, 5.0, 4.0, 11.0]  # North, West, South, East; all five pilot sites.
 ARCHIVE_START = pd.Timestamp("2019-11-05")
+V3_START = pd.Timestamp("2021-05-26")
+V4_START = pd.Timestamp("2023-07-26")
+
 LOCATIONS = {
     "Lokoja": (7.8023, 6.7333),
     "Makurdi": (7.7322, 8.5391),
@@ -36,12 +46,34 @@ LOCATIONS = {
 }
 
 
+def source_contract(date: pd.Timestamp) -> tuple[str, str, str]:
+    """Return EWDS system_version, hydrological_model, and human provenance label."""
+    date = pd.Timestamp(date).normalize()
+    if date < ARCHIVE_START:
+        raise ValueError(f"Archived operational GloFAS forecast unavailable before {ARCHIVE_START.date()}")
+    if date < V3_START:
+        return "version_2_1", "htessel_lisflood", "GloFAS v2.1 legacy operational archive"
+    if date < V4_START:
+        return "version_3_1", "lisflood", "GloFAS v3.x legacy operational archive via version_3_1 selector"
+    return "operational", "lisflood", "GloFAS current operational archive selector"
+
+
 def retryable(exc: Exception) -> bool:
     text = str(exc).lower()
-    return any(x in text for x in (
-        "429", "capacity", "queued requests", "too many requests",
-        "temporarily limited", "cost limits exceeded", "502", "503", "504",
-    ))
+    return any(
+        x in text
+        for x in (
+            "429",
+            "capacity",
+            "queued requests",
+            "too many requests",
+            "temporarily limited",
+            "cost limits exceeded",
+            "502",
+            "503",
+            "504",
+        )
+    )
 
 
 def issue_dates(year: int, months: list[int], explicit_dates: list[str] | None) -> pd.DatetimeIndex:
@@ -60,17 +92,18 @@ def issue_dates(year: int, months: list[int], explicit_dates: list[str] | None) 
             chunks.append(pd.date_range(start, end, freq="D"))
     if not chunks:
         return pd.DatetimeIndex([])
-    return pd.DatetimeIndex(np.concatenate([x.values for x in chunks]))
+    return pd.DatetimeIndex(np.concatenate([chunk.values for chunk in chunks]))
 
 
 def retrieve_day(client: cdsapi.Client, date: pd.Timestamp, leads: list[int], raw_dir: Path) -> Path:
-    target = raw_dir / f"glofas_operational_{date:%Y%m%d}.zip"
+    system_version, hydrological_model, _ = source_contract(date)
+    target = raw_dir / f"glofas_{system_version}_{date:%Y%m%d}.zip"
     if target.exists() and target.stat().st_size > 0:
         return target
 
     request = {
-        "system_version": "operational",
-        "hydrological_model": "lisflood",
+        "system_version": system_version,
+        "hydrological_model": hydrological_model,
         "product_type": "control_forecast",
         "variable": "river_discharge_in_the_last_24_hours",
         "year": date.strftime("%Y"),
@@ -85,7 +118,10 @@ def retrieve_day(client: cdsapi.Client, date: pd.Timestamp, leads: list[int], ra
     last: Exception | None = None
     for attempt in range(1, 8):
         try:
-            print(f"EWDS operational {date.date()}: attempt {attempt}/7", flush=True)
+            print(
+                f"EWDS {system_version}/{hydrological_model} {date.date()}: attempt {attempt}/7",
+                flush=True,
+            )
             client.retrieve(DATASET, request).download(str(target))
             return target
         except Exception as exc:
@@ -109,7 +145,7 @@ def discharge_variable(ds: xr.Dataset) -> str:
 
 
 def coord_name(da: xr.DataArray, choices: tuple[str, ...]) -> str:
-    name = next((x for x in choices if x in da.coords), None)
+    name = next((candidate for candidate in choices if candidate in da.coords), None)
     if not name:
         raise KeyError(f"Missing coordinate from {choices}; coords={list(da.coords)}")
     return name
@@ -120,6 +156,18 @@ def lead_hours(value) -> int:
     if np.issubdtype(arr.dtype, np.timedelta64):
         return int(pd.Timedelta(value).total_seconds() // 3600)
     return int(value)
+
+
+def select_if_dimension(da: xr.DataArray, coord: str, value) -> xr.DataArray:
+    """Select an indexed coordinate only when it is a dimension.
+
+    Single-date/single-step GRIB groups often expose `time` or `step` as scalar
+    coordinates. Calling xarray.sel() on those 0-D coordinates raises a
+    PandasIndex error even though the value is already selected by cfgrib.
+    """
+    if coord in da.dims:
+        return da.sel({coord: value})
+    return da
 
 
 def extract_grib(path: Path) -> list[dict]:
@@ -138,32 +186,40 @@ def extract_grib(path: Path) -> list[dict]:
 
         times = np.atleast_1d(da.coords[time_name].values)
         leads = np.atleast_1d(da.coords[lead_name].values)
+
         for issue_raw in times:
             issue = pd.Timestamp(issue_raw).tz_localize(None)
+            system_version, hydrological_model, source_label = source_contract(issue)
             for lead_raw in leads:
                 lh = lead_hours(lead_raw)
                 if lh not in (24, 48, 72):
                     continue
-                selected = da.sel({time_name: issue_raw, lead_name: lead_raw})
+
+                selected = select_if_dimension(da, time_name, issue_raw)
+                selected = select_if_dimension(selected, lead_name, lead_raw)
                 if "number" in selected.dims:
                     selected = selected.isel(number=0)
+
                 for location, (qlat, qlon) in LOCATIONS.items():
                     point = selected.sel({lat_name: qlat, lon_name: qlon}, method="nearest")
-                    rows.append({
-                        "issue_date": issue.strftime("%Y-%m-%d"),
-                        "issue_time_utc": issue.strftime("%Y-%m-%dT00:00:00Z"),
-                        "valid_time": (issue + pd.Timedelta(hours=lh)).isoformat(),
-                        "lead_time_hours": lh,
-                        "location": location,
-                        "latitude_requested": qlat,
-                        "longitude_requested": qlon,
-                        "forecast_discharge_m3s": float(np.asarray(point.values).squeeze()),
-                        "product_type": "control_forecast",
-                        "system_version_request": "operational",
-                        "hydrological_model": "lisflood",
-                        "source": "Copernicus CEMS GloFAS archived operational forecast via EWDS",
-                        "source_file": path.name,
-                    })
+                    rows.append(
+                        {
+                            "issue_date": issue.strftime("%Y-%m-%d"),
+                            "issue_time_utc": issue.strftime("%Y-%m-%dT00:00:00Z"),
+                            "valid_time": (issue + pd.Timedelta(hours=lh)).isoformat(),
+                            "lead_time_hours": lh,
+                            "location": location,
+                            "latitude_requested": qlat,
+                            "longitude_requested": qlon,
+                            "forecast_discharge_m3s": float(np.asarray(point.values).squeeze()),
+                            "product_type": "control_forecast",
+                            "system_version_request": system_version,
+                            "hydrological_model": hydrological_model,
+                            "source_contract_label": source_label,
+                            "source": "Copernicus CEMS GloFAS archived operational forecast via EWDS",
+                            "source_file": path.name,
+                        }
+                    )
         ds.close()
     return rows
 
@@ -176,7 +232,8 @@ def extract_archive(archive: Path) -> list[dict]:
             with zipfile.ZipFile(archive) as zf:
                 zf.extractall(root)
             files = [
-                p for p in root.rglob("*")
+                p
+                for p in root.rglob("*")
                 if p.is_file() and p.suffix.lower() in {".grib", ".grib2", ".grb", ".grb2"}
             ]
         except zipfile.BadZipFile:
@@ -201,7 +258,7 @@ def main() -> None:
     if args.year < 2019:
         raise ValueError("Operational GloFAS river-discharge archive begins 2019-11-05")
     months = sorted(set(args.months))
-    if not months or any(m < 1 or m > 12 for m in months):
+    if not months or any(month < 1 or month > 12 for month in months):
         raise ValueError("--months must contain values from 1 through 12")
     if sorted(set(args.lead_hours)) != [24, 48, 72]:
         raise ValueError("Model v5 contract requires exactly 24, 48, 72 hour leads")
@@ -213,6 +270,7 @@ def main() -> None:
     key = os.getenv("EWDS_API_KEY")
     if not key:
         raise RuntimeError("EWDS_API_KEY is required")
+
     raw_dir = Path(args.raw_dir)
     raw_dir.mkdir(parents=True, exist_ok=True)
     client = cdsapi.Client(url=EWDS_URL, key=key)
@@ -225,6 +283,7 @@ def main() -> None:
     out = pd.DataFrame(rows)
     if out.empty:
         raise RuntimeError(f"No operational GloFAS rows extracted for selected dates in {args.year}")
+
     out["issue_date"] = pd.to_datetime(out["issue_date"]).dt.strftime("%Y-%m-%d")
     out = out[out["lead_time_hours"].isin([24, 48, 72])].copy()
     out = out.sort_values(["issue_date", "location", "lead_time_hours"]).drop_duplicates(
@@ -234,8 +293,8 @@ def main() -> None:
     expected_rows = len(dates) * len(LOCATIONS) * 3
     coverage = len(out) / expected_rows
     if coverage < 0.90:
-        expected_set = {pd.Timestamp(d).strftime('%Y-%m-%d') for d in dates}
-        actual_set = set(out['issue_date'].unique())
+        expected_set = {pd.Timestamp(d).strftime("%Y-%m-%d") for d in dates}
+        actual_set = set(out["issue_date"].unique())
         missing = sorted(expected_set - actual_set)
         raise RuntimeError(
             f"Operational GloFAS coverage below 90% for {args.year}: "
@@ -249,7 +308,8 @@ def main() -> None:
     out.to_csv(path, index=False)
     print(
         f"Wrote {len(out):,} operational GloFAS rows for {len(dates)} issue dates in {args.year}; "
-        f"coverage={coverage:.1%}; path={path}"
+        f"coverage={coverage:.1%}; path={path}; "
+        f"system_versions={sorted(out['system_version_request'].unique().tolist())}"
     )
 
 
