@@ -816,23 +816,23 @@
   },
   "glofas_operational_smoke": {
     "workflow_run": {
-      "id": 31307529632,
-      "run_number": 2,
+      "id": 31307635360,
+      "run_number": 4,
       "event": "push",
       "status": "in_progress",
       "conclusion": null,
-      "head_sha": "0b48349c3ad3612b3541635fbeee427944266545",
-      "created_at": "2026-08-09T10:06:32Z",
-      "updated_at": "2026-08-09T10:06:36Z",
-      "html_url": "https://github.com/motechbello1/naijaclimaguard/actions/runs/31307529632"
+      "head_sha": "19833b778e9c82afc6605acd47a5a35d931e062a",
+      "created_at": "2026-08-09T10:09:13Z",
+      "updated_at": "2026-08-09T10:09:17Z",
+      "html_url": "https://github.com/motechbello1/naijaclimaguard/actions/runs/31307635360"
     },
     "jobs": [
       {
-        "id": 93230110190,
+        "id": 93230371609,
         "name": "smoke",
         "status": "in_progress",
         "conclusion": null,
-        "started_at": "2026-08-09T10:06:35Z",
+        "started_at": "2026-08-09T10:09:16Z",
         "completed_at": null,
         "failed_steps": [],
         "steps": [
@@ -853,17 +853,17 @@
           },
           {
             "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
+            "status": "in_progress",
+            "conclusion": null
           },
           {
             "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
+            "status": "pending",
+            "conclusion": null
           },
           {
             "name": "Fetch September 2022 archived operational GloFAS",
-            "status": "in_progress",
+            "status": "pending",
             "conclusion": null
           },
           {
