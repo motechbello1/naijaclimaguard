@@ -40,11 +40,33 @@ jobs:
   glofas:
     needs: protocol
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 150
     strategy:
       fail-fast: false
+      max-parallel: 12
       matrix:
-        year: [2019, 2020, 2021, 2022, 2023, 2024]
+        include:
+          - { year: 2019, quarter: 4, months: "10 11 12" }
+          - { year: 2020, quarter: 1, months: "1 2 3" }
+          - { year: 2020, quarter: 2, months: "4 5 6" }
+          - { year: 2020, quarter: 3, months: "7 8 9" }
+          - { year: 2020, quarter: 4, months: "10 11 12" }
+          - { year: 2021, quarter: 1, months: "1 2 3" }
+          - { year: 2021, quarter: 2, months: "4 5 6" }
+          - { year: 2021, quarter: 3, months: "7 8 9" }
+          - { year: 2021, quarter: 4, months: "10 11 12" }
+          - { year: 2022, quarter: 1, months: "1 2 3" }
+          - { year: 2022, quarter: 2, months: "4 5 6" }
+          - { year: 2022, quarter: 3, months: "7 8 9" }
+          - { year: 2022, quarter: 4, months: "10 11 12" }
+          - { year: 2023, quarter: 1, months: "1 2 3" }
+          - { year: 2023, quarter: 2, months: "4 5 6" }
+          - { year: 2023, quarter: 3, months: "7 8 9" }
+          - { year: 2023, quarter: 4, months: "10 11 12" }
+          - { year: 2024, quarter: 1, months: "1 2 3" }
+          - { year: 2024, quarter: 2, months: "4 5 6" }
+          - { year: 2024, quarter: 3, months: "7 8 9" }
+          - { year: 2024, quarter: 4, months: "10 11 12" }
     env:
       EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
     steps:
@@ -64,15 +86,16 @@ jobs:
         run: |
           python validation/fetch_glofas_operational_archive_v5.py \
             --year "${{ matrix.year }}" \
+            --months ${{ matrix.months }} \
             --lead-hours 24 48 72 \
-            --raw-dir "validation/model_v5/work/glofas_raw_${{ matrix.year }}" \
-            --out "validation/model_v5/work/glofas_${{ matrix.year }}.csv"
+            --raw-dir "validation/model_v5/work/glofas_raw_${{ matrix.year }}_q${{ matrix.quarter }}" \
+            --out "validation/model_v5/work/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.csv"
       - uses: actions/upload-artifact@v4
         with:
-          name: model-v5-glofas-${{ matrix.year }}
+          name: model-v5-glofas-${{ matrix.year }}-q${{ matrix.quarter }}
           retention-days: 30
           if-no-files-found: error
-          path: validation/model_v5/work/glofas_${{ matrix.year }}.csv
+          path: validation/model_v5/work/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.csv
 
   develop:
     needs: [glofas]
@@ -107,18 +130,21 @@ jobs:
           pattern: model-v5-glofas-*
           path: validation/model_v5/work/glofas
           merge-multiple: true
-      - name: Verify reused NASA source pack
+      - name: Verify source packs before scoring
         run: |
           python - <<'PY'
           from pathlib import Path
-          files = sorted(Path('validation/model_v5/work/nasa').glob('nasa_*.csv'))
-          years = sorted({p.stem.split('_')[-1] for p in files})
-          required = [str(y) for y in range(2019, 2025)]
-          missing = sorted(set(required) - set(years))
-          print('NASA files:', [str(p) for p in files])
-          print('NASA years:', years)
-          if missing:
-              raise SystemExit(f'Missing reused NASA years: {missing}')
+          nasa = sorted(Path('validation/model_v5/work/nasa').glob('nasa_*.csv'))
+          nasa_years = sorted({p.stem.split('_')[-1] for p in nasa})
+          required_nasa = [str(y) for y in range(2019, 2025)]
+          missing_nasa = sorted(set(required_nasa) - set(nasa_years))
+          glofas = sorted(Path('validation/model_v5/work/glofas').glob('glofas_*_q*.csv'))
+          print('NASA years:', nasa_years)
+          print('GloFAS quarter files:', len(glofas))
+          if missing_nasa:
+              raise SystemExit(f'Missing reused NASA years: {missing_nasa}')
+          if len(glofas) != 21:
+              raise SystemExit(f'Expected 21 GloFAS quarter files, found {len(glofas)}')
           PY
       - name: Compile and run Model v5 contract tests
         run: |
