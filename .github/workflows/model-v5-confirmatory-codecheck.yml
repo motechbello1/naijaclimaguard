@@ -23,6 +23,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONPATH: validation
+
 jobs:
   confirmatory-codecheck:
     runs-on: ubuntu-24.04
