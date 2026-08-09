@@ -1,7 +1,7 @@
-Model v5 optimized consistent-control archived operational development trigger.
-2022 and 2024 control-forecast smoke run 31308591641 passed end-to-end: archived operational download, scalar-safe GRIB extraction, five locations, and 24/48/72-hour leads.
+Model v5 source-resilient combined NASA + archived operational GloFAS development trigger.
 Active protocol remains validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md with source eligibility from 2021-05-26 and walk-forward scoring years 2022-2024.
-GloFAS daily issue-date retrievals now use bounded concurrency: 4 quarter jobs maximum in parallel and 3 independent daily EWDS workers per quarter, with capacity backoff.
-NASA IMERG Early artifacts are reused from source run 31292573245.
-The superseded sequential full run 31308590298 was cancelled before this launch.
-No Model v5 performance score has been inspected. Candidate hyperparameters, event registry, target, threshold grid and freeze gates remain unchanged.
+NASA IMERG Early artifacts remain reused from preserved source run 31292573245.
+GloFAS acquisition is now deliberately de-bursted after EWDS queue-limit failures: at most 2 quarter jobs run concurrently and each quarter uses 1 daily EWDS worker, while retaining the existing retry/backoff and >=90% source-coverage gate.
+This changes acquisition mechanics only. It does not change the event registry, candidate models, hyperparameters, target definition, threshold grid, sanity gates, source contract, or freeze rules.
+Combined NASA + GloFAS remains the eligible winning feature group and must still beat both NASA-only and GloFAS-only ablations.
+No Model v5 performance result from an older workflow checkout is accepted as final; the synchronized decision must be produced by the repaired branch code and carry archived-operational provenance.
