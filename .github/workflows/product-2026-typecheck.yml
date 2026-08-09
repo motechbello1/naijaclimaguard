@@ -2,7 +2,7 @@ name: Product 2026 Typecheck
 
 on:
   push:
-    branches: [product-2026-action-engine]
+    branches: [product-2026-action-engine, product-2026-source-fusion]
     paths:
       - "app/**"
       - "components/**"
