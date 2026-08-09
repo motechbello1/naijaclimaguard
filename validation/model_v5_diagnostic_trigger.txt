@@ -1,1 +1,1 @@
-Inspect latest Model v5 heavy run and three-era GloFAS archive smoke after mapping/parser commits 2e86ddd33b9f47427388317650d1ee863233670c and c4a2d1f067a26a90815a148389b5a5ebd5659277.
+Refresh diagnostic after three-era GloFAS smoke has had time to start on archive mapping/parser commit c4a2d1f067a26a90815a148389b5a5ebd5659277.
