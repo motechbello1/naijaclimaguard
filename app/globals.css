@@ -11,7 +11,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
               color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
 }
+
+html, body { max-width: 100%; }
 
 .dark body {
   background: #0B1120;
@@ -66,6 +69,7 @@ html[data-experience-role="agency"] .role-agency-inline { display: inline; }
 }
 
 .glass-card {
+  min-width: 0;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
@@ -138,10 +142,44 @@ button:focus-visible { outline: 2px solid #10B981; outline-offset: 1px; }
   }
 }
 
-input, select, textarea { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+input, select, textarea {
+  max-width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
 input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
 
 ::selection { background: rgba(16, 185, 129, 0.2); color: inherit; }
+
+/* Phone-first safety net for older screens that were authored before the adaptive shell.
+   Only base (non-responsive) multi-column grids are collapsed; sm:/md:/lg: layouts remain controlled by Tailwind. */
+@media (max-width: 639px) {
+  main { max-width: 100%; min-width: 0; }
+  main > * { min-width: 0; max-width: 100%; }
+  main img, main canvas, main video { max-width: 100%; height: auto; }
+  main svg { max-width: 100%; }
+
+  .grid.grid-cols-2,
+  .grid.grid-cols-3,
+  .grid.grid-cols-4,
+  .grid.grid-cols-5,
+  .grid.grid-cols-6 { grid-template-columns: minmax(0, 1fr) !important; }
+
+  main table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  main pre,
+  main code { max-width: 100%; overflow-x: auto; }
+
+  main button,
+  main a,
+  main input,
+  main select,
+  main textarea { min-width: 0; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
