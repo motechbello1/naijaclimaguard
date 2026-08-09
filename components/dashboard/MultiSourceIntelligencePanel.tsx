@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Activity, AlertTriangle, CheckCircle2, CircleDashed, RadioTower, ShieldAlert } from "lucide-react";
 import { INTELLIGENCE_SOURCES, SourceState, sourceStateLabel } from "@/lib/intelligence/source-registry";
 
@@ -10,10 +11,58 @@ const STATE_STYLE: Record<SourceState, { icon: typeof CheckCircle2; cls: string 
   NOT_CONNECTED: { icon: CircleDashed, cls: "text-slate-400" },
 };
 
+type PartnerHealth = "fresh" | "stale" | "suspect" | "missing";
+interface PartnerSource {
+  slug: string;
+  provider: string;
+  name: string;
+  sourceKind: string;
+  freshnessMinutes: number;
+  health: PartnerHealth;
+  ageMinutes: number | null;
+  latest: null | {
+    observedAt: string;
+    receivedAt: string;
+    qualityStatus: string;
+    variable: string;
+    unit: string;
+    value: unknown;
+  };
+}
+
+const HEALTH_STYLE: Record<PartnerHealth, string> = {
+  fresh: "text-radar",
+  stale: "text-amber",
+  suspect: "text-crimson",
+  missing: "text-slate-400",
+};
+
 export default function MultiSourceIntelligencePanel({ technical = false }: { technical?: boolean }) {
   const live = INTELLIGENCE_SOURCES.filter((source) => source.state === "LIVE").length;
   const validating = INTELLIGENCE_SOURCES.filter((source) => source.state === "VALIDATING").length;
   const ready = INTELLIGENCE_SOURCES.filter((source) => source.state === "ADAPTER_READY").length;
+  const [partnerSources, setPartnerSources] = useState<PartnerSource[]>([]);
+  const [partnerStoreState, setPartnerStoreState] = useState<"loading" | "ready" | "unavailable">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/v1/intelligence/health", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!response.ok || !data.operational) {
+          setPartnerSources([]);
+          setPartnerStoreState("unavailable");
+          return;
+        }
+        setPartnerSources(Array.isArray(data.sources) ? data.sources : []);
+        setPartnerStoreState("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setPartnerStoreState("unavailable");
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <section className="glass-card rounded-2xl p-5 sm:p-6">
@@ -22,7 +71,7 @@ export default function MultiSourceIntelligencePanel({ technical = false }: { te
           <p className="text-xs font-semibold uppercase tracking-wider text-radar">Multi-source flood intelligence</p>
           <h2 className="mt-1 text-lg font-bold">Source coverage & readiness</h2>
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-            NaijaClimaGuard does not treat rainfall as the whole flood picture. This panel shows exactly which inputs are live today, which are being scientifically validated, and which require an authorised partner feed before they can influence decisions.
+            NaijaClimaGuard does not treat rainfall as the whole flood picture. This panel shows which inputs are live today, which are being scientifically validated, and which require an authorised partner feed before they can influence decisions.
           </p>
         </div>
         <div className="flex gap-2 text-xs">
@@ -57,6 +106,46 @@ export default function MultiSourceIntelligencePanel({ technical = false }: { te
             </article>
           );
         })}
+      </div>
+
+      <div className="mt-5 rounded-xl border border-slate-200 p-4 dark:border-midnight-border">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">Connected partner feeds</p>
+            <p className="mt-1 text-xs text-slate-500">Actual registered gauge, sensor, dam or advisory streams appear here only after the canonical source store is enabled and data has been received.</p>
+          </div>
+          {partnerStoreState === "loading" && <span className="text-xs text-slate-400">Checking…</span>}
+        </div>
+
+        {partnerStoreState === "unavailable" && (
+          <p className="mt-3 rounded-lg bg-slate-50 p-3 text-xs leading-relaxed text-slate-500 dark:bg-midnight-light">
+            Partner source storage is not operational yet. This is not treated as “safe” or as zero risk; the dashboard continues to show these feeds as unconnected until the database migration and authorised source credentials are deliberately enabled.
+          </p>
+        )}
+
+        {partnerStoreState === "ready" && partnerSources.length === 0 && (
+          <p className="mt-3 text-xs text-slate-500">No partner feeds have been registered yet.</p>
+        )}
+
+        {partnerSources.length > 0 && (
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {partnerSources.map((source) => (
+              <div key={source.slug} className="rounded-lg border border-slate-100 p-3 dark:border-midnight-border">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">{source.name}</p>
+                    <p className="text-[11px] text-slate-500">{source.provider} · {source.sourceKind.replaceAll("_", " ").toLowerCase()}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase ${HEALTH_STYLE[source.health]}`}>{source.health}</span>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">
+                  {source.latest ? `Latest observation ${source.ageMinutes ?? 0} min ago · ${source.latest.variable}` : "No observations received yet."}
+                </p>
+                {technical && source.latest && <p className="mt-1 font-mono text-[10px] text-slate-400">Freshness window: {source.freshnessMinutes} min · observed {source.latest.observedAt}</p>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber/20 bg-amber/5 p-4">

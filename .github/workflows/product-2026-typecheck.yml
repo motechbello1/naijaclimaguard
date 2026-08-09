@@ -2,7 +2,17 @@ name: Product 2026 Typecheck
 
 on:
   push:
-    branches: [product-2026-action-engine]
+    branches: [product-2026-action-engine, product-2026-source-fusion]
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "prisma/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/product-2026-typecheck.yml"
+  pull_request:
+    branches: [main]
     paths:
       - "app/**"
       - "components/**"
@@ -16,7 +26,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: product-2026-typecheck-${{ github.ref }}
+  group: product-2026-typecheck-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
