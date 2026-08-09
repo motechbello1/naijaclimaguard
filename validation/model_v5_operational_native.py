@@ -24,6 +24,14 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 RANDOM_STATE = 42
 EXPECTED_EVENTS = 35
 PILOT_LOCATIONS = {"Lokoja", "Makurdi", "Onitsha", "Yenagoa", "Hadejia"}
+RESULT_PROTOCOL_DESCRIPTION = (
+    "operational-native NASA IMERG Early V07 + GloFAS archived operational "
+    "control forecasts; strict next-1-to-3-day target"
+)
+RESULT_EVIDENCE_WARNING = (
+    "Archived operational forecast replay is historical out-of-fold evidence, "
+    "not prospective validation or authorization for public alerts."
+)
 
 RAIN_FEATURES = [
     "rain_1d", "rain_3d", "rain_7d", "rain_14d", "rain_30d",
@@ -341,7 +349,7 @@ def main() -> None:
         return {k: v for k, v in r.items() if k != "scored"}
     result = {
         "status": "eligible_freeze_candidate" if chosen else "model_v5_development_failed_freeze_gate",
-        "protocol": "operational-native NASA IMERG Early V07 + GloFAS reforecast; strict next-1-to-3-day target",
+        "protocol": RESULT_PROTOCOL_DESCRIPTION,
         "production_engine_remains": "derived-v2",
         "model_v4_prospective_generation_unchanged": True,
         "candidate_results": [serializable(r) for r in core_results],
@@ -368,7 +376,7 @@ def main() -> None:
         },
         "threshold_frontier": frontier,
         "replacement_authorized": False,
-        "warning": "Historical GloFAS reforecast lead times are development evidence, not proof of historical operational warnings.",
+        "warning": RESULT_EVIDENCE_WARNING,
     }
     out_path = Path(args.output)
     out_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
