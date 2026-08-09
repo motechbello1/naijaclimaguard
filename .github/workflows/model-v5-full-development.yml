@@ -44,10 +44,10 @@ jobs:
   glofas:
     needs: protocol
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 2
       matrix:
         include:
           - { year: 2021, quarter: 2, months: "5 6" }
@@ -86,7 +86,7 @@ jobs:
             --year "${{ matrix.year }}" \
             --months ${{ matrix.months }} \
             --lead-hours 24 48 72 \
-            --workers 3 \
+            --workers 1 \
             --raw-dir "validation/model_v5/work/glofas_raw_${{ matrix.year }}_q${{ matrix.quarter }}" \
             --out "validation/model_v5/work/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.csv"
       - name: Upload GloFAS source evidence
