@@ -43,7 +43,14 @@ export async function recordAlertEvidence(
       }),
     );
 
-    if (result.deliveryRecorded && result.emailStatus === "email_sent") {
+    const deliveredChannels = [
+      result.emailStatus === "email_sent" ? "EMAIL" : null,
+      result.smsStatus === "sent" ? "SMS" : null,
+      result.whatsappStatus === "sent" ? "WHATSAPP" : null,
+      result.voiceStatus === "sent" ? "VOICE" : null,
+    ].filter((channel): channel is string => Boolean(channel));
+
+    for (const channel of deliveredChannels) {
       writes.push(
         appendEvidenceEvent({
           eventType: "WARNING_DELIVERED",
@@ -52,7 +59,7 @@ export async function recordAlertEvidence(
           riskScore: result.score ?? null,
           riskLevel: result.level ?? null,
           modelLabel,
-          channel: "EMAIL",
+          channel,
           deliveryState: "delivered",
           metadata,
         }),
