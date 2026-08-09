@@ -1,6 +1,7 @@
 name: Model v5 GloFAS Contract Smoke
 
 on:
+  workflow_dispatch:
   push:
     branches: [model-v5-operational-native]
     paths:
@@ -16,14 +17,14 @@ env:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - run: python -m pip install 'cdsapi>=0.7.6,<0.8' requests
-      - name: Inspect EWDS process schema and probe accepted reference dates
+      - name: Inspect EWDS schema and isolate accepted GloFAS contract
         run: |
           python - <<'PY'
           import json, os
@@ -37,11 +38,7 @@ jobs:
 
           schema_url = base + '/retrieve/v1/processes/cems-glofas-reforecast'
           r = requests.get(schema_url, timeout=60)
-          schema_capture = {
-              'status_code': r.status_code,
-              'url': schema_url,
-              'text_prefix': r.text[:30000],
-          }
+          schema_capture = {'status_code': r.status_code, 'url': schema_url, 'text_prefix': r.text[:30000]}
           try:
               schema_capture['json'] = r.json()
           except Exception:
@@ -49,39 +46,54 @@ jobs:
           Path('validation/model_v5_glofas_process_schema.json').write_text(json.dumps(schema_capture, indent=2))
 
           client = cdsapi.Client(url=base, key=key)
-          valid_2024_jan_days = ['01','04','08','11','15','18','22','25','29']
-          day_results = {}
-          for day in valid_2024_jan_days:
-              target = Path(f'/tmp/glofas_probe_2022_01_{day}.zip')
-              request = {
-                  'system_version': ['version_4_0'],
-                  'hydrological_model': ['lisflood'],
-                  'product_type': ['control_reforecast'],
-                  'variable': ['river_discharge_in_the_last_24_hours'],
-                  'hyear': ['2022'],
-                  'hmonth': ['01'],
-                  'hday': [day],
-                  'leadtime_hour': ['24','48','72'],
-                  'area': [13.0, 5.0, 4.0, 11.0],
-                  'data_format': 'grib2',
-                  'download_format': 'zip',
-              }
+          base_req = {
+              'system_version': ['version_4_0'],
+              'hydrological_model': ['lisflood'],
+              'product_type': ['control_reforecast'],
+              'variable': ['river_discharge_in_the_last_24_hours'],
+              'hyear': ['2022'],
+              'hmonth': ['01'],
+              'hday': ['01'],
+              'leadtime_hour': ['24'],
+              'area': [13.0, 5.0, 4.0, 11.0],
+              'data_format': 'grib2',
+              'download_format': 'zip',
+          }
+          variants = {
+              'documented_reference_2024_day01': {},
+              'target_year_weekday_day03': {'hday': ['03']},
+              'global_lisflood': {'hydrological_model': ['global_lisflood']},
+              'no_area': {'__drop__': ['area']},
+              'netcdf_unarchived': {'data_format': 'netcdf', 'download_format': 'unarchived'},
+              'operational_system': {'system_version': ['operational']},
+              'with_reference_year_2022': {'year': ['2022']},
+          }
+          results = {}
+          for name, delta in variants.items():
+              req = dict(base_req)
+              for k in delta.get('__drop__', []):
+                  req.pop(k, None)
+              req.update({k: v for k, v in delta.items() if k != '__drop__'})
+              suffix = '.nc' if req.get('data_format') == 'netcdf' else '.zip'
+              target = Path(f'/tmp/glofas_contract_{name}{suffix}')
               try:
-                  client.retrieve('cems-glofas-reforecast', request).download(str(target))
-                  day_results[day] = {'ok': True, 'bytes': target.stat().st_size}
+                  client.retrieve('cems-glofas-reforecast', req).download(str(target))
+                  results[name] = {'ok': True, 'bytes': target.stat().st_size, 'request': req}
               except Exception as exc:
-                  day_results[day] = {'ok': False, 'error': str(exc)[:1500]}
-              print(day, day_results[day])
+                  results[name] = {'ok': False, 'error': str(exc)[:2500], 'request': req}
+              print(name, results[name]['ok'], results[name].get('bytes'), results[name].get('error', '')[:500], flush=True)
+              if results[name]['ok']:
+                  break
 
           Path('validation/model_v5_glofas_contract_smoke.json').write_text(json.dumps({
               'dataset': 'cems-glofas-reforecast',
-              'system_version': 'version_4_0',
               'probe_hyear': 2022,
-              'probe_hmonth': '01',
-              'reference_year_for_day_schedule': 2024,
-              'lead_hours': [24,48,72],
-              'day_results': day_results,
+              'lead_hours': [24],
+              'results': results,
+              'first_success': next((k for k,v in results.items() if v.get('ok')), None),
           }, indent=2))
+          if not any(v.get('ok') for v in results.values()):
+              raise SystemExit('No tested EWDS GloFAS contract succeeded')
           PY
       - name: Persist schema and probe result
         if: always()
@@ -92,6 +104,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add validation/model_v5_glofas_process_schema.json validation/model_v5_glofas_contract_smoke.json
           git diff --cached --quiet && exit 0
-          git commit -m "model-v5: record EWDS GloFAS schema and date probe"
+          git commit -m "model-v5: record EWDS GloFAS contract matrix"
           git pull --rebase origin model-v5-operational-native
           git push origin HEAD:model-v5-operational-native
