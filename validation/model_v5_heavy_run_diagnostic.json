@@ -1,24 +1,24 @@
 {
   "heavy": {
     "workflow_run": {
-      "id": 31307761782,
-      "run_number": 6,
+      "id": 31308001464,
+      "run_number": 7,
       "event": "push",
       "status": "queued",
       "conclusion": null,
-      "head_sha": "5f91d4fff6b5159ea1340333431ec383ecf1cfe2",
-      "created_at": "2026-08-09T10:12:20Z",
-      "updated_at": "2026-08-09T10:12:27Z",
-      "html_url": "https://github.com/motechbello1/naijaclimaguard/actions/runs/31307761782"
+      "head_sha": "0be25020ad44fd787ba7837166b65f1c2a858283",
+      "created_at": "2026-08-09T10:18:11Z",
+      "updated_at": "2026-08-09T10:18:29Z",
+      "html_url": "https://github.com/motechbello1/naijaclimaguard/actions/runs/31308001464"
     },
     "jobs": [
       {
-        "id": 93230696715,
+        "id": 93231305280,
         "name": "protocol",
         "status": "completed",
         "conclusion": "success",
-        "started_at": "2026-08-09T10:12:23Z",
-        "completed_at": "2026-08-09T10:12:27Z",
+        "started_at": "2026-08-09T10:18:21Z",
+        "completed_at": "2026-08-09T10:18:28Z",
         "failed_steps": [],
         "steps": [
           {
@@ -59,1137 +59,220 @@
         ]
       },
       {
-        "id": 93230709268,
-        "name": "glofas (2019, 4, 10 11 12)",
-        "status": "completed",
-        "conclusion": "failure",
-        "started_at": "2026-08-09T10:12:30Z",
-        "completed_at": "2026-08-09T10:13:09Z",
-        "failed_steps": [
-          "Fetch archived operational GloFAS forecasts"
-        ],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "completed",
-            "conclusion": "failure"
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Complete job",
-            "status": "completed",
-            "conclusion": "success"
-          }
-        ]
-      },
-      {
-        "id": 93230709278,
-        "name": "glofas (2023, 2, 4 5 6)",
+        "id": 93231333709,
+        "name": "glofas (2020, 2, 4 5 6)",
         "status": "in_progress",
         "conclusion": null,
-        "started_at": "2026-08-09T10:13:12Z",
+        "started_at": "2026-08-09T10:18:31Z",
         "completed_at": null,
         "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
+        "steps": []
       },
       {
-        "id": 93230709279,
-        "name": "glofas (2020, 3, 7 8 9)",
-        "status": "completed",
-        "conclusion": "failure",
-        "started_at": "2026-08-09T10:12:30Z",
-        "completed_at": "2026-08-09T10:13:09Z",
-        "failed_steps": [
-          "Fetch archived operational GloFAS forecasts"
-        ],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "completed",
-            "conclusion": "failure"
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Complete job",
-            "status": "completed",
-            "conclusion": "success"
-          }
-        ]
-      },
-      {
-        "id": 93230709283,
-        "name": "glofas (2023, 3, 7 8 9)",
-        "status": "in_progress",
-        "conclusion": null,
-        "started_at": "2026-08-09T10:13:12Z",
-        "completed_at": null,
-        "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
-      },
-      {
-        "id": 93230709286,
-        "name": "glofas (2021, 4, 10 11 12)",
-        "status": "in_progress",
-        "conclusion": null,
-        "started_at": "2026-08-09T10:12:30Z",
-        "completed_at": null,
-        "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
-      },
-      {
-        "id": 93230709287,
-        "name": "glofas (2021, 3, 7 8 9)",
-        "status": "in_progress",
-        "conclusion": null,
-        "started_at": "2026-08-09T10:12:37Z",
-        "completed_at": null,
-        "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
-      },
-      {
-        "id": 93230709289,
-        "name": "glofas (2021, 1, 1 2 3)",
-        "status": "completed",
-        "conclusion": "failure",
-        "started_at": "2026-08-09T10:12:30Z",
-        "completed_at": "2026-08-09T10:13:11Z",
-        "failed_steps": [
-          "Fetch archived operational GloFAS forecasts"
-        ],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "completed",
-            "conclusion": "failure"
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Complete job",
-            "status": "completed",
-            "conclusion": "success"
-          }
-        ]
-      },
-      {
-        "id": 93230709291,
-        "name": "glofas (2022, 3, 7 8 9)",
-        "status": "in_progress",
-        "conclusion": null,
-        "started_at": "2026-08-09T10:12:30Z",
-        "completed_at": null,
-        "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
-      },
-      {
-        "id": 93230709292,
-        "name": "glofas (2024, 2, 4 5 6)",
-        "status": "in_progress",
-        "conclusion": null,
-        "started_at": "2026-08-09T10:13:24Z",
-        "completed_at": null,
-        "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
-      },
-      {
-        "id": 93230709293,
-        "name": "glofas (2023, 1, 1 2 3)",
-        "status": "in_progress",
-        "conclusion": null,
-        "started_at": "2026-08-09T10:13:12Z",
-        "completed_at": null,
-        "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
-      },
-      {
-        "id": 93230709294,
-        "name": "glofas (2022, 4, 10 11 12)",
-        "status": "in_progress",
-        "conclusion": null,
-        "started_at": "2026-08-09T10:13:07Z",
-        "completed_at": null,
-        "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
-      },
-      {
-        "id": 93230709295,
+        "id": 93231333714,
         "name": "glofas (2020, 4, 10 11 12)",
-        "status": "completed",
-        "conclusion": "failure",
-        "started_at": "2026-08-09T10:12:36Z",
-        "completed_at": "2026-08-09T10:13:22Z",
-        "failed_steps": [
-          "Fetch archived operational GloFAS forecasts"
-        ],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "completed",
-            "conclusion": "failure"
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Complete job",
-            "status": "completed",
-            "conclusion": "success"
-          }
-        ]
-      },
-      {
-        "id": 93230709300,
-        "name": "glofas (2024, 1, 1 2 3)",
         "status": "in_progress",
         "conclusion": null,
-        "started_at": "2026-08-09T10:13:18Z",
+        "started_at": "2026-08-09T10:18:31Z",
         "completed_at": null,
         "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
+        "steps": []
       },
       {
-        "id": 93230709301,
+        "id": 93231333721,
+        "name": "glofas (2021, 1, 1 2 3)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333725,
+        "name": "glofas (2022, 1, 1 2 3)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333727,
         "name": "glofas (2022, 2, 4 5 6)",
         "status": "in_progress",
         "conclusion": null,
-        "started_at": "2026-08-09T10:12:30Z",
-        "completed_at": null,
-        "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
-      },
-      {
-        "id": 93230709303,
-        "name": "glofas (2020, 2, 4 5 6)",
-        "status": "completed",
-        "conclusion": "failure",
-        "started_at": "2026-08-09T10:12:30Z",
-        "completed_at": "2026-08-09T10:13:04Z",
-        "failed_steps": [
-          "Fetch archived operational GloFAS forecasts"
-        ],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "completed",
-            "conclusion": "failure"
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Complete job",
-            "status": "completed",
-            "conclusion": "success"
-          }
-        ]
-      },
-      {
-        "id": 93230709304,
-        "name": "glofas (2022, 1, 1 2 3)",
-        "status": "in_progress",
-        "conclusion": null,
-        "started_at": "2026-08-09T10:12:30Z",
-        "completed_at": null,
-        "failed_steps": [],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
-          }
-        ]
-      },
-      {
-        "id": 93230709305,
-        "name": "glofas (2024, 4, 10 11 12)",
-        "status": "queued",
-        "conclusion": null,
-        "started_at": "2026-08-09T10:12:27Z",
+        "started_at": "2026-08-09T10:18:31Z",
         "completed_at": null,
         "failed_steps": [],
         "steps": []
       },
       {
-        "id": 93230709306,
-        "name": "glofas (2021, 2, 4 5 6)",
-        "status": "completed",
-        "conclusion": "failure",
-        "started_at": "2026-08-09T10:12:30Z",
-        "completed_at": "2026-08-09T10:13:09Z",
-        "failed_steps": [
-          "Fetch archived operational GloFAS forecasts"
-        ],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "completed",
-            "conclusion": "failure"
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Complete job",
-            "status": "completed",
-            "conclusion": "success"
-          }
-        ]
+        "id": 93231333728,
+        "name": "glofas (2021, 4, 10 11 12)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
       },
       {
-        "id": 93230709311,
-        "name": "glofas (2023, 4, 10 11 12)",
+        "id": 93231333730,
+        "name": "glofas (2020, 3, 7 8 9)",
         "status": "in_progress",
         "conclusion": null,
-        "started_at": "2026-08-09T10:13:14Z",
+        "started_at": "2026-08-09T10:18:31Z",
         "completed_at": null,
         "failed_steps": [],
         "steps": [
           {
             "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
             "status": "in_progress",
-            "conclusion": null
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "pending",
             "conclusion": null
           }
         ]
       },
       {
-        "id": 93230709315,
+        "id": 93231333732,
+        "name": "glofas (2020, 1, 1 2 3)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333735,
+        "name": "glofas (2019, 4, 10 11 12)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333738,
         "name": "glofas (2024, 3, 7 8 9)",
         "status": "queued",
         "conclusion": null,
-        "started_at": "2026-08-09T10:12:27Z",
+        "started_at": "2026-08-09T10:18:28Z",
         "completed_at": null,
         "failed_steps": [],
         "steps": []
       },
       {
-        "id": 93230709319,
-        "name": "glofas (2020, 1, 1 2 3)",
-        "status": "completed",
-        "conclusion": "failure",
-        "started_at": "2026-08-09T10:12:30Z",
-        "completed_at": "2026-08-09T10:13:16Z",
-        "failed_steps": [
-          "Fetch archived operational GloFAS forecasts"
-        ],
-        "steps": [
-          {
-            "name": "Set up job",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Install Model v5 runtime",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Verify EWDS credential",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Fetch archived operational GloFAS forecasts",
-            "status": "completed",
-            "conclusion": "failure"
-          },
-          {
-            "name": "Run actions/upload-artifact@v4",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/setup-python@v5",
-            "status": "completed",
-            "conclusion": "skipped"
-          },
-          {
-            "name": "Post Run actions/checkout@v4",
-            "status": "completed",
-            "conclusion": "success"
-          },
-          {
-            "name": "Complete job",
-            "status": "completed",
-            "conclusion": "success"
-          }
-        ]
+        "id": 93231333739,
+        "name": "glofas (2023, 3, 7 8 9)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333740,
+        "name": "glofas (2024, 1, 1 2 3)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333742,
+        "name": "glofas (2023, 2, 4 5 6)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333743,
+        "name": "glofas (2023, 4, 10 11 12)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333744,
+        "name": "glofas (2022, 4, 10 11 12)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333745,
+        "name": "glofas (2023, 1, 1 2 3)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333746,
+        "name": "glofas (2021, 3, 7 8 9)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333748,
+        "name": "glofas (2022, 3, 7 8 9)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333752,
+        "name": "glofas (2024, 4, 10 11 12)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333753,
+        "name": "glofas (2024, 2, 4 5 6)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
+      },
+      {
+        "id": 93231333755,
+        "name": "glofas (2021, 2, 4 5 6)",
+        "status": "queued",
+        "conclusion": null,
+        "started_at": "2026-08-09T10:18:28Z",
+        "completed_at": null,
+        "failed_steps": [],
+        "steps": []
       }
     ]
   },
