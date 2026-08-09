@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Fetch archived operational GloFAS control forecasts for Model v5.
 
-The source is the actual archived `cems-glofas-forecast` product. Requests are
-made one issue date at a time because EWDS rejects multi-day combinations and
-large multi-day requests exceed cost limits.
+The active Model v5 source contract is deliberately restricted to the consistent
+archived control-forecast era beginning 2021-05-26:
+- dataset: cems-glofas-forecast
+- system_version: operational
+- hydrological_model: lisflood
+- product_type: control_forecast
+- leads: +24/+48/+72 hours
 
-Current EWDS behaviour verified before Model v5 scoring:
-- `operational` is the working selector for archived operational control forecasts.
-- Pre-2021-05-26 forecasts use the legacy `htessel_lisflood` hydrological selector.
-- Later forecasts use `lisflood`.
-- The historical GloFAS release family is recorded separately from the EWDS
-  request selector so provenance is explicit without pretending the current API
-  exposes every old minor release as a selectable value.
+EWDS archived forecasts are requested one issue date at a time because multi-day
+forecast combinations are rejected by the current service and large batches can
+exceed request-cost limits.
 """
 from __future__ import annotations
 
@@ -32,9 +32,7 @@ import xarray as xr
 EWDS_URL = "https://ewds.climate.copernicus.eu/api"
 DATASET = "cems-glofas-forecast"
 AREA = [13.0, 5.0, 4.0, 11.0]
-ARCHIVE_START = pd.Timestamp("2019-11-05")
-V3_START = pd.Timestamp("2021-05-26")
-V4_START = pd.Timestamp("2023-07-26")
+ARCHIVE_START = pd.Timestamp("2021-05-26")
 
 LOCATIONS = {
     "Lokoja": (7.8023, 6.7333),
@@ -43,18 +41,6 @@ LOCATIONS = {
     "Yenagoa": (4.9247, 6.2642),
     "Hadejia": (12.4494, 10.0447),
 }
-
-
-def source_contract(date: pd.Timestamp) -> tuple[str, str, str]:
-    """Return EWDS selector, hydrological selector, and historical release family."""
-    date = pd.Timestamp(date).normalize()
-    if date < ARCHIVE_START:
-        raise ValueError(f"Archived operational GloFAS unavailable before {ARCHIVE_START.date()}")
-    if date < V3_START:
-        return "operational", "htessel_lisflood", "GloFAS v2.1/v2.2 operational era"
-    if date < V4_START:
-        return "operational", "lisflood", "GloFAS v3.x operational era"
-    return "operational", "lisflood", "GloFAS v4.x operational era"
 
 
 def retryable(exc: Exception) -> bool:
@@ -88,14 +74,16 @@ def issue_dates(year: int, months: list[int], explicit_dates: list[str] | None) 
 
 
 def retrieve_day(client: cdsapi.Client, date: pd.Timestamp, leads: list[int], raw_dir: Path) -> Path:
-    system_version, hydrological_model, _ = source_contract(date)
-    target = raw_dir / f"glofas_{system_version}_{hydrological_model}_{date:%Y%m%d}.zip"
+    if pd.Timestamp(date) < ARCHIVE_START:
+        raise ValueError(f"Model v5 consistent control-forecast contract begins {ARCHIVE_START.date()}")
+
+    target = raw_dir / f"glofas_operational_lisflood_{date:%Y%m%d}.zip"
     if target.exists() and target.stat().st_size > 0:
         return target
 
     request = {
-        "system_version": system_version,
-        "hydrological_model": hydrological_model,
+        "system_version": "operational",
+        "hydrological_model": "lisflood",
         "product_type": "control_forecast",
         "variable": "river_discharge_in_the_last_24_hours",
         "year": date.strftime("%Y"),
@@ -110,10 +98,7 @@ def retrieve_day(client: cdsapi.Client, date: pd.Timestamp, leads: list[int], ra
     last: Exception | None = None
     for attempt in range(1, 8):
         try:
-            print(
-                f"EWDS {system_version}/{hydrological_model} {date.date()}: attempt {attempt}/7",
-                flush=True,
-            )
+            print(f"EWDS operational/lisflood {date.date()}: attempt {attempt}/7", flush=True)
             client.retrieve(DATASET, request).download(str(target))
             return target
         except Exception as exc:
@@ -174,7 +159,6 @@ def extract_grib(path: Path) -> list[dict]:
         leads = np.atleast_1d(da.coords[lead_name].values)
         for issue_raw in times:
             issue = pd.Timestamp(issue_raw).tz_localize(None)
-            system_version, hydrological_model, historical_release_family = source_contract(issue)
             for lead_raw in leads:
                 lh = lead_hours(lead_raw)
                 if lh not in (24, 48, 72):
@@ -195,9 +179,9 @@ def extract_grib(path: Path) -> list[dict]:
                         "longitude_requested": qlon,
                         "forecast_discharge_m3s": float(np.asarray(point.values).squeeze()),
                         "product_type": "control_forecast",
-                        "system_version_request": system_version,
-                        "hydrological_model": hydrological_model,
-                        "historical_release_family": historical_release_family,
+                        "system_version_request": "operational",
+                        "hydrological_model": "lisflood",
+                        "historical_release_family": "consistent archived operational control-forecast era",
                         "source": "Copernicus CEMS GloFAS archived operational forecast via EWDS",
                         "source_file": path.name,
                     })
@@ -235,8 +219,8 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
-    if args.year < 2019:
-        raise ValueError("Operational GloFAS river-discharge archive begins 2019-11-05")
+    if args.year < 2021:
+        raise ValueError("Model v5 consistent archived control-forecast contract begins 2021-05-26")
     months = sorted(set(args.months))
     if not months or any(month < 1 or month > 12 for month in months):
         raise ValueError("--months must contain values from 1 through 12")
@@ -286,9 +270,7 @@ def main() -> None:
     out.to_csv(path, index=False)
     print(
         f"Wrote {len(out):,} operational GloFAS rows for {len(dates)} issue dates in {args.year}; "
-        f"coverage={coverage:.1%}; path={path}; "
-        f"systems={sorted(out['system_version_request'].unique().tolist())}; "
-        f"hydrological_models={sorted(out['hydrological_model'].unique().tolist())}"
+        f"coverage={coverage:.1%}; path={path}"
     )
 
 
