@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronRight, ShieldCheck, Building2 } from "lucide-react";
 import { ASSET_LABELS, AssetType, getActionGuidance } from "@/lib/action-guidance";
+import { localizeActionGuidance } from "@/lib/action-guidance-i18n";
 import { useExperienceProfile } from "@/components/shared/ExperienceProfile";
 import { useExplanationMode } from "@/components/shared/ExplanationMode";
+import { useLanguage } from "@/components/shared/LanguageProvider";
 
 interface ActionCardProps {
   score: number;
@@ -27,16 +29,10 @@ const roleDefaultAsset = {
   AGENCY: "GOVERNMENT_FACILITY",
 } as const;
 
-export default function ActionCard({
-  score,
-  level,
-  locationId,
-  locationName,
-  model,
-  threshold,
-}: ActionCardProps) {
+export default function ActionCard({ score, level, locationId, locationName, model, threshold }: ActionCardProps) {
   const { role } = useExperienceProfile();
   const { mode } = useExplanationMode();
+  const { locale } = useLanguage();
   const [assetType, setAssetType] = useState<AssetType>(roleDefaultAsset[role]);
   const [done, setDone] = useState<number[]>([]);
   const [recorded, setRecorded] = useState<number[]>([]);
@@ -55,17 +51,13 @@ export default function ActionCard({
     window.localStorage.setItem(assetStorageKey(locationId), next);
   };
 
-  const guidance = useMemo(
-    () => getActionGuidance({ score, level, role, locationName, assetType, model, threshold }),
-    [score, level, role, locationName, assetType, model, threshold],
-  );
+  const guidance = useMemo(() => {
+    const input = { score, level, role, locationName, assetType, model, threshold };
+    return localizeActionGuidance(getActionGuidance(input), input, locale);
+  }, [score, level, role, locationName, assetType, model, threshold, locale]);
 
   const explanation = mode === "simple" ? guidance.simple : mode === "technical" ? guidance.technical : guidance.detailed;
-  const urgencyClass = guidance.urgency === "act"
-    ? "border-crimson/30 bg-crimson/5"
-    : guidance.urgency === "prepare"
-      ? "border-amber/30 bg-amber/5"
-      : "border-radar/20 bg-radar/5";
+  const urgencyClass = guidance.urgency === "act" ? "border-crimson/30 bg-crimson/5" : guidance.urgency === "prepare" ? "border-amber/30 bg-amber/5" : "border-radar/20 bg-radar/5";
 
   const toggleAction = async (index: number, action: string) => {
     const complete = done.includes(index);
@@ -91,19 +83,27 @@ export default function ActionCard({
           actionCode: `${role}:${assetType}:${index}`,
           actionText: action,
           deliveryState: "user_marked_done",
-          metadata: { role, detailMode: mode },
+          metadata: { role, detailMode: mode, locale },
         }),
       });
 
-      if (response.ok) {
-        setRecorded((current) => current.includes(index) ? current : [...current, index]);
-      }
+      if (response.ok) setRecorded((current) => current.includes(index) ? current : [...current, index]);
     } catch {
-      // The checklist must remain usable if the optional evidence service is unavailable.
+      // Checklist remains usable when evidence persistence is unavailable.
     } finally {
       setRecording((current) => current.filter((item) => item !== index));
     }
   };
+
+  const simpleFooter = locale === "pcm"
+    ? "Tap action when you don do am. Follow official emergency instruction if dem issue am."
+    : locale === "ha"
+      ? "Danna mataki idan ka gama shi. Bi umarnin gaggawa na hukuma idan an bayar."
+      : locale === "yo"
+        ? "Tẹ ìgbésẹ̀ tí o bá ti ṣe e. Tẹ̀lé ìtọ́sọ́nà pajawiri ìjọba tí a bá fi sílẹ̀."
+        : locale === "ig"
+          ? "Pịa action ma i mechaa ya. Soro official emergency instruction ma e nye ya."
+          : "Tap an action when you have done it. Follow official emergency instructions when they are issued.";
 
   return (
     <section className={`rounded-2xl border p-5 ${urgencyClass}`} aria-label={`Recommended actions for ${locationName}`}>
@@ -117,12 +117,7 @@ export default function ActionCard({
         </div>
         <div>
           <label className="sr-only" htmlFor={`asset-${locationId}`}>What is at this place?</label>
-          <select
-            id={`asset-${locationId}`}
-            value={assetType}
-            onChange={(e) => changeAssetType(e.target.value as AssetType)}
-            className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold dark:border-midnight-border dark:bg-midnight-light"
-          >
+          <select id={`asset-${locationId}`} value={assetType} onChange={(e) => changeAssetType(e.target.value as AssetType)} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold dark:border-midnight-border dark:bg-midnight-light">
             {(Object.keys(ASSET_LABELS) as AssetType[]).map((a) => <option key={a} value={a}>{ASSET_LABELS[a]}</option>)}
           </select>
         </div>
@@ -141,31 +136,18 @@ export default function ActionCard({
           const isRecording = recording.includes(index);
           const isRecorded = recorded.includes(index);
           return (
-            <button
-              key={`${role}-${assetType}-${index}`}
-              type="button"
-              onClick={() => toggleAction(index, action)}
-              className="flex w-full items-start gap-3 rounded-xl border border-slate-200/80 bg-white/70 p-3 text-left transition-all hover:border-radar/30 dark:border-midnight-border dark:bg-midnight-light/60"
-            >
+            <button key={`${role}-${assetType}-${index}`} type="button" onClick={() => toggleAction(index, action)} className="flex w-full items-start gap-3 rounded-xl border border-slate-200/80 bg-white/70 p-3 text-left transition-all hover:border-radar/30 dark:border-midnight-border dark:bg-midnight-light/60">
               {complete ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-radar" /> : <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />}
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm leading-relaxed ${complete ? "text-slate-400 line-through" : "text-slate-700 dark:text-slate-200"}`}>{action}</span>
-                {mode !== "simple" && complete && (
-                  <span className="mt-1 block text-[10px] text-slate-400">
-                    {isRecording ? "Recording evidence…" : isRecorded ? "Acknowledgement recorded in evidence history" : "Completed locally; evidence ledger unavailable"}
-                  </span>
-                )}
+                {mode !== "simple" && complete && <span className="mt-1 block text-[10px] text-slate-400">{isRecording ? "Recording evidence…" : isRecorded ? "Acknowledgement recorded in evidence history" : "Completed locally; evidence ledger unavailable"}</span>}
               </span>
             </button>
           );
         })}
       </div>
 
-      <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
-        {mode === "simple"
-          ? "Tap an action when you have done it. Follow official emergency instructions when they are issued."
-          : "Completed actions are appended to evidence history when the server ledger is available. Unchecking an item does not erase an earlier evidence event."}
-      </p>
+      <p className="mt-4 text-[11px] leading-relaxed text-slate-500">{mode === "simple" ? simpleFooter : "Completed actions are appended to evidence history when the server ledger is available. Unchecking an item does not erase an earlier evidence event."}</p>
     </section>
   );
 }
