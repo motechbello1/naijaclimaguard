@@ -3,10 +3,12 @@
 /**
  * Overview — live view of the user's saved locations.
  * Each score is fetched from /api/v1/risk, which currently serves the disclosed
- * derived-v2 Open-Meteo risk index. Validation v2 XGBoost is not a live model.
+ * derived-v2 Open-Meteo risk index. Validation v2 / Model v5 candidates are not
+ * silently substituted into the live product.
  */
 
 import AppShell from "@/components/shared/AppShell";
+import ActionCard from "@/components/action/ActionCard";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, useCallback } from "react";
@@ -25,7 +27,6 @@ const PLAN_COLORS: Record<string, string> = {
   ENTERPRISE: "bg-amber/10 text-amber",
 };
 
-// Quick-add presets for commonly monitored flood-prone locations.
 const PRESETS = [
   { name: "Lokoja", state: "Kogi", latitude: 7.8023, longitude: 6.7333 },
   { name: "Makurdi", state: "Benue", latitude: 7.7322, longitude: 8.5391 },
@@ -126,7 +127,7 @@ function DashboardContent() {
               Welcome back{session.user?.name ? `, ${session.user.name.split(" ")[0]}` : ""}
             </h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Current risk index for your saved locations — served by the public derived-v2 API
+              Know the risk, understand what it means, and see what to do next.
             </p>
           </div>
           <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${PLAN_COLORS[plan] ?? PLAN_COLORS.FREE}`}>
@@ -159,7 +160,10 @@ function DashboardContent() {
 
         <div className="glass-card rounded-2xl p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Your locations — current risk index</h2>
+            <div>
+              <h2 className="text-sm font-semibold">Your locations — risk and action</h2>
+              <p className="mt-1 text-xs text-slate-500">Every available live score now produces practical guidance. Change the user type and explanation level inside each card.</p>
+            </div>
             <button onClick={() => setShowAdd((s) => !s)}
               className="flex items-center gap-1.5 rounded-lg border border-radar/40 px-3 py-1.5 text-xs font-semibold text-radar transition-all hover:bg-radar/5">
               <Plus className="h-3.5 w-3.5" /> Add location
@@ -195,44 +199,55 @@ function DashboardContent() {
 
           {locations.length === 0 ? (
             <p className="py-8 text-center text-sm text-slate-500">
-              No locations yet. Add one above to retrieve the current risk index.
+              No locations yet. Add one above to retrieve the current risk index and action guidance.
             </p>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-5">
               {locations.map((loc) => {
                 const r = risks[loc.id];
                 return (
-                  <div key={loc.id} className="flex items-center justify-between rounded-xl border border-slate-100 p-4 dark:border-midnight-border">
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-4 w-4 text-slate-400" />
-                      <div>
-                        <p className="text-sm font-semibold">{loc.name}</p>
-                        <p className="font-mono text-xs text-slate-500">{loc.state} · {loc.latitude.toFixed(3)}, {loc.longitude.toFixed(3)}</p>
+                  <div key={loc.id} className="space-y-3 rounded-2xl border border-slate-100 p-4 dark:border-midnight-border">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="h-4 w-4 text-slate-400" />
+                        <div>
+                          <p className="text-sm font-semibold">{loc.name}</p>
+                          <p className="font-mono text-xs text-slate-500">{loc.state} · {loc.latitude.toFixed(3)}, {loc.longitude.toFixed(3)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {r === "loading" || r === undefined ? (
+                          <div className="h-8 w-16 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/60" />
+                        ) : r === "error" ? (
+                          <button onClick={() => fetchRisk(loc)} title="Feed unreachable — retry"
+                            className="flex items-center gap-1 font-mono text-xs text-slate-400 hover:text-radar">
+                            <AlertTriangle className="h-3.5 w-3.5" /> retry
+                          </button>
+                        ) : (
+                          <div className="text-right">
+                            <p className="font-mono text-lg font-bold" style={{ color: getRiskLevel(r.score).color }}>{r.score}</p>
+                            <p className="font-mono text-[10px] uppercase" style={{ color: getRiskLevel(r.score).color }}>{r.level}</p>
+                          </div>
+                        )}
+                        <button onClick={() => fetchRisk(loc)} title="Refresh current risk index"
+                          className="rounded-lg border border-slate-200 p-2 text-slate-400 transition-all hover:border-radar/40 hover:text-radar dark:border-midnight-border">
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => deleteLocation(loc.id)} title="Remove"
+                          className="rounded-lg border border-slate-200 p-2 text-slate-400 transition-all hover:border-crimson/40 hover:text-crimson dark:border-midnight-border">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {r === "loading" || r === undefined ? (
-                        <div className="h-8 w-16 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800/60" />
-                      ) : r === "error" ? (
-                        <button onClick={() => fetchRisk(loc)} title="Feed unreachable — retry"
-                          className="flex items-center gap-1 font-mono text-xs text-slate-400 hover:text-radar">
-                          <AlertTriangle className="h-3.5 w-3.5" /> retry
-                        </button>
-                      ) : (
-                        <div className="text-right">
-                          <p className="font-mono text-lg font-bold" style={{ color: getRiskLevel(r.score).color }}>{r.score}</p>
-                          <p className="font-mono text-[10px] uppercase" style={{ color: getRiskLevel(r.score).color }}>{r.level}</p>
-                        </div>
-                      )}
-                      <button onClick={() => fetchRisk(loc)} title="Refresh current risk index"
-                        className="rounded-lg border border-slate-200 p-2 text-slate-400 transition-all hover:border-radar/40 hover:text-radar dark:border-midnight-border">
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => deleteLocation(loc.id)} title="Remove"
-                        className="rounded-lg border border-slate-200 p-2 text-slate-400 transition-all hover:border-crimson/40 hover:text-crimson dark:border-midnight-border">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+
+                    {typeof r === "object" && (
+                      <ActionCard
+                        score={r.score}
+                        level={r.level}
+                        locationName={loc.name}
+                        model={r.model}
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -240,8 +255,7 @@ function DashboardContent() {
           )}
 
           <p className="mt-4 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-midnight-border">
-            These scores come from the current derived-v2 Open-Meteo heuristic. They are not Validation v2 XGBoost
-            probabilities and should be used alongside official flood/weather guidance and local observations.
+            Live risk scores currently come from the disclosed derived-v2 Open-Meteo heuristic. Action Cards are a deterministic guidance layer: they do not change the score, pretend to be Model v5, or replace official NiHSA, NEMA, state or local emergency instructions.
           </p>
         </div>
       </div>
