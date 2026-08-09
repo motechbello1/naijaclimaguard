@@ -11,6 +11,14 @@ on:
       - "validation/tests/test_model_v5_confirmatory_nested.py"
       - "validation/tests/test_model_v5_confirmatory_strict.py"
       - ".github/workflows/model-v5-confirmatory-codecheck.yml"
+  pull_request:
+    paths:
+      - "validation/model_v5_confirmatory_nested.py"
+      - "validation/model_v5_confirmatory_strict.py"
+      - "validation/MODEL_V5_CONFIRMATORY_SCORING_PROTOCOL.md"
+      - "validation/tests/test_model_v5_confirmatory_nested.py"
+      - "validation/tests/test_model_v5_confirmatory_strict.py"
+      - ".github/workflows/model-v5-confirmatory-codecheck.yml"
 
 permissions:
   contents: read
