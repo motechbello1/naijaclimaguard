@@ -6,6 +6,7 @@ import {
   evaluateAlertRules,
   getActiveAlertRulesForUser,
 } from "@/lib/alerts/engine";
+import { recordAlertEvidence } from "@/lib/evidence/alert-evidence";
 
 /**
  * GET /api/alerts/check
@@ -28,6 +29,7 @@ export async function GET() {
 
   const rules = await getActiveAlertRulesForUser(session.user.email);
   const evaluated = await evaluateAlertRules(rules);
+  const evidence = await recordAlertEvidence(rules, evaluated);
   const results = evaluated.map(({ userId: _userId, ...result }) => result);
 
   return NextResponse.json({
@@ -36,6 +38,7 @@ export async function GET() {
       email: process.env.RESEND_API_KEY ? "live" : "pending_credential",
       sms: "integration_pending_phone_field",
     },
+    evidence,
     model: "derived-v2 · same engine as /api/v1/risk",
     results,
   });

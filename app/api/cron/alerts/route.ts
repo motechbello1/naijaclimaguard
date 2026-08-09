@@ -3,6 +3,7 @@ import {
   evaluateAlertRules,
   getBackgroundAlertBatch,
 } from "@/lib/alerts/engine";
+import { recordAlertEvidence } from "@/lib/evidence/alert-evidence";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -15,11 +16,7 @@ function authorized(request: Request) {
 
 /**
  * Background alert evaluator.
- *
- * Vercel Cron automatically supplies `Authorization: Bearer <CRON_SECRET>` when
- * CRON_SECRET is configured. The route can also be invoked by another trusted
- * scheduler using the same header. It is intentionally unusable without the
- * secret.
+ * Vercel Cron automatically supplies Authorization: Bearer <CRON_SECRET> when configured.
  */
 export async function GET(request: Request) {
   if (!authorized(request)) {
@@ -31,6 +28,7 @@ export async function GET(request: Request) {
   try {
     const batch = await getBackgroundAlertBatch(250, now);
     const results = await evaluateAlertRules(batch.rules, now);
+    const evidence = await recordAlertEvidence(batch.rules, results);
 
     const summary = {
       evaluated: results.length,
@@ -47,6 +45,7 @@ export async function GET(request: Request) {
       ok: true,
       checkedAt: now.toISOString(),
       model: "derived-v2 · same engine as /api/v1/risk",
+      evidence,
       batch: {
         totalActive: batch.totalActive,
         page: batch.page + 1,
@@ -55,7 +54,6 @@ export async function GET(request: Request) {
         limit: batch.limit,
       },
       summary,
-      // Do not return user emails or secret material from the cron endpoint.
       results: results.map(({ userId: _userId, ...result }) => result),
     });
   } catch (error) {
