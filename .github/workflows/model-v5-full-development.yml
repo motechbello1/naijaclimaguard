@@ -45,9 +45,12 @@ jobs:
     needs: protocol
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    concurrency:
+      group: model-v5-ewds-source-access
+      cancel-in-progress: false
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 1
       matrix:
         include:
           - { year: 2021, quarter: 2, months: "5 6" }
@@ -80,6 +83,13 @@ jobs:
           python -m pip install -r validation/model_v5_requirements.txt
       - name: Verify EWDS credential
         run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
+      - name: Restore successful GloFAS archives from earlier attempts
+        uses: actions/cache/restore@v4
+        with:
+          path: validation/model_v5/work/glofas_raw_${{ matrix.year }}_q${{ matrix.quarter }}
+          key: model-v5-glofas-raw-${{ matrix.year }}-q${{ matrix.quarter }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            model-v5-glofas-raw-${{ matrix.year }}-q${{ matrix.quarter }}-
       - name: Fetch archived operational GloFAS control forecasts
         run: |
           python validation/fetch_glofas_operational_archive_v5.py \
@@ -89,6 +99,12 @@ jobs:
             --workers 1 \
             --raw-dir "validation/model_v5/work/glofas_raw_${{ matrix.year }}_q${{ matrix.quarter }}" \
             --out "validation/model_v5/work/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.csv"
+      - name: Persist every successful daily archive for resume
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: validation/model_v5/work/glofas_raw_${{ matrix.year }}_q${{ matrix.quarter }}
+          key: model-v5-glofas-raw-${{ matrix.year }}-q${{ matrix.quarter }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Upload GloFAS source evidence
         if: always()
         uses: actions/upload-artifact@v4
