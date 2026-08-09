@@ -1,5 +1,10 @@
-Launch definitive Model v5 monthly durable closure.
-The scientific protocol is unchanged. Acquisition transport is improved only: official cems-glofas-forecast operational LISFLOOD control forecasts, exact +24/+48/+72 leads, 2021-05-26 onward, monthly batch requests with verified daily fallback, >=90% source coverage, 44 durable month packs, NASA IMERG Early, 2022-2024 walk-forward scoring, frozen 35-event registry and unchanged freeze gates.
-Successful month packs are committed permanently before the workflow moves on, so no later upstream failure can erase valid completed source evidence.
+Launch definitive Model v5 monthly durable closure under the frozen operational-archive protocol.
+Scientific contract unchanged: official cems-glofas-forecast operational LISFLOOD control forecasts, exact +24/+48/+72 leads, eligibility from 2021-05-26, NASA IMERG Early, 2022-2024 walk-forward scoring, frozen 35-event registry and unchanged scientific gates.
 
-Clean-lane restart 2026-08-09: obsolete automatic GloFAS smoke has been isolated; this monthly closure is the sole intended EWDS acquisition owner. Preserve and reuse any valid raw cache/month packs from earlier attempts.
+Acquisition packaging correction: month packs preserve every validated retrieved issue date and record missing dates explicitly. Per-month coverage is descriptive, not a scientific pass/fail gate. The authoritative >=90% core source-coverage gate remains in build_model_v5_dataset.py over the final synchronized issue-time dataset, matching the preregistered protocol statement that development rows are created only for issue dates actually retrieved.
+
+May 2021 is already preserved transparently with 5/6 validated dates (75/90 rows), missing only 2021-05-30. Do not retry that one blocked date as a prerequisite. Continue June 2021 through December 2024, permanently committing provenance-valid month packs as they complete. When all 44 packs exist, run the unchanged synchronized dataset QA first; only if that >=90% gate passes may development scoring proceed.
+
+After the frozen development artifact exists, final closure requires the separate scoring-only strict nested confirmatory pass on branch model-v5-confirmatory-scoring. No new source retrieval is permitted in that confirmatory pass.
+
+Corrected closure trigger: 2026-08-09 synchronized-coverage execution.
