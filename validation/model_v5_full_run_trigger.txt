@@ -1,8 +1,6 @@
-Model v5 full operational-archive development trigger.
-Triggered after replacing unavailable GloFAS reforecast development inputs with actual archived operational GloFAS control forecasts.
-Protocol locked before any Model v5 score: validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md.
-Eligible archive period begins 2019-11-05; walk-forward scoring targets 2020-2024 where folds are usable.
-Sources: NASA GPM IMERG Early V07 + Copernicus CEMS GloFAS archived operational control forecasts at +24/+48/+72 hours.
-Candidate hyperparameters, PR-AUC ranking, ablations, >=75% event detection, >=10% precision, and <=10 false positives per 1,000 negative rows remain unchanged.
-No Model v5 performance result existed before this trigger.
-Manual start requested by user: 2026-08-09T06:04+01:00.
+Model v5 repaired operational-archive development trigger.
+Triggered after EWDS cost-limit diagnosis and per-location small-box fix in commit 6e9ab847fd330db38939b8c5b1ef51dfa7e7f7d6.
+Full workflow now reuses preserved NASA artifacts from run 31292573245 and retrieves only archived operational GloFAS, parallelized into 21 year-quarter jobs.
+Protocol remains validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md and was locked before any Model v5 score existed.
+Eligible archive period begins 2019-11-05; scoring remains walk-forward over 2020-2024 where usable.
+No model candidate, threshold gate, event registry, or evaluation criterion is changed by this source-retrieval repair.
