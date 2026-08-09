@@ -11,7 +11,9 @@ export type EvidenceEventType =
   | "WARNING_ACKNOWLEDGED"
   | "AGENCY_ADVISORY_ACKNOWLEDGED"
   | "AGENCY_ADVISORY_ESCALATED"
-  | "AGENCY_ADVISORY_RESOLVED";
+  | "AGENCY_ADVISORY_RESOLVED"
+  | "CITIZEN_REPORT_VERIFIED"
+  | "CITIZEN_REPORT_REJECTED";
 
 export interface AppendEvidenceInput {
   eventType: EvidenceEventType;
