@@ -1,11 +1,21 @@
 export type ExplanationMode = "simple" | "detailed" | "technical";
 export type UserRole = "HOUSEHOLD" | "FARMER" | "BUSINESS" | "AGENCY";
+export type AssetType =
+  | "HOME"
+  | "FARM"
+  | "BUSINESS_PREMISES"
+  | "WAREHOUSE"
+  | "SCHOOL"
+  | "INSURED_PROPERTY"
+  | "GOVERNMENT_FACILITY"
+  | "OTHER";
 
 export interface ActionGuidanceInput {
   score: number;
   level: string;
   role: UserRole;
   locationName: string;
+  assetType?: AssetType;
   model?: string;
   threshold?: number;
 }
@@ -18,6 +28,17 @@ export interface ActionGuidance {
   detailed: string;
   technical: string;
 }
+
+export const ASSET_LABELS: Record<AssetType, string> = {
+  HOME: "Home",
+  FARM: "Farm",
+  BUSINESS_PREMISES: "Business premises",
+  WAREHOUSE: "Warehouse",
+  SCHOOL: "School",
+  INSURED_PROPERTY: "Insured property",
+  GOVERNMENT_FACILITY: "Government facility",
+  OTHER: "Other asset",
+};
 
 const normaliseLevel = (score: number, level: string) => {
   const l = (level || "").toUpperCase();
@@ -54,10 +75,51 @@ const roleActions: Record<UserRole, Record<string, string[]>> = {
   },
 };
 
+const assetActions: Record<AssetType, Partial<Record<string, string[]>>> = {
+  HOME: {
+    MODERATE: ["Check the safest exit route from this home and where household members would regroup."],
+    HIGH: ["Move vulnerable household items from low floors where this can be done safely."],
+    CRITICAL: ["Do not remain in this property solely to protect belongings if authorities advise evacuation."],
+  },
+  FARM: {
+    MODERATE: ["Identify the lowest plots, animal pens and storage areas attached to this farm."],
+    HIGH: ["Prioritise movable livestock, inputs and harvested produce in the lowest parts of this farm."],
+    CRITICAL: ["Record affected plots, livestock areas and stored inputs for recovery evidence when safe."],
+  },
+  BUSINESS_PREMISES: {
+    MODERATE: ["Identify customer, staff and equipment areas that would be disrupted first at this premises."],
+    HIGH: ["Prepare a controlled shutdown and staff notification plan for this premises."],
+    CRITICAL: ["Suspend unsafe access and preserve business interruption records when safe."],
+  },
+  WAREHOUSE: {
+    MODERATE: ["Identify floor-level stock, electrical equipment and loading access most exposed at this warehouse."],
+    HIGH: ["Move high-value or water-sensitive stock upward or to a safer facility where feasible."],
+    CRITICAL: ["Protect staff first; document exposed inventory and blocked access for recovery or insurance."],
+  },
+  SCHOOL: {
+    MODERATE: ["Review pupil, staff and guardian contact procedures and safe assembly points for this school."],
+    HIGH: ["Prepare authorised parent/guardian messaging and review whether activities should be moved or suspended."],
+    CRITICAL: ["Follow authorised closure or evacuation procedures and account for pupils and staff."],
+  },
+  INSURED_PROPERTY: {
+    MODERATE: ["Check policy records, insured values and current photographs for this property."],
+    HIGH: ["Preserve time-stamped evidence of the property condition and protect movable insured assets where safe."],
+    CRITICAL: ["Prioritise safety, then document damage and disruption for claims handling when conditions allow."],
+  },
+  GOVERNMENT_FACILITY: {
+    MODERATE: ["Review continuity contacts, critical services and public access dependencies for this facility."],
+    HIGH: ["Prepare continuity measures and verify communications with the responsible authority."],
+    CRITICAL: ["Escalate through the authorised command chain and preserve an incident record of decisions and service disruption."],
+  },
+  OTHER: {},
+};
+
 export function getActionGuidance(input: ActionGuidanceInput): ActionGuidance {
   const risk = normaliseLevel(input.score, input.level);
-  const urgency = risk === "CRITICAL" ? "act" : risk === "HIGH" ? "act" : risk === "MODERATE" ? "prepare" : "monitor";
-  const actions = roleActions[input.role][risk];
+  const urgency = risk === "CRITICAL" || risk === "HIGH" ? "act" : risk === "MODERATE" ? "prepare" : "monitor";
+  const assetType = input.assetType || "OTHER";
+  const assetLabel = ASSET_LABELS[assetType];
+  const actions = [...roleActions[input.role][risk], ...(assetActions[assetType][risk] || [])];
   const headline = risk === "CRITICAL"
     ? `Act now for ${input.locationName}`
     : risk === "HIGH"
@@ -71,13 +133,13 @@ export function getActionGuidance(input: ActionGuidanceInput): ActionGuidance {
     urgency,
     actions,
     simple: risk === "LOW"
-      ? `Flood risk is currently low for ${input.locationName}. Keep monitoring.`
+      ? `Flood risk is currently low for this ${assetLabel.toLowerCase()} in ${input.locationName}. Keep monitoring.`
       : risk === "MODERATE"
-        ? `Flood risk is increasing for ${input.locationName}. Prepare now so you can move quickly if conditions worsen.`
+        ? `Flood risk is increasing around this ${assetLabel.toLowerCase()} in ${input.locationName}. Prepare now so you can move quickly if conditions worsen.`
         : risk === "HIGH"
-          ? `Flood risk is high for ${input.locationName}. Take the recommended protective actions now and watch for official instructions.`
-          : `Flood risk is critical for ${input.locationName}. Prioritise safety and follow authorised emergency instructions immediately.`,
-    detailed: `NaijaClimaGuard currently classifies ${input.locationName} as ${risk} risk with a live risk index of ${Math.round(input.score)}/100. This is a decision-support signal: combine it with official NiHSA/NEMA/state guidance and verified local observations. The actions below are tailored to the selected user type.`,
-    technical: `Risk index=${input.score.toFixed(1)}/100; level=${risk}; model=${input.model || "current disclosed production engine"}${input.threshold !== undefined ? `; alert threshold=${input.threshold}` : ""}. Guidance is a deterministic presentation layer and does not alter the underlying model output.`,
+          ? `Flood risk is high around this ${assetLabel.toLowerCase()} in ${input.locationName}. Take the recommended protective actions now and watch for official instructions.`
+          : `Flood risk is critical around this ${assetLabel.toLowerCase()} in ${input.locationName}. Prioritise safety and follow authorised emergency instructions immediately.`,
+    detailed: `NaijaClimaGuard currently classifies ${input.locationName} as ${risk} risk with a live risk index of ${Math.round(input.score)}/100. This saved point is being treated as ${assetLabel.toLowerCase()}, so the actions combine the selected user role with asset-specific preparedness. Use this decision-support signal alongside official NiHSA/NEMA/state guidance and verified local observations.`,
+    technical: `Risk index=${input.score.toFixed(1)}/100; level=${risk}; asset_type=${assetType}; role=${input.role}; model=${input.model || "current disclosed production engine"}${input.threshold !== undefined ? `; alert threshold=${input.threshold}` : ""}. Guidance is a deterministic presentation layer and does not alter the underlying model output.`,
   };
 }
