@@ -65,6 +65,18 @@ requireText(evidence, "Evidence events use SHA-256 fingerprints", 'createHash("s
 requireText(evidence, "Evidence chain carries previous hash", 'previousHash: previous?.eventHash ?? null');
 requireText(evidence, "Evidence hashes are computed from stable immutable payload", 'const eventHash = fingerprint(immutable)');
 requireText(evidence, "Evidence writes occur in a database transaction", 'prisma.$transaction');
+requireText(evidence, "Evidence has a deterministic verification function", 'export function verifyEvidenceWindow');
+requireText(evidence, "Verifier checks stored hash against recomputed hash", 'expectedHash !== event.eventHash');
+requireText(evidence, "Verifier checks previous-hash linkage", 'event.previousHash !== previous.eventHash');
+
+const evidenceRoute = "app/api/evidence/events/route.ts";
+requireText(evidenceRoute, "Evidence API requires authentication", 'if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })');
+requireText(evidenceRoute, "Client evidence types are explicitly restricted", 'USER_ASSERTABLE_EVENT_TYPES');
+requireText(evidenceRoute, "User clients cannot claim system delivery evidence", 'This evidence event can only be recorded by a trusted server workflow.');
+requireText(evidenceRoute, "User-asserted evidence is provenance-labelled", 'evidenceProvenance: "user_asserted"');
+requireText(evidenceRoute, "User-asserted entries cannot claim server model identity", 'modelLabel: "user-asserted"');
+requireText(evidenceRoute, "Evidence GET returns chain verification", 'verifyEvidenceWindow(user.id, events)');
+requireText(evidenceRoute, "Evidence window truncation is disclosed", 'windowTruncated: totalEvents > events.length');
 
 const i18n = "lib/i18n/config.ts";
 requireText(i18n, "English supported", '"en"');
