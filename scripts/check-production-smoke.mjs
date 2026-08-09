@@ -9,6 +9,12 @@ async function fetchText(path) {
   return { response, text: await response.text() };
 }
 
+async function expectAnonymous401(path, label) {
+  const response = await fetch(`${base}${path}`, { redirect: "manual", cache: "no-store" });
+  if (response.status === 401) pass(label);
+  else fail(label, `expected 401, got ${response.status}`);
+}
+
 async function main() {
   const home = await fetchText("/");
   home.response.ok ? pass("Homepage responds") : fail("Homepage responds", String(home.response.status));
@@ -53,11 +59,17 @@ async function main() {
   dashboard.response.ok ? pass("Dashboard shell responds") : fail("Dashboard shell responds", String(dashboard.response.status));
   dashboard.text.includes("ClimaGuard Assistant") ? pass("Assistant surface is present") : fail("Assistant surface is present");
 
+  await expectAnonymous401("/api/locations", "Saved locations reject anonymous access");
+  await expectAnonymous401("/api/alerts", "Alert rules reject anonymous access");
+  await expectAnonymous401("/api/profile/delivery", "Delivery preferences reject anonymous access");
+  await expectAnonymous401("/api/agency/command", "Agency command queue rejects anonymous access");
+  await expectAnonymous401("/api/v1/intelligence/health", "Enterprise intelligence health rejects anonymous access");
+
   if (failed) {
     console.error(`\nProduction smoke failed: ${failed} issue(s).`);
     process.exit(1);
   }
-  console.log("\nProduction smoke passed. This verifies public deployment surfaces only; authenticated workflows and partner-feed field operation require separate evidence.");
+  console.log("\nProduction smoke passed. This verifies public deployment surfaces and anonymous auth boundaries only; signed-in workflow behavior and partner-feed field operation require separate evidence.");
 }
 
 main().catch((error) => {
