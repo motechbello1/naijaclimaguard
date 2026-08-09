@@ -61,6 +61,34 @@ const checks = [
     ],
   },
   {
+    file: "lib/assistant/knowledge.ts",
+    rules: [
+      ['Assistant has a flood-definition intent', '"flood_definition"'],
+      ['What-is-flood routes to flood education', 'what is (a )?flood'],
+      ['Assistant has causes knowledge', 'causes:'],
+      ['Assistant has during-flood guidance', 'during:'],
+      ['Assistant fallback asks for clarification', 'I am not sure which part you mean.'],
+      ['Assistant distinguishes Model v5 from public engine', 'Model v5 is still being validated'],
+    ],
+  },
+  {
+    file: "components/assistant/FloodAssistant.tsx",
+    rules: [
+      ['Mobile assistant uses the full dynamic viewport', 'h-[100dvh]'],
+      ['Assistant auto-scrolls to the latest response', 'bottomRef.current?.scrollIntoView'],
+      ['Assistant supports contextual follow-up suggestions', 'message.suggestions'],
+      ['Safety precedence appears once as a compact chat banner', 'Official warnings and visible local flooding take priority over chatbot advice.'],
+    ],
+  },
+  {
+    file: "app/how-to-use/page.tsx",
+    rules: [
+      ['Withdrawn 0.9928 claim is absent', 'The public live score is currently the disclosed derived-v2'],
+      ['How-to-use distinguishes GloFAS modelled discharge', 'GloFAS is modelled discharge'],
+      ['How-to-use keeps official warnings above low scores', 'Never use a low NaijaClimaGuard score'],
+    ],
+  },
+  {
     file: "vercel.json",
     rules: [
       ['Model v5 preview builds are disabled', '"model-v5-*": false'],
@@ -80,6 +108,20 @@ for (const group of checks) {
     } else {
       console.log(`PASS: ${label}`);
     }
+  }
+}
+
+const withdrawn = ["0.9928", "99.28", "48 hours before government", "2022 Nigerian megaflood"];
+const publicCopy = [
+  "app/how-to-use/page.tsx",
+  "lib/assistant/knowledge.ts",
+].map((file) => `${file}\n${read(file)}`).join("\n").toLowerCase();
+for (const phrase of withdrawn) {
+  if (publicCopy.includes(phrase.toLowerCase())) {
+    failed += 1;
+    console.error(`FAIL: withdrawn public claim remains: ${phrase}`);
+  } else {
+    console.log(`PASS: withdrawn public claim absent: ${phrase}`);
   }
 }
 
