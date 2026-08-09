@@ -1,0 +1,3 @@
+Deploy latest main after agency-command and verified last-mile delivery merges.
+Database-dependent Product 2026 routes remain fail-safe until staged Prisma migrations are applied through the guarded migration path.
+Triggered 2026-08-09.
