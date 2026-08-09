@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 """Fetch archived operational GloFAS control forecasts for Model v5.
 
-The active Model v5 source contract is restricted to the consistently documented
-archived control-forecast era beginning 2021-05-26:
-- dataset: cems-glofas-forecast
-- system_version: operational
-- hydrological_model: lisflood
-- product_type: control_forecast
-- leads: +24/+48/+72 hours
+Active source contract (frozen before Model v5 scoring):
+- archive starts 2021-05-26
+- dataset cems-glofas-forecast
+- system_version operational
+- hydrological_model lisflood
+- product_type control_forecast
+- +24/+48/+72 hour leads
 
-EWDS archived forecasts are requested one issue date at a time. Independent daily
-requests may be downloaded concurrently with a bounded worker pool; every request
-keeps the identical scientific source contract and retry/backoff rules.
+EWDS is queried one issue date at a time. Daily requests may run concurrently
+with a bounded worker pool. Individual unavailable dates are recorded rather
+than aborting the quarter immediately; the quarter is accepted only if the
+predeclared >=90% row-coverage gate still passes.
 """
 from __future__ import annotations
 
 import argparse
 import calendar
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -34,6 +36,7 @@ EWDS_URL = "https://ewds.climate.copernicus.eu/api"
 DATASET = "cems-glofas-forecast"
 AREA = [13.0, 5.0, 4.0, 11.0]
 ARCHIVE_START = pd.Timestamp("2021-05-26")
+MIN_COVERAGE = 0.90
 
 LOCATIONS = {
     "Lokoja": (7.8023, 6.7333),
@@ -113,7 +116,6 @@ def retrieve_day(client: cdsapi.Client, date: pd.Timestamp, leads: list[int], ra
 
 
 def retrieve_one(date: pd.Timestamp, leads: list[int], raw_dir: Path, key: str) -> tuple[pd.Timestamp, Path]:
-    # Use a client per worker/task; cdsapi's legacy client is not treated as thread-safe.
     client = cdsapi.Client(url=EWDS_URL, key=key)
     return date, retrieve_day(client, date, leads, raw_dir)
 
@@ -248,11 +250,17 @@ def main() -> None:
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     archives: dict[pd.Timestamp, Path] = {}
+    retrieval_failures: dict[str, str] = {}
+
     if args.workers == 1:
         client = cdsapi.Client(url=EWDS_URL, key=key)
         for date in dates:
             ts = pd.Timestamp(date)
-            archives[ts] = retrieve_day(client, ts, args.lead_hours, raw_dir)
+            try:
+                archives[ts] = retrieve_day(client, ts, args.lead_hours, raw_dir)
+            except Exception as exc:
+                retrieval_failures[ts.strftime("%Y-%m-%d")] = str(exc)[:2000]
+                print(f"EWDS date unavailable after retries: {ts.date()}: {exc}", flush=True)
     else:
         print(f"Retrieving {len(dates)} issue dates with {args.workers} bounded workers", flush=True)
         with ThreadPoolExecutor(max_workers=args.workers) as executor:
@@ -261,42 +269,86 @@ def main() -> None:
                 for date in dates
             }
             for future in as_completed(futures):
-                date, archive = future.result()
-                archives[pd.Timestamp(date)] = archive
-                print(f"Completed EWDS archive {date.date()} ({len(archives)}/{len(dates)})", flush=True)
+                requested = futures[future]
+                try:
+                    date, archive = future.result()
+                    archives[pd.Timestamp(date)] = archive
+                    print(f"Completed EWDS archive {date.date()} ({len(archives)}/{len(dates)})", flush=True)
+                except Exception as exc:
+                    retrieval_failures[requested.strftime("%Y-%m-%d")] = str(exc)[:2000]
+                    print(f"EWDS date unavailable after retries: {requested.date()}: {exc}", flush=True)
 
     rows: list[dict] = []
+    parse_failures: dict[str, str] = {}
     for date in sorted(archives):
-        rows.extend(extract_archive(archives[date]))
+        try:
+            extracted = extract_archive(archives[date])
+            if not extracted:
+                raise RuntimeError("archive parsed but yielded zero target rows")
+            rows.extend(extracted)
+        except Exception as exc:
+            parse_failures[date.strftime("%Y-%m-%d")] = str(exc)[:2000]
+            print(f"EWDS archive parse failure: {date.date()}: {exc}", flush=True)
 
-    out = pd.DataFrame(rows)
-    if out.empty:
-        raise RuntimeError(f"No operational GloFAS rows extracted for selected dates in {args.year}")
-    out["issue_date"] = pd.to_datetime(out["issue_date"]).dt.strftime("%Y-%m-%d")
-    out = out[out["lead_time_hours"].isin([24, 48, 72])].copy()
-    out = out.sort_values(["issue_date", "location", "lead_time_hours"]).drop_duplicates(
-        ["issue_date", "location", "lead_time_hours"], keep="last"
-    )
+    path = Path(args.out)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    if rows:
+        out = pd.DataFrame(rows)
+        out["issue_date"] = pd.to_datetime(out["issue_date"]).dt.strftime("%Y-%m-%d")
+        out = out[out["lead_time_hours"].isin([24, 48, 72])].copy()
+        out = out.sort_values(["issue_date", "location", "lead_time_hours"]).drop_duplicates(
+            ["issue_date", "location", "lead_time_hours"], keep="last"
+        )
+        out.to_csv(path, index=False)
+    else:
+        out = pd.DataFrame()
 
     expected_rows = len(dates) * len(LOCATIONS) * 3
-    coverage = len(out) / expected_rows
-    if coverage < 0.90:
-        expected_set = {pd.Timestamp(d).strftime("%Y-%m-%d") for d in dates}
-        actual_set = set(out["issue_date"].unique())
-        missing = sorted(expected_set - actual_set)
+    coverage = len(out) / expected_rows if expected_rows else 0.0
+    expected_set = {pd.Timestamp(d).strftime("%Y-%m-%d") for d in dates}
+    actual_set = set(out["issue_date"].unique()) if not out.empty else set()
+    missing_dates = sorted(expected_set - actual_set)
+
+    manifest = {
+        "schema": "naijaclimaguard.model_v5_glofas_source_qa.v1",
+        "year": args.year,
+        "months": months,
+        "requested_issue_dates": len(dates),
+        "retrieved_archives": len(archives),
+        "extracted_issue_dates": len(actual_set),
+        "expected_rows": expected_rows,
+        "output_rows": int(len(out)),
+        "coverage": coverage,
+        "minimum_coverage": MIN_COVERAGE,
+        "missing_issue_dates": missing_dates,
+        "retrieval_failures": retrieval_failures,
+        "parse_failures": parse_failures,
+        "source_contract": {
+            "dataset": DATASET,
+            "system_version": "operational",
+            "hydrological_model": "lisflood",
+            "product_type": "control_forecast",
+            "lead_hours": [24, 48, 72],
+            "archive_start": str(ARCHIVE_START.date()),
+        },
+    }
+    manifest_path = path.with_suffix(".source_manifest.json")
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+
+    if out.empty:
+        raise RuntimeError(f"No operational GloFAS rows extracted for selected dates in {args.year}")
+    if coverage < MIN_COVERAGE:
         raise RuntimeError(
-            f"Operational GloFAS coverage below 90% for {args.year}: "
-            f"{len(out)}/{expected_rows} ({coverage:.1%}); missing dates sample={missing[:10]}"
+            f"Operational GloFAS coverage below {MIN_COVERAGE:.0%} for {args.year}: "
+            f"{len(out)}/{expected_rows} ({coverage:.1%}); missing dates sample={missing_dates[:10]}"
         )
     if out["location"].nunique() != len(LOCATIONS):
         raise RuntimeError("Operational GloFAS output does not contain all five pilot locations")
 
-    path = Path(args.out)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    out.to_csv(path, index=False)
     print(
-        f"Wrote {len(out):,} operational GloFAS rows for {len(dates)} issue dates in {args.year}; "
-        f"coverage={coverage:.1%}; workers={args.workers}; path={path}"
+        f"Wrote {len(out):,} operational GloFAS rows for {len(actual_set)}/{len(dates)} issue dates in {args.year}; "
+        f"coverage={coverage:.1%}; workers={args.workers}; path={path}; manifest={manifest_path}"
     )
 
 
