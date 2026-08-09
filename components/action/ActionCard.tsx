@@ -39,6 +39,8 @@ export default function ActionCard({
   const { mode } = useExplanationMode();
   const [assetType, setAssetType] = useState<AssetType>(roleDefaultAsset[role]);
   const [done, setDone] = useState<number[]>([]);
+  const [recorded, setRecorded] = useState<number[]>([]);
+  const [recording, setRecording] = useState<number[]>([]);
 
   useEffect(() => {
     const savedAsset = window.localStorage.getItem(assetStorageKey(locationId));
@@ -49,6 +51,7 @@ export default function ActionCard({
   const changeAssetType = (next: AssetType) => {
     setAssetType(next);
     setDone([]);
+    setRecorded([]);
     window.localStorage.setItem(assetStorageKey(locationId), next);
   };
 
@@ -63,6 +66,44 @@ export default function ActionCard({
     : guidance.urgency === "prepare"
       ? "border-amber/30 bg-amber/5"
       : "border-radar/20 bg-radar/5";
+
+  const toggleAction = async (index: number, action: string) => {
+    const complete = done.includes(index);
+    if (complete) {
+      setDone((current) => current.filter((item) => item !== index));
+      return;
+    }
+
+    setDone((current) => [...current, index]);
+    setRecording((current) => [...current, index]);
+
+    try {
+      const response = await fetch("/api/evidence/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventType: "ACTION_ACKNOWLEDGED",
+          locationId,
+          riskScore: score,
+          riskLevel: level,
+          modelLabel: model || "current disclosed production engine",
+          assetType,
+          actionCode: `${role}:${assetType}:${index}`,
+          actionText: action,
+          deliveryState: "user_marked_done",
+          metadata: { role, detailMode: mode },
+        }),
+      });
+
+      if (response.ok) {
+        setRecorded((current) => current.includes(index) ? current : [...current, index]);
+      }
+    } catch {
+      // The checklist must remain usable if the optional evidence service is unavailable.
+    } finally {
+      setRecording((current) => current.filter((item) => item !== index));
+    }
+  };
 
   return (
     <section className={`rounded-2xl border p-5 ${urgencyClass}`} aria-label={`Recommended actions for ${locationName}`}>
@@ -97,15 +138,24 @@ export default function ActionCard({
       <div className="mt-5 space-y-2">
         {guidance.actions.map((action, index) => {
           const complete = done.includes(index);
+          const isRecording = recording.includes(index);
+          const isRecorded = recorded.includes(index);
           return (
             <button
               key={`${role}-${assetType}-${index}`}
               type="button"
-              onClick={() => setDone((current) => complete ? current.filter((x) => x !== index) : [...current, index])}
+              onClick={() => toggleAction(index, action)}
               className="flex w-full items-start gap-3 rounded-xl border border-slate-200/80 bg-white/70 p-3 text-left transition-all hover:border-radar/30 dark:border-midnight-border dark:bg-midnight-light/60"
             >
               {complete ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-radar" /> : <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />}
-              <span className={`text-sm leading-relaxed ${complete ? "text-slate-400 line-through" : "text-slate-700 dark:text-slate-200"}`}>{action}</span>
+              <span className="min-w-0 flex-1">
+                <span className={`block text-sm leading-relaxed ${complete ? "text-slate-400 line-through" : "text-slate-700 dark:text-slate-200"}`}>{action}</span>
+                {mode !== "simple" && complete && (
+                  <span className="mt-1 block text-[10px] text-slate-400">
+                    {isRecording ? "Recording evidence…" : isRecorded ? "Acknowledgement recorded in evidence history" : "Completed locally; evidence ledger unavailable"}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}
@@ -114,7 +164,7 @@ export default function ActionCard({
       <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
         {mode === "simple"
           ? "Tap an action when you have done it. Follow official emergency instructions when they are issued."
-          : "Asset profile is remembered on this device. Decision support only: follow authorised emergency instructions. Checklist completion is not an official response confirmation."}
+          : "Completed actions are appended to evidence history when the server ledger is available. Unchecking an item does not erase an earlier evidence event."}
       </p>
     </section>
   );
