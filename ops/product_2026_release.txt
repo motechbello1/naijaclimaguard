@@ -1,0 +1,3 @@
+Product 2026 production release marker.
+Release includes the adaptive role dashboards, Enterprise/Agency operational-readiness command strip, official-advisory safety overlay, Agency Command Queue, operational evidence, source health, and verified last-mile delivery code already merged into main.
+This marker exists only to trigger the production deployment after the prior Vercel build-rate limit cleared.
