@@ -1,0 +1,3 @@
+Launch definitive Model v5 monthly durable closure.
+The scientific protocol is unchanged. Acquisition transport is improved only: official cems-glofas-forecast operational LISFLOOD control forecasts, exact +24/+48/+72 leads, 2021-05-26 onward, monthly batch requests with verified daily fallback, >=90% source coverage, 44 durable month packs, NASA IMERG Early, 2022-2024 walk-forward scoring, frozen 35-event registry and unchanged freeze gates.
+Successful month packs are committed permanently before the workflow moves on, so no later upstream failure can erase valid completed source evidence.
