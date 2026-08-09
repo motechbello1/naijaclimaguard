@@ -3,49 +3,52 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String?
-  passwordHash String
-  plan         String   @default("FREE")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  locations    Location[]
-  alerts       Alert[]
-  reports      Report[]
+  id             String          @id @default(cuid())
+  email          String          @unique
+  name           String?
+  passwordHash   String
+  plan           String          @default("FREE")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  locations      Location[]
+  alerts         Alert[]
+  reports        Report[]
+  evidenceEvents EvidenceEvent[]
 }
 
 model Location {
-  id        String   @id @default(cuid())
-  name      String
-  state     String
-  latitude  Float
-  longitude Float
-  createdAt DateTime @default(now())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  alerts    Alert[]
+  id             String          @id @default(cuid())
+  name           String
+  state          String
+  latitude       Float
+  longitude      Float
+  createdAt      DateTime        @default(now())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts         Alert[]
+  evidenceEvents EvidenceEvent[]
 }
 
 model Alert {
   id             String   @id @default(cuid())
   lastNotifiedAt DateTime?
-  threshold  Int
-  channels   String
-  active     Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locationId String
-  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  threshold      Int
+  channels       String
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId     String
+  location       Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 }
+
 model Report {
   id          String   @id @default(cuid())
   latitude    Float
@@ -59,4 +62,33 @@ model Report {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
+}
+
+/// Append-only audit evidence. Application code exposes GET/POST only; no mutation
+/// endpoint is provided. eventHash fingerprints the immutable event payload and
+/// previousHash links each user's events in issuance order when available.
+model EvidenceEvent {
+  id           String   @id @default(cuid())
+  eventType    String
+  occurredAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId   String?
+  location     Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  riskScore    Float?
+  riskLevel    String?
+  modelLabel   String?
+  assetType    String?
+  actionCode   String?
+  actionText   String?
+  channel      String?
+  deliveryState String?
+  previousHash String?
+  eventHash    String   @unique
+  metadata     Json?
+
+  @@index([userId, occurredAt])
+  @@index([locationId, occurredAt])
+  @@index([eventType, occurredAt])
 }
