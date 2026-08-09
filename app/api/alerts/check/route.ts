@@ -8,11 +8,6 @@ import {
 } from "@/lib/alerts/engine";
 import { recordAlertEvidence } from "@/lib/evidence/alert-evidence";
 
-/**
- * GET /api/alerts/check
- * Manual, authenticated alert evaluation for the signed-in user's active rules.
- * Uses the exact same derived-v2 calculation as /api/v1/risk.
- */
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
@@ -35,11 +30,13 @@ export async function GET() {
   return NextResponse.json({
     checkedAt: new Date().toISOString(),
     channels: {
-      email: process.env.RESEND_API_KEY ? "live" : "pending_credential",
-      sms: "integration_pending_phone_field",
+      email: process.env.RESEND_API_KEY ? "provider_configured" : "not_configured",
+      sms: process.env.SMS_PROVIDER_URL && process.env.SMS_PROVIDER_TOKEN ? "provider_configured" : "not_configured",
+      whatsapp: process.env.WHATSAPP_PROVIDER_URL && process.env.WHATSAPP_PROVIDER_TOKEN ? "provider_configured" : "not_configured",
+      voice: process.env.VOICE_PROVIDER_URL && process.env.VOICE_PROVIDER_TOKEN ? "provider_configured" : "not_configured",
     },
     evidence,
-    model: "derived-v2 · same engine as /api/v1/risk",
+    model: "derived-v2 plus independent official-advisory safety overlay",
     results,
   });
 }
