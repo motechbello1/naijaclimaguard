@@ -1,1 +1,1 @@
-Refresh diagnostic after three-era GloFAS smoke has had time to start on archive mapping/parser commit c4a2d1f067a26a90815a148389b5a5ebd5659277.
+Refresh diagnostic after operational-selector three-era smoke workflow commit 991c6e2c6e8642920ec5822b57dc618d859a5645.
