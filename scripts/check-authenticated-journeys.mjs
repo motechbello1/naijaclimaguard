@@ -45,6 +45,17 @@ requireText(delivery, "Changing phone disables WhatsApp", 'whatsappEnabled = fal
 requireText(delivery, "Changing phone disables voice", 'voiceEnabled = false');
 requireText(delivery, "Phone delivery cannot be enabled before verification", 'Verify your phone number before enabling SMS, WhatsApp or voice alerts.');
 
+const reports = "app/api/citizen-reports/route.ts";
+requireText(reports, "Citizen report submission requires authentication", 'Sign in to submit a report.');
+requireText(reports, "Citizen reports are rate limited", 'max 5 reports per hour');
+requireText(reports, "Community report coordinates are withheld from ordinary users", 'withheld_from_community_view');
+requireText(reports, "Exact citizen-report coordinates are Enterprise-only", 'account.plan === "ENTERPRISE"');
+requireText(reports, "Citizen report moderation is Enterprise-only", 'Report verification requires an ENTERPRISE operator account.');
+requireText(reports, "Citizen report can only be reviewed from PENDING", 'report.status !== "PENDING"');
+requireText(reports, "Citizen moderation has race-safe conditional update", 'where: { id, status: "PENDING" }');
+requireText(reports, "Citizen moderation writes evidence in same transaction", 'appendEvidenceEventInTransaction(tx');
+requireText(reports, "Citizen moderation aborts if evidence cannot be recorded", 'The report was not changed because its moderation evidence could not be recorded.');
+
 const command = "app/api/agency/command/route.ts";
 requireText(command, "Agency command requires Enterprise plan", 'account.plan !== "ENTERPRISE"');
 requireText(command, "Agency command only accepts canonical official advisories", 'sourceKind: IntelligenceSourceKind.OFFICIAL_ADVISORY');
@@ -63,11 +74,12 @@ requireText(health, "Stale source data is represented explicitly", 'status: "sta
 const evidence = "lib/evidence/ledger.ts";
 requireText(evidence, "Evidence events use SHA-256 fingerprints", 'createHash("sha256")');
 requireText(evidence, "Evidence chain carries previous hash", 'previousHash: previous?.eventHash ?? null');
-requireText(evidence, "Evidence hashes are computed from stable immutable payload", 'const eventHash = fingerprint(immutable)');
-requireText(evidence, "Evidence writes occur in a database transaction", 'prisma.$transaction');
 requireText(evidence, "Evidence has a deterministic verification function", 'export function verifyEvidenceWindow');
 requireText(evidence, "Verifier checks stored hash against recomputed hash", 'expectedHash !== event.eventHash');
 requireText(evidence, "Verifier checks previous-hash linkage", 'event.previousHash !== previous.eventHash');
+requireText(evidence, "Evidence helper supports caller transaction", 'appendEvidenceEventInTransaction');
+requireText(evidence, "Citizen verification event type exists", '"CITIZEN_REPORT_VERIFIED"');
+requireText(evidence, "Citizen rejection event type exists", '"CITIZEN_REPORT_REJECTED"');
 
 const evidenceRoute = "app/api/evidence/events/route.ts";
 requireText(evidenceRoute, "Evidence API requires authentication", 'if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })');
