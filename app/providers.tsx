@@ -6,6 +6,7 @@ import { ReactNode } from "react";
 import SplashScreen from "@/components/shared/SplashScreen";
 import { LanguageProvider } from "@/components/shared/LanguageProvider";
 import LanguagePreferenceSync from "@/components/shared/LanguagePreferenceSync";
+import PlatformTranslationBridge from "@/components/shared/PlatformTranslationBridge";
 import { SpeechProvider } from "@/components/shared/SpeechProvider";
 import GlobalAccessibilityDock from "@/components/shared/GlobalAccessibilityDock";
 import FloodAssistant from "@/components/assistant/FloodAssistant";
@@ -17,6 +18,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <LanguageProvider>
           <SpeechProvider>
             <LanguagePreferenceSync />
+            <PlatformTranslationBridge />
             <SplashScreen />
             {children}
             <GlobalAccessibilityDock />
