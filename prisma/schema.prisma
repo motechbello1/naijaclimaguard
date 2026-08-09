@@ -118,6 +118,7 @@ model DeliveryPreference {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   phoneE164         String?
   phoneVerifiedAt   DateTime?
+  platformLanguage  String   @default("ENGLISH")
   preferredLanguage String   @default("ENGLISH")
   emailEnabled      Boolean  @default(true)
   smsEnabled        Boolean  @default(false)
