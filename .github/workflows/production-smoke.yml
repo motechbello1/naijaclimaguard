@@ -1,6 +1,11 @@
 name: Production Smoke Gate
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/check-production-smoke.mjs"
+      - ".github/workflows/production-smoke.yml"
   workflow_dispatch:
   schedule:
     - cron: "17 */6 * * *"
