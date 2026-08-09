@@ -908,11 +908,13 @@
       {
         "id": 93231333744,
         "name": "glofas (2022, 4, 10 11 12)",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "failure",
         "started_at": "2026-08-09T10:20:01Z",
-        "completed_at": null,
-        "failed_steps": [],
+        "completed_at": "2026-08-09T10:23:51Z",
+        "failed_steps": [
+          "Fetch archived operational GloFAS forecasts"
+        ],
         "steps": [
           {
             "name": "Set up job",
@@ -941,23 +943,28 @@
           },
           {
             "name": "Fetch archived operational GloFAS forecasts",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "failure"
           },
           {
             "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "skipped"
           },
           {
             "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "skipped"
           },
           {
             "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
           }
         ]
       },
@@ -1352,17 +1359,17 @@
           },
           {
             "name": "Install Model v5 runtime",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Verify EWDS credential",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Fetch one archived operational issue date",
-            "status": "pending",
+            "status": "in_progress",
             "conclusion": null
           },
           {
@@ -1390,11 +1397,13 @@
       {
         "id": 93231818567,
         "name": "era-smoke (2022, 2022-09-21, version_3_1, lisflood)",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "failure",
         "started_at": "2026-08-09T10:23:27Z",
-        "completed_at": null,
-        "failed_steps": [],
+        "completed_at": "2026-08-09T10:24:13Z",
+        "failed_steps": [
+          "Fetch one archived operational issue date"
+        ],
         "steps": [
           {
             "name": "Set up job",
@@ -1413,49 +1422,56 @@
           },
           {
             "name": "Install Model v5 runtime",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Verify EWDS credential",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Fetch one archived operational issue date",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "failure"
           },
           {
             "name": "Validate era contract and extracted output",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "skipped"
           },
           {
             "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "skipped"
           },
           {
             "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "skipped"
           },
           {
             "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
           }
         ]
       },
       {
         "id": 93231818581,
         "name": "era-smoke (2020, 2020-04-01, version_2_1, htessel_lisflood)",
-        "status": "in_progress",
-        "conclusion": null,
+        "status": "completed",
+        "conclusion": "failure",
         "started_at": "2026-08-09T10:23:19Z",
-        "completed_at": null,
-        "failed_steps": [],
+        "completed_at": "2026-08-09T10:24:07Z",
+        "failed_steps": [
+          "Fetch one archived operational issue date"
+        ],
         "steps": [
           {
             "name": "Set up job",
@@ -1474,38 +1490,43 @@
           },
           {
             "name": "Install Model v5 runtime",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Verify EWDS credential",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Fetch one archived operational issue date",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "failure"
           },
           {
             "name": "Validate era contract and extracted output",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "skipped"
           },
           {
             "name": "Run actions/upload-artifact@v4",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "skipped"
           },
           {
             "name": "Post Run actions/setup-python@v5",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "skipped"
           },
           {
             "name": "Post Run actions/checkout@v4",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
           }
         ]
       }
