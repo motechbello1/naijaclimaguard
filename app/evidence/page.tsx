@@ -2,7 +2,7 @@
 
 import AppShell from "@/components/shared/AppShell";
 import { useEffect, useState } from "react";
-import { CheckCircle2, Clock3, FileCheck2, Loader2, ShieldCheck, AlertTriangle, BellRing } from "lucide-react";
+import { CheckCircle2, Clock3, FileCheck2, Loader2, ShieldCheck, AlertTriangle, BellRing, ShieldX } from "lucide-react";
 import { useLanguage } from "@/components/shared/LanguageProvider";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
 import type { AppLocale } from "@/lib/i18n/config";
@@ -13,6 +13,14 @@ interface EvidenceEvent {
   assetType?: string | null; actionCode?: string | null; actionText?: string | null;
   channel?: string | null; deliveryState?: string | null; previousHash?: string | null;
   eventHash: string; metadata?: unknown;
+}
+
+interface EvidenceVerification {
+  valid: boolean;
+  checkedEvents: number;
+  totalEvents: number;
+  windowTruncated: boolean;
+  failures: Array<{ id: string; reason: string }>;
 }
 
 function deliveredBy(locale: AppLocale, channel: string) {
@@ -37,6 +45,7 @@ function humanEvent(event: EvidenceEvent, locale: AppLocale) {
 export default function EvidencePage() {
   const { locale } = useLanguage();
   const [events, setEvents] = useState<EvidenceEvent[]>([]);
+  const [verification, setVerification] = useState<EvidenceVerification | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "unavailable" | "error">("loading");
 
   useEffect(() => {
@@ -45,7 +54,9 @@ export default function EvidencePage() {
         const data = await res.json();
         if (res.status === 503) { setState("unavailable"); return; }
         if (!res.ok) throw new Error(data.error || "Could not load evidence");
-        setEvents(data.events ?? []); setState("ready");
+        setEvents(data.events ?? []);
+        setVerification(data.verification ?? null);
+        setState("ready");
       })
       .catch(() => setState("error"));
   }, []);
@@ -58,7 +69,31 @@ export default function EvidencePage() {
           <p className="simple-only mt-1 text-sm text-slate-500">See warnings we recorded and actions you marked as done.</p>
           <p className="standard-up mt-1 text-sm text-slate-500">Append-only operational history for warning, delivery and action events.</p>
         </div>
+
         <div className="simple-only rounded-2xl border border-radar/20 bg-radar/5 p-5 text-sm leading-relaxed">This history helps you remember what happened. For organisations, the same records can support audits and incident reviews. A record here does not replace an official emergency-agency record.</div>
+
+        {state === "ready" && verification && (
+          <div className={`rounded-2xl border p-4 ${verification.valid ? "border-radar/30 bg-radar/5" : "border-crimson/30 bg-crimson/5"}`}>
+            <div className="flex items-start gap-3">
+              {verification.valid ? <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-radar" /> : <ShieldX className="mt-0.5 h-5 w-5 shrink-0 text-crimson" />}
+              <div>
+                <p className={`font-semibold ${verification.valid ? "text-radar" : "text-crimson"}`}>
+                  {verification.valid
+                    ? verification.windowTruncated ? "Recent evidence chain verified" : "Full evidence chain verified"
+                    : "Evidence chain verification failed"}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  {verification.valid
+                    ? verification.windowTruncated
+                      ? `The newest ${verification.checkedEvents} of ${verification.totalEvents} records have valid hashes and links inside this review window. Older records exist outside the current window.`
+                      : `All ${verification.totalEvents} available records have valid hashes and chain links.`
+                    : `${verification.failures.length} hash or chain-link problem${verification.failures.length === 1 ? " was" : "s were"} detected. Do not treat this evidence window as verified until reviewed.`}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {state === "loading" && <div className="flex items-center justify-center gap-3 py-16 text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading your history…</div>}
         {state === "unavailable" && <div className="rounded-2xl border border-amber/30 bg-amber/5 p-6"><h2 className="font-semibold">Evidence history is not active yet</h2><p className="mt-2 text-sm text-slate-600 dark:text-slate-300">The product code is ready, but the evidence database migration has not yet been applied to this environment. Alerts and local safety actions continue to work; we are not pretending the server ledger is active before it is.</p></div>}
         {state === "error" && <div className="rounded-2xl border border-crimson/20 bg-crimson/5 p-6 text-sm text-crimson">We could not load your evidence history right now.</div>}
