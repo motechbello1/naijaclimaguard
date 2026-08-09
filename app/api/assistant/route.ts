@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchDerivedV2Risk } from "@/lib/risk/derived-v2";
 import { findOfficialSafetyState } from "@/lib/intelligence/official-advisory";
-import { classifyAssistantQuestion, getStaticAssistantAnswer } from "@/lib/assistant/knowledge";
+import { classifyAssistantQuestion, getAssistantSuggestions, getStaticAssistantAnswer, type AssistantTopic } from "@/lib/assistant/knowledge";
 import { isAppLocale, type AppLocale } from "@/lib/i18n/config";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +34,14 @@ function currentRiskAnswer(locale: AppLocale, score: number, level: string, offi
   return `${prefix[locale]}\n\n${body[locale]}`;
 }
 
+function sourceClassFor(topic: AssistantTopic) {
+  if (topic === "history") return "curated historical context";
+  if (["platform", "report", "alerts", "model", "limitations"].includes(topic)) return "platform knowledge";
+  if (["flood_definition", "causes", "types"].includes(topic)) return "flood education";
+  if (topic === "fallback") return "needs clarification";
+  return "approved guidance";
+}
+
 export async function POST(req: Request) {
   let body: AssistantRequest;
   try {
@@ -53,13 +61,13 @@ export async function POST(req: Request) {
     const longitude = Number(body.longitude);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       const prompts: Record<AppLocale, string> = {
-        en: "I can explain live risk, but I need a location. Use the ‘Check risk near me’ button so your browser can share your coordinates for this one check.",
-        pcm: "I fit explain live risk, but I need location. Tap ‘Check risk near me’ make your browser share your location for this one check.",
-        ha: "Zan iya bayyana hadarin yanzu, amma ina bukatar wuri. Danna ‘Check risk near me’ domin browser ya ba da wurinka don wannan binciken kawai.",
-        yo: "Mo lè ṣàlàyé ewu lọwọlọwọ, ṣùgbọ́n mo nílò ibi. Tẹ ‘Check risk near me’ kí browser rẹ fi ipo rẹ fún ìyẹ̀wò yìí nìkan.",
-        ig: "Enwere m ike ịkọwa current risk, mana achọrọ m ebe. Pịa ‘Check risk near me’ ka browser kesaa location gị maka check a naanị.",
+        en: "I can explain live risk, but I need a location. Use Check risk near me so your browser can share your coordinates for this one check.",
+        pcm: "I fit explain live risk, but I need location. Tap Check risk near me make your browser share your location for this one check.",
+        ha: "Zan iya bayyana hadarin yanzu, amma ina bukatar wuri. Danna Check risk near me domin browser ya ba da wurinka don wannan binciken kawai.",
+        yo: "Mo lè ṣàlàyé ewu lọwọlọwọ, ṣùgbọ́n mo nílò ibi. Tẹ Check risk near me kí browser rẹ fi ipo rẹ fún ìyẹ̀wò yìí nìkan.",
+        ig: "Enwere m ike ịkọwa current risk, mana achọrọ m ebe. Pịa Check risk near me ka browser kesaa location gị maka check a naanị.",
       };
-      return NextResponse.json({ answer: prompts[locale], sourceClass: "live-data-needs-location" });
+      return NextResponse.json({ answer: prompts[locale], sourceClass: "live data needs location", topic, suggestions: getAssistantSuggestions(locale, topic) });
     }
 
     try {
@@ -69,19 +77,27 @@ export async function POST(req: Request) {
       ]);
       return NextResponse.json({
         answer: currentRiskAnswer(locale, risk.risk.score, risk.risk.level, official),
-        sourceClass: "live-platform-data",
+        sourceClass: "live platform data",
+        topic,
+        suggestions: getAssistantSuggestions(locale, topic),
         live: { risk: risk.risk, safety_state: official ?? { active: false, level: "NONE" } },
       });
     } catch {
-      return NextResponse.json({
-        answer: locale === "pcm" ? "Live weather feed no answer now. Try again small time; if official warning dey or you see flood for ground, follow that first." : "The live weather feed is unavailable right now. Try again shortly; if an official warning is active or you can see flooding locally, follow that first.",
-        sourceClass: "live-data-unavailable",
-      });
+      const unavailable: Record<AppLocale, string> = {
+        en: "The live weather feed is unavailable right now. Try again shortly. If an official warning is active or you can see flooding locally, follow that first.",
+        pcm: "Live weather feed no answer now. Try again small time. If official warning dey or you see flood for ground, follow that first.",
+        ha: "Bayanan yanayi na live ba su samuwa yanzu. Sake gwadawa nan gaba kadan. Idan akwai gargadin hukuma ko kana ganin ambaliya a wurinka, bi wannan da farko.",
+        yo: "Live weather feed kò sí ní akoko yìí. Tún gbìyànjú laipẹ. Tí ìkìlọ̀ ìjọba bá wà tàbí o rí ìkún omi ní agbègbè rẹ, tẹ̀lé èyí kọ́kọ́.",
+        ig: "Live weather feed adịghị ugbu a. Nwaa ọzọ obere oge. Ọ bụrụ na official warning dị ma ọ bụ ị na-ahụ flood n'ebe gị, soro nke ahụ mbụ.",
+      };
+      return NextResponse.json({ answer: unavailable[locale], sourceClass: "live data unavailable", topic, suggestions: getAssistantSuggestions(locale, topic) });
     }
   }
 
   return NextResponse.json({
     answer: getStaticAssistantAnswer(locale, topic),
-    sourceClass: topic === "history" ? "curated-historical-context" : topic === "platform" ? "platform-knowledge" : "approved-guidance",
+    sourceClass: sourceClassFor(topic),
+    topic,
+    suggestions: getAssistantSuggestions(locale, topic),
   });
 }
