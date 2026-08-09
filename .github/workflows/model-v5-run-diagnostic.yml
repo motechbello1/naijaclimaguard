@@ -1,4 +1,4 @@
-name: Model v5 Heavy Run Diagnostic
+name: Model v5 Run Diagnostic
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect latest heavy v5 workflow and persist exact job state
+      - name: Inspect latest v5 heavy and GloFAS smoke workflows
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -35,29 +35,35 @@ jobs:
             with urllib.request.urlopen(req, timeout=60) as r:
               return json.loads(r.read())
 
-          runs = get(f'https://api.github.com/repos/{repo}/actions/workflows/model-v5-full-development.yml/runs?branch=model-v5-operational-native&per_page=20')['workflow_runs']
-          if not runs:
-            raise SystemExit('No Model v5 full-development run found')
-          run = runs[0]
-          jobs = get(f'https://api.github.com/repos/{repo}/actions/runs/{run["id"]}/jobs?per_page=100')['jobs']
-          out = {
-            'workflow_run': {
-              'id': run['id'], 'run_number': run['run_number'], 'event': run['event'],
-              'status': run['status'], 'conclusion': run['conclusion'],
-              'head_sha': run['head_sha'], 'created_at': run['created_at'],
-              'updated_at': run['updated_at'], 'html_url': run['html_url']
-            },
-            'jobs': []
-          }
-          for j in jobs:
-            item = {
-              'id': j['id'], 'name': j['name'], 'status': j['status'],
-              'conclusion': j['conclusion'], 'started_at': j['started_at'],
-              'completed_at': j['completed_at'],
-              'failed_steps': [s['name'] for s in j.get('steps', []) if s.get('conclusion') == 'failure'],
-              'steps': [{'name': s['name'], 'status': s['status'], 'conclusion': s['conclusion']} for s in j.get('steps', [])]
+          def inspect(workflow_file):
+            runs = get(f'https://api.github.com/repos/{repo}/actions/workflows/{workflow_file}/runs?branch=model-v5-operational-native&per_page=20')['workflow_runs']
+            if not runs:
+              return {'error': f'No runs found for {workflow_file}'}
+            run = runs[0]
+            jobs = get(f'https://api.github.com/repos/{repo}/actions/runs/{run["id"]}/jobs?per_page=100')['jobs']
+            return {
+              'workflow_run': {
+                'id': run['id'], 'run_number': run['run_number'], 'event': run['event'],
+                'status': run['status'], 'conclusion': run['conclusion'],
+                'head_sha': run['head_sha'], 'created_at': run['created_at'],
+                'updated_at': run['updated_at'], 'html_url': run['html_url']
+              },
+              'jobs': [
+                {
+                  'id': j['id'], 'name': j['name'], 'status': j['status'],
+                  'conclusion': j['conclusion'], 'started_at': j['started_at'],
+                  'completed_at': j['completed_at'],
+                  'failed_steps': [s['name'] for s in j.get('steps', []) if s.get('conclusion') == 'failure'],
+                  'steps': [{'name': s['name'], 'status': s['status'], 'conclusion': s['conclusion']} for s in j.get('steps', [])]
+                }
+                for j in jobs
+              ]
             }
-            out['jobs'].append(item)
+
+          out = {
+            'heavy': inspect('model-v5-full-development.yml'),
+            'glofas_operational_smoke': inspect('model-v5-glofas-operational-smoke.yml'),
+          }
           os.makedirs('validation', exist_ok=True)
           with open('validation/model_v5_heavy_run_diagnostic.json','w') as f:
             json.dump(out, f, indent=2)
@@ -69,6 +75,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add validation/model_v5_heavy_run_diagnostic.json
           git diff --cached --quiet && exit 0
-          git commit -m "model-v5: persist heavy-run diagnostic"
+          git commit -m "model-v5: persist run diagnostic"
           git pull --rebase origin model-v5-operational-native
           git push origin HEAD:model-v5-operational-native
