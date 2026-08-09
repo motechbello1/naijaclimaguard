@@ -1,1 +1,1 @@
-Probe EWDS GloFAS v4.0 reforecast contract for Model v5 target years before any full rerun.
+Probe EWDS GloFAS v4.0 reforecast contract using valid 2024 Monday reference date 01-01 across Model v5 target years.
