@@ -62,6 +62,7 @@ async function main() {
   await expectAnonymous401("/api/locations", "Saved locations reject anonymous access");
   await expectAnonymous401("/api/alerts", "Alert rules reject anonymous access");
   await expectAnonymous401("/api/profile/delivery", "Delivery preferences reject anonymous access");
+  await expectAnonymous401("/api/citizen-reports", "Citizen reports reject anonymous access");
   await expectAnonymous401("/api/evidence/events", "Evidence ledger rejects anonymous access");
   await expectAnonymous401("/api/agency/command", "Agency command queue rejects anonymous access");
   await expectAnonymous401("/api/v1/intelligence/health", "Enterprise intelligence health rejects anonymous access");
