@@ -6,12 +6,32 @@ import { translatePlatformText } from "@/lib/i18n/translate-platform";
 
 type Locale = Parameters<typeof translatePlatformText>[0];
 
+type TranslatableAttr = "placeholder" | "title" | "aria-label";
+
 const originalText = new WeakMap<Text, string>();
-const originalAttrs = new WeakMap<HTMLElement, Partial<Record<"placeholder" | "title" | "aria-label", string>>>();
+const originalAttrs = new WeakMap<HTMLElement, Partial<Record<TranslatableAttr, string>>>();
 
 function shouldSkip(element: HTMLElement | null) {
   if (!element) return true;
   return Boolean(element.closest("[data-ncg-no-translate='true'],script,style,code,pre"));
+}
+
+function expectedFor(locale: Locale, source: string) {
+  return locale === "en" ? source : translatePlatformText(locale, source);
+}
+
+function updateOriginalIfReactChanged(node: Text, locale: Locale) {
+  const current = (node.textContent || "").trim();
+  const stored = originalText.get(node);
+  if (!current) return;
+  if (!stored) {
+    originalText.set(node, current);
+    return;
+  }
+  const renderedFromStored = expectedFor(locale, stored);
+  if (current !== stored && current !== renderedFromStored) {
+    originalText.set(node, current);
+  }
 }
 
 function translateTextNode(node: Text, locale: Locale) {
@@ -22,28 +42,37 @@ function translateTextNode(node: Text, locale: Locale) {
   const trimmed = raw.trim();
   if (!trimmed) return;
 
-  if (!originalText.has(node)) originalText.set(node, trimmed);
+  updateOriginalIfReactChanged(node, locale);
   const source = originalText.get(node) || trimmed;
-  const translated = translatePlatformText(locale, source);
+  const next = expectedFor(locale, source);
+  if (trimmed === next) return;
+
   const leading = raw.match(/^\s*/)?.[0] || "";
   const trailing = raw.match(/\s*$/)?.[0] || "";
-  const next = locale === "en" ? source : translated;
-
-  if (trimmed !== next) node.textContent = `${leading}${next}${trailing}`;
+  node.textContent = `${leading}${next}${trailing}`;
 }
 
 function translateAttributes(element: HTMLElement, locale: Locale) {
   if (shouldSkip(element)) return;
 
   const stored = originalAttrs.get(element) || {};
-  const attrs: Array<"placeholder" | "title" | "aria-label"> = ["placeholder", "title", "aria-label"];
+  const attrs: TranslatableAttr[] = ["placeholder", "title", "aria-label"];
 
   for (const attr of attrs) {
     const current = element.getAttribute(attr);
     if (!current) continue;
-    if (!stored[attr]) stored[attr] = current;
+
+    const prior = stored[attr];
+    if (!prior) {
+      stored[attr] = current;
+    } else {
+      const renderedFromPrior = expectedFor(locale, prior);
+      if (current !== prior && current !== renderedFromPrior) stored[attr] = current;
+    }
+
     const source = stored[attr] || current;
-    element.setAttribute(attr, locale === "en" ? source : translatePlatformText(locale, source));
+    const next = expectedFor(locale, source);
+    if (current !== next) element.setAttribute(attr, next);
   }
 
   originalAttrs.set(element, stored);
@@ -70,9 +99,7 @@ export default function PlatformTranslationBridge() {
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === "characterData" && mutation.target.nodeType === Node.TEXT_NODE) {
-          const node = mutation.target as Text;
-          if (!originalText.has(node)) originalText.set(node, (node.textContent || "").trim());
-          translateTextNode(node, locale);
+          translateTextNode(mutation.target as Text, locale);
         }
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.TEXT_NODE) translateTextNode(node as Text, locale);
