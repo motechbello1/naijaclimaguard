@@ -9,3 +9,5 @@ EWDS queue/capacity failures now use substantially longer jittered backoff windo
 This changes acquisition mechanics only. It does not change the event registry, candidate models, hyperparameters, target definition, threshold grid, sanity gates, source contract, or freeze rules.
 Combined NASA + GloFAS remains the eligible winning feature group and must still beat both NASA-only and GloFAS-only ablations.
 No Model v5 performance result from an older workflow checkout is accepted as final; the synchronized decision must be produced by this repaired branch code and carry archived-operational provenance.
+
+Resume trigger: 2026-08-09 final-closure attempt 2. Preserve valid cached archives; do not reset source progress.
