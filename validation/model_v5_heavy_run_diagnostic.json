@@ -1387,17 +1387,17 @@
           },
           {
             "name": "Install Model v5 runtime",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Verify EWDS credential",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Fetch one archived operational issue date",
-            "status": "pending",
+            "status": "in_progress",
             "conclusion": null
           },
           {
@@ -1448,17 +1448,17 @@
           },
           {
             "name": "Install Model v5 runtime",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Verify EWDS credential",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Fetch one archived operational issue date",
-            "status": "pending",
+            "status": "in_progress",
             "conclusion": null
           },
           {
@@ -1509,17 +1509,17 @@
           },
           {
             "name": "Install Model v5 runtime",
-            "status": "in_progress",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Verify EWDS credential",
-            "status": "pending",
-            "conclusion": null
+            "status": "completed",
+            "conclusion": "success"
           },
           {
             "name": "Fetch one archived operational issue date",
-            "status": "pending",
+            "status": "in_progress",
             "conclusion": null
           },
           {
