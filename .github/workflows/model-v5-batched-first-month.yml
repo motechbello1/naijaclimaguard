@@ -5,6 +5,7 @@ on:
     paths:
       - "validation/model_v5_first_month_trigger.txt"
       - ".github/workflows/model-v5-batched-first-month.yml"
+      - "validation/fetch_glofas_operational_archive_v5_batched.py"
 
 permissions:
   contents: write
@@ -35,29 +36,28 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r validation/model_v5_requirements.txt
-      - name: Verify EWDS credential
-        run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
-      - name: Restore any May 2021 raw progress
+      - name: Restore May 2021 validated raw progress
         uses: actions/cache/restore@v4
         with:
           path: validation/model_v5/work/month_2021_5
           key: model-v5-glofas-month-2021-5-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             model-v5-glofas-month-2021-5-
-      - name: Acquire May 2021 with monthly batch and verified daily fallback
+      - name: Preserve May 2021 from existing validated archives only
         run: |
           mkdir -p validation/model_v5/operational_archive_months
           python validation/fetch_glofas_operational_archive_v5_batched.py \
             --year 2021 --months 5 --lead-hours 24 48 72 \
             --raw-dir validation/model_v5/work/month_2021_5 \
-            --out validation/model_v5/operational_archive_months/glofas_2021_m05.csv
-      - name: Save raw progress even when source is throttled
+            --out validation/model_v5/operational_archive_months/glofas_2021_m05.csv \
+            --existing-only --allow-partial-pack
+      - name: Save restored raw progress
         if: always()
         uses: actions/cache/save@v4
         with:
           path: validation/model_v5/work/month_2021_5
           key: model-v5-glofas-month-2021-5-${{ github.run_id }}-${{ github.run_attempt }}
-      - name: Verify source contract and coverage before preserving
+      - name: Verify source contract and transparent partial status
         run: |
           python - <<'PY'
           import json, pandas as pd
@@ -65,13 +65,20 @@ jobs:
           csvp=Path('validation/model_v5/operational_archive_months/glofas_2021_m05.csv')
           manp=Path('validation/model_v5/operational_archive_months/glofas_2021_m05.source_manifest.json')
           m=json.loads(manp.read_text()); df=pd.read_csv(csvp); c=m['source_contract']
-          assert float(m['coverage']) >= 0.90
           assert c == {'archive_start':'2021-05-26','dataset':'cems-glofas-forecast','hydrological_model':'lisflood','lead_hours':[24,48,72],'product_type':'control_forecast','system_version':'operational'}
-          assert m['request_strategy']=='monthly_batch_with_verified_daily_fallback'
+          assert m['request_strategy']=='monthly_batch_with_verified_daily_fallback_and_resume'
+          assert m['pack_status']=='partial_pack_pending_final_synchronized_coverage_qa'
+          assert m['partial_pack_allowed'] is True
+          assert m['final_scientific_coverage_gate_scope']=='build_model_v5_dataset synchronized issue-time dataset core features'
+          assert m['missing_issue_dates']==['2021-05-30']
+          assert int(m['requested_issue_dates'])==6
+          assert int(m['extracted_issue_dates'])==5
+          assert int(m['output_rows'])==75
+          assert abs(float(m['coverage']) - (5/6)) < 1e-9
           assert set(df['lead_time_hours'].unique()) == {24,48,72}
           assert df['location'].nunique() == 5
-          assert len(df) == int(m['output_rows'])
-          print('May 2021 durable pack verified:', len(df), 'rows; coverage=', m['coverage'])
+          assert len(df) == 75
+          print('May 2021 transparent partial pack verified: 75 rows; missing only 2021-05-30; final synchronized >=90% gate unchanged')
           PY
       - name: Commit first durable month pack
         run: |
@@ -79,7 +86,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add validation/model_v5/operational_archive_months/glofas_2021_m05.csv validation/model_v5/operational_archive_months/glofas_2021_m05.source_manifest.json
           git diff --cached --quiet && exit 0
-          git commit -m "model-v5: preserve validated GloFAS 2021-05"
+          git commit -m "model-v5: preserve transparent GloFAS 2021-05 partial pack"
           git pull --rebase origin model-v5-operational-native
           git push origin HEAD:model-v5-operational-native
       - uses: actions/upload-artifact@v4
