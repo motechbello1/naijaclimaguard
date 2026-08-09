@@ -85,12 +85,6 @@ function immutablePayload(userId: string, event: Omit<VerifiableEvidenceEvent, "
   };
 }
 
-/**
- * Verifies every hash in the supplied evidence window and all links between
- * adjacent events in that window. The oldest event may point to a predecessor
- * outside the window, so callers must separately disclose whether the window
- * is truncated.
- */
 export function verifyEvidenceWindow(userId: string, input: VerifiableEvidenceEvent[]) {
   const events = [...input].sort((a, b) => {
     const occurred = a.occurredAt.getTime() - b.occurredAt.getTime();
@@ -99,17 +93,13 @@ export function verifyEvidenceWindow(userId: string, input: VerifiableEvidenceEv
   });
 
   const failures: Array<{ id: string; reason: "hash_mismatch" | "broken_previous_hash" }> = [];
-
   for (let index = 0; index < events.length; index += 1) {
     const event = events[index];
     const expectedHash = fingerprint(immutablePayload(userId, event));
     if (expectedHash !== event.eventHash) failures.push({ id: event.id, reason: "hash_mismatch" });
-
     if (index > 0) {
       const previous = events[index - 1];
-      if (event.previousHash !== previous.eventHash) {
-        failures.push({ id: event.id, reason: "broken_previous_hash" });
-      }
+      if (event.previousHash !== previous.eventHash) failures.push({ id: event.id, reason: "broken_previous_hash" });
     }
   }
 
@@ -121,21 +111,42 @@ export function verifyEvidenceWindow(userId: string, input: VerifiableEvidenceEv
   };
 }
 
-export async function appendEvidenceEvent(input: AppendEvidenceInput) {
+export async function appendEvidenceEventInTransaction(
+  tx: Prisma.TransactionClient,
+  input: AppendEvidenceInput,
+) {
   const id = randomUUID();
   const occurredAt = new Date();
+  const previous = await tx.evidenceEvent.findFirst({
+    where: { userId: input.userId },
+    orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+    select: { eventHash: true },
+  });
 
-  return prisma.$transaction(async (tx) => {
-    const previous = await tx.evidenceEvent.findFirst({
-      where: { userId: input.userId },
-      orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
-      select: { eventHash: true },
-    });
+  const immutable = {
+    id,
+    eventType: input.eventType,
+    occurredAt: occurredAt.toISOString(),
+    userId: input.userId,
+    locationId: input.locationId ?? null,
+    riskScore: input.riskScore ?? null,
+    riskLevel: input.riskLevel ?? null,
+    modelLabel: input.modelLabel ?? null,
+    assetType: input.assetType ?? null,
+    actionCode: input.actionCode ?? null,
+    actionText: input.actionText ?? null,
+    channel: input.channel ?? null,
+    deliveryState: input.deliveryState ?? null,
+    previousHash: previous?.eventHash ?? null,
+    metadata: input.metadata ?? null,
+  };
+  const eventHash = fingerprint(immutable);
 
-    const immutable = {
+  return tx.evidenceEvent.create({
+    data: {
       id,
       eventType: input.eventType,
-      occurredAt: occurredAt.toISOString(),
+      occurredAt,
       userId: input.userId,
       locationId: input.locationId ?? null,
       riskScore: input.riskScore ?? null,
@@ -147,39 +158,21 @@ export async function appendEvidenceEvent(input: AppendEvidenceInput) {
       channel: input.channel ?? null,
       deliveryState: input.deliveryState ?? null,
       previousHash: previous?.eventHash ?? null,
-      metadata: input.metadata ?? null,
-    };
-
-    const eventHash = fingerprint(immutable);
-
-    return tx.evidenceEvent.create({
-      data: {
-        id,
-        eventType: input.eventType,
-        occurredAt,
-        userId: input.userId,
-        locationId: input.locationId ?? null,
-        riskScore: input.riskScore ?? null,
-        riskLevel: input.riskLevel ?? null,
-        modelLabel: input.modelLabel ?? null,
-        assetType: input.assetType ?? null,
-        actionCode: input.actionCode ?? null,
-        actionText: input.actionText ?? null,
-        channel: input.channel ?? null,
-        deliveryState: input.deliveryState ?? null,
-        previousHash: previous?.eventHash ?? null,
-        eventHash,
-        metadata: input.metadata === undefined || input.metadata === null
-          ? Prisma.JsonNull
-          : (input.metadata as Prisma.InputJsonValue),
-      },
-      select: {
-        id: true,
-        eventType: true,
-        occurredAt: true,
-        eventHash: true,
-        previousHash: true,
-      },
-    });
+      eventHash,
+      metadata: input.metadata === undefined || input.metadata === null
+        ? Prisma.JsonNull
+        : (input.metadata as Prisma.InputJsonValue),
+    },
+    select: {
+      id: true,
+      eventType: true,
+      occurredAt: true,
+      eventHash: true,
+      previousHash: true,
+    },
   });
+}
+
+export async function appendEvidenceEvent(input: AppendEvidenceInput) {
+  return prisma.$transaction((tx) => appendEvidenceEventInTransaction(tx, input));
 }
