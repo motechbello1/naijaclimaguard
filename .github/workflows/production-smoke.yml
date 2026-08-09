@@ -1,0 +1,28 @@
+name: Production Smoke Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/check-production-smoke.mjs"
+      - ".github/workflows/production-smoke.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  public-production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Verify live production public surfaces
+        env:
+          NAIJACLIMAGUARD_BASE_URL: https://naijaclimaguard.vercel.app
+        run: node scripts/check-production-smoke.mjs
