@@ -12,40 +12,42 @@ import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
 import { ExplanationModeControl, ExplanationModeProvider, PageExplanation } from "./ExplanationMode";
 import { ExperienceProfileProvider, ExperienceRoleControl, useExperienceProfile } from "./ExperienceProfile";
+import { useLanguage } from "./LanguageProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
-const NAV_BY_ROLE = {
+const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: any }>> = {
   HOUSEHOLD: [
-    { href: "/my-area", label: "My Area", icon: Home },
-    { href: "/dashboard", label: "My Safety", icon: LayoutDashboard },
-    { href: "/action", label: "My Alerts", icon: Zap },
-    { href: "/evidence", label: "My History", icon: FileCheck2 },
-    { href: "/report", label: "Report Flood", icon: Megaphone },
+    { href: "/my-area", key: "myArea", icon: Home },
+    { href: "/dashboard", key: "mySafety", icon: LayoutDashboard },
+    { href: "/action", key: "myAlerts", icon: Zap },
+    { href: "/evidence", key: "myHistory", icon: FileCheck2 },
+    { href: "/report", key: "reportFlood", icon: Megaphone },
   ],
   FARMER: [
-    { href: "/dashboard", label: "My Farm Risk", icon: LayoutDashboard },
-    { href: "/action", label: "Farm Alerts", icon: Zap },
-    { href: "/outlook", label: "Rain Outlook", icon: Telescope },
-    { href: "/evidence", label: "Farm History", icon: FileCheck2 },
-    { href: "/report", label: "Report Flood", icon: Megaphone },
+    { href: "/dashboard", key: "myFarmRisk", icon: LayoutDashboard },
+    { href: "/action", key: "farmAlerts", icon: Zap },
+    { href: "/outlook", key: "rainOutlook", icon: Telescope },
+    { href: "/evidence", key: "farmHistory", icon: FileCheck2 },
+    { href: "/report", key: "reportFlood", icon: Megaphone },
   ],
   BUSINESS: [
-    { href: "/dashboard", label: "Risk Overview", icon: LayoutDashboard },
-    { href: "/action", label: "Alerts & Actions", icon: Zap },
-    { href: "/intelligence", label: "Risk Intelligence", icon: Radar },
-    { href: "/evidence", label: "Operational Evidence", icon: FileCheck2 },
+    { href: "/dashboard", key: "riskOverview", icon: LayoutDashboard },
+    { href: "/action", key: "alertsActions", icon: Zap },
+    { href: "/intelligence", key: "riskIntelligence", icon: Radar },
+    { href: "/evidence", key: "operationalEvidence", icon: FileCheck2 },
   ],
   AGENCY: [
-    { href: "/dashboard", label: "Operations", icon: LayoutDashboard },
-    { href: "/command", label: "Command Queue", icon: ShieldAlert },
-    { href: "/intelligence", label: "Intelligence", icon: Radar },
-    { href: "/predict", label: "Location Analysis", icon: Map },
-    { href: "/outlook", label: "Outlook", icon: Telescope },
-    { href: "/action", label: "Alert Rules", icon: Zap },
-    { href: "/report", label: "Field Reports", icon: Megaphone },
-    { href: "/evidence", label: "Operational Evidence", icon: FileCheck2 },
-    { href: "/prove", label: "Model Evidence", icon: BarChart3 },
+    { href: "/dashboard", key: "operations", icon: LayoutDashboard },
+    { href: "/command", key: "commandQueue", icon: ShieldAlert },
+    { href: "/intelligence", key: "intelligence", icon: Radar },
+    { href: "/predict", key: "locationAnalysis", icon: Map },
+    { href: "/outlook", key: "outlook", icon: Telescope },
+    { href: "/action", key: "alertRules", icon: Zap },
+    { href: "/report", key: "fieldReports", icon: Megaphone },
+    { href: "/evidence", key: "operationalEvidence", icon: FileCheck2 },
+    { href: "/prove", key: "modelEvidence", icon: BarChart3 },
   ],
-} as const;
+};
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -53,7 +55,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { data: session } = useSession();
   const { role } = useExperienceProfile();
-  const nav = NAV_BY_ROLE[role];
+  const { t } = useLanguage();
+  const nav = NAV_BY_ROLE[role] || NAV_BY_ROLE.HOUSEHOLD;
 
   useEffect(() => {
     const handlePopState = () => { if (!session) router.replace("/login"); };
@@ -81,13 +84,14 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {nav.map((item) => {
             const active = pathname === item.href;
-            return <Link key={item.href} href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${active ? "bg-radar/10 text-radar border border-radar/20" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent"}`} title={collapsed ? item.label : undefined}><item.icon className="h-[18px] w-[18px] shrink-0" />{!collapsed && <span>{item.label}</span>}</Link>;
+            const label = t(item.key);
+            return <Link key={item.href} href={item.href} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${active ? "bg-radar/10 text-radar border border-radar/20" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent"}`} title={collapsed ? label : undefined}><item.icon className="h-[18px] w-[18px] shrink-0" />{!collapsed && <span>{label}</span>}</Link>;
           })}
         </nav>
 
         <div className="px-3 py-4 border-t border-slate-100 dark:border-midnight-border space-y-1">
           <Link href="/profile" className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${pathname === "/profile" ? "bg-radar/10 text-radar border border-radar/20" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent"}`}><User className="h-[18px] w-[18px] shrink-0" />{!collapsed && <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{userName}</p><p className="text-[10px] text-slate-400 uppercase">{userPlan}</p></div>}</Link>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-crimson hover:bg-crimson/5"><LogOut className="h-[18px] w-[18px] shrink-0" />{!collapsed && <span>Sign Out</span>}</button>
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-crimson hover:bg-crimson/5"><LogOut className="h-[18px] w-[18px] shrink-0" />{!collapsed && <span>{t("signOut")}</span>}</button>
         </div>
       </aside>
 
