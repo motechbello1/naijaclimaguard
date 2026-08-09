@@ -1,0 +1,2 @@
+ALTER TABLE "DeliveryPreference"
+ADD COLUMN IF NOT EXISTS "platformLanguage" TEXT NOT NULL DEFAULT 'ENGLISH';
