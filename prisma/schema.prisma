@@ -8,6 +8,25 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum IntelligenceSourceKind {
+  SATELLITE
+  WEATHER
+  HYDROLOGICAL_MODEL
+  OFFICIAL_GAUGE
+  IOT_SENSOR
+  DAM_OPERATION
+  CITIZEN_REPORT
+  OFFICIAL_ADVISORY
+}
+
+enum ObservationQuality {
+  GOOD
+  SUSPECT
+  STALE
+  MISSING
+  UNKNOWN
+}
+
 model User {
   id             String          @id @default(cuid())
   email          String          @unique
@@ -54,9 +73,9 @@ model Report {
   latitude    Float
   longitude   Float
   area        String
-  waterLevel  String   // ANKLE | KNEE | WAIST | ABOVE_HEAD
+  waterLevel  String
   description String?
-  status      String   @default("PENDING") // PENDING | VERIFIED | REJECTED
+  status      String   @default("PENDING")
   createdAt   DateTime @default(now())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -64,9 +83,6 @@ model Report {
   @@index([createdAt])
 }
 
-/// Append-only audit evidence. Application code exposes GET/POST only; no mutation
-/// endpoint is provided. eventHash fingerprints the immutable event payload and
-/// previousHash links each user's events in issuance order when available.
 model EvidenceEvent {
   id            String    @id @default(cuid())
   eventType     String
@@ -93,51 +109,63 @@ model EvidenceEvent {
   @@index([eventType, occurredAt])
 }
 
-/// Registered physical/partner source. A device existing here does not by itself
-/// make its measurements trusted; freshness, provider identity and individual
-/// signal provenance are evaluated separately.
-model SourceDevice {
-  id          String           @id @default(cuid())
-  externalId  String           @unique
-  name        String
-  sourceType  String
-  provider    String
-  latitude    Float
-  longitude   Float
-  status      String           @default("ACTIVE")
-  lastSeenAt  DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  metadata    Json?
-  signals     ExternalSignal[]
-
-  @@index([sourceType, status])
-  @@index([latitude, longitude])
+model IntelligenceSource {
+  id                      String                    @id @default(cuid())
+  slug                    String                    @unique
+  provider                String
+  name                    String
+  sourceKind              IntelligenceSourceKind
+  description             String?
+  active                  Boolean                   @default(true)
+  defaultFreshnessMinutes Int
+  config                  Json?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  observations            IntelligenceObservation[]
+  credentials             IntelligenceCredential[]
 }
 
-/// Immutable partner/agency signal. fingerprint gives idempotent ingestion and
-/// protects provenance. Signals are observations/advisories, not training labels.
-model ExternalSignal {
-  id             String        @id @default(cuid())
-  signalType     String
-  severity       String?
-  observedAt     DateTime
-  expiresAt      DateTime?
-  latitude       Float?
-  longitude      Float?
-  area           String?
-  numericValue   Float?
-  unit           String?
-  sourceName     String
-  authority      String?
-  deviceId       String?
-  device         SourceDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
-  fingerprint    String        @unique
-  rawPayload     Json?
-  createdAt      DateTime      @default(now())
+model IntelligenceCredential {
+  id         String             @id @default(cuid())
+  name       String
+  keyPrefix  String
+  keyHash    String             @unique
+  scopes     Json
+  active     Boolean            @default(true)
+  createdAt  DateTime           @default(now())
+  lastUsedAt DateTime?
+  sourceId   String
+  source     IntelligenceSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
 
-  @@index([signalType, observedAt])
-  @@index([deviceId, observedAt])
+  @@index([sourceId, active])
+}
+
+model IntelligenceObservation {
+  id               String             @id @default(cuid())
+  sourceId         String
+  source           IntelligenceSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  variable         String
+  value            Json
+  unit             String
+  observedAt       DateTime
+  receivedAt       DateTime
+  latitude         Float
+  longitude        Float
+  locationName     String?
+  state            String?
+  country          String?
+  qualityStatus    ObservationQuality @default(UNKNOWN)
+  confidence       Float?
+  flags            Json?
+  sourceVersion    String?
+  externalRecordId String?
+  originalUnit     String?
+  originalVariable String?
+  metadata         Json?
+  dedupeKey        String             @unique
+  createdAt        DateTime           @default(now())
+
+  @@index([sourceId, observedAt])
+  @@index([variable, observedAt])
   @@index([latitude, longitude, observedAt])
-  @@index([expiresAt])
 }
