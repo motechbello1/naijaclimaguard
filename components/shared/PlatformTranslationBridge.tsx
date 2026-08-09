@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useLanguage } from "./LanguageProvider";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
 
+// Final QA branch exercises the composed whole-platform translation bridge.
 const ORIGINAL_TEXT = "data-ncg-original-text";
 const ORIGINAL_PLACEHOLDER = "data-ncg-original-placeholder";
 const ORIGINAL_TITLE = "data-ncg-original-title";
