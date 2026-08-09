@@ -15,6 +15,34 @@ async function currentUser() {
   });
 }
 
+function serialize(preference: any) {
+  return preference
+    ? {
+        phone: preference.phoneE164,
+        phoneMasked: maskPhone(preference.phoneE164),
+        phoneVerified: Boolean(preference.phoneVerifiedAt),
+        phoneVerifiedAt: preference.phoneVerifiedAt,
+        platformLanguage: preference.platformLanguage || "ENGLISH",
+        preferredLanguage: preference.preferredLanguage || "ENGLISH",
+        emailEnabled: preference.emailEnabled,
+        smsEnabled: preference.smsEnabled,
+        whatsappEnabled: preference.whatsappEnabled,
+        voiceEnabled: preference.voiceEnabled,
+      }
+    : {
+        phone: null,
+        phoneMasked: null,
+        phoneVerified: false,
+        phoneVerifiedAt: null,
+        platformLanguage: "ENGLISH",
+        preferredLanguage: "ENGLISH",
+        emailEnabled: true,
+        smsEnabled: false,
+        whatsappEnabled: false,
+        voiceEnabled: false,
+      };
+}
+
 export async function GET() {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,29 +50,7 @@ export async function GET() {
   try {
     const preference = await prisma.deliveryPreference.findUnique({ where: { userId: user.id } });
     return NextResponse.json({
-      delivery: preference
-        ? {
-            phone: preference.phoneE164,
-            phoneMasked: maskPhone(preference.phoneE164),
-            phoneVerified: Boolean(preference.phoneVerifiedAt),
-            phoneVerifiedAt: preference.phoneVerifiedAt,
-            preferredLanguage: preference.preferredLanguage,
-            emailEnabled: preference.emailEnabled,
-            smsEnabled: preference.smsEnabled,
-            whatsappEnabled: preference.whatsappEnabled,
-            voiceEnabled: preference.voiceEnabled,
-          }
-        : {
-            phone: null,
-            phoneMasked: null,
-            phoneVerified: false,
-            phoneVerifiedAt: null,
-            preferredLanguage: "ENGLISH",
-            emailEnabled: true,
-            smsEnabled: false,
-            whatsappEnabled: false,
-            voiceEnabled: false,
-          },
+      delivery: serialize(preference),
       providers: {
         sms: Boolean(process.env.SMS_PROVIDER_URL && process.env.SMS_PROVIDER_TOKEN),
         whatsapp: Boolean(process.env.WHATSAPP_PROVIDER_URL && process.env.WHATSAPP_PROVIDER_TOKEN),
@@ -73,11 +79,16 @@ export async function PATCH(request: Request) {
 
   try {
     const existing = await prisma.deliveryPreference.findUnique({ where: { userId: user.id } });
+
     const preferredLanguage = body.preferredLanguage == null
       ? (existing?.preferredLanguage ?? "ENGLISH")
       : String(body.preferredLanguage).toUpperCase();
-    if (!LANGUAGES.has(preferredLanguage)) {
-      return NextResponse.json({ error: "Unsupported preferred language." }, { status: 400 });
+    const platformLanguage = body.platformLanguage == null
+      ? (existing?.platformLanguage ?? "ENGLISH")
+      : String(body.platformLanguage).toUpperCase();
+
+    if (!LANGUAGES.has(preferredLanguage) || !LANGUAGES.has(platformLanguage)) {
+      return NextResponse.json({ error: "Unsupported language preference." }, { status: 400 });
     }
 
     let phoneE164 = existing?.phoneE164 ?? null;
@@ -116,6 +127,7 @@ export async function PATCH(request: Request) {
         userId: user.id,
         phoneE164,
         phoneVerifiedAt,
+        platformLanguage,
         preferredLanguage,
         emailEnabled: body.emailEnabled === undefined ? true : Boolean(body.emailEnabled),
         smsEnabled: requestedSms,
@@ -125,6 +137,7 @@ export async function PATCH(request: Request) {
       update: {
         phoneE164,
         phoneVerifiedAt,
+        platformLanguage,
         preferredLanguage,
         ...(body.emailEnabled !== undefined ? { emailEnabled: Boolean(body.emailEnabled) } : {}),
         smsEnabled: requestedSms,
@@ -133,19 +146,7 @@ export async function PATCH(request: Request) {
       },
     });
 
-    return NextResponse.json({
-      delivery: {
-        phone: preference.phoneE164,
-        phoneMasked: maskPhone(preference.phoneE164),
-        phoneVerified: Boolean(preference.phoneVerifiedAt),
-        phoneVerifiedAt: preference.phoneVerifiedAt,
-        preferredLanguage: preference.preferredLanguage,
-        emailEnabled: preference.emailEnabled,
-        smsEnabled: preference.smsEnabled,
-        whatsappEnabled: preference.whatsappEnabled,
-        voiceEnabled: preference.voiceEnabled,
-      },
-    });
+    return NextResponse.json({ delivery: serialize(preference) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not save delivery preferences.";
     if (message.startsWith("Enter a valid phone")) {
