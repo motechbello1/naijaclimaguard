@@ -24,35 +24,33 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Verify preregistered operational-archive protocol
+      - name: Verify preregistered consistent control-forecast protocol
         run: |
           test -f validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md
           test -f validation/model_v4_event_registry.csv
           python - <<'PY'
           import csv
+          from pathlib import Path
+          text = Path('validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md').read_text()
+          assert '2021-05-26' in text
+          assert '2022, 2023 and 2024' in text
           with open('validation/model_v4_event_registry.csv', newline='', encoding='utf-8') as f:
               rows = list(csv.DictReader(f))
           enabled = [r for r in rows if str(r.get('include_in_benchmark', '')).lower() == 'true']
           assert len({r.get('event_id') for r in enabled if r.get('event_id')}) == 35
-          print('Frozen 35-event registry verified; operational archive protocol locked before scoring')
+          print('Frozen 35-event registry and 2021-05-26 control-forecast start verified before scoring')
           PY
 
   glofas:
     needs: protocol
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 180
     strategy:
       fail-fast: false
-      max-parallel: 12
+      max-parallel: 8
       matrix:
         include:
-          - { year: 2019, quarter: 4, months: "10 11 12" }
-          - { year: 2020, quarter: 1, months: "1 2 3" }
-          - { year: 2020, quarter: 2, months: "4 5 6" }
-          - { year: 2020, quarter: 3, months: "7 8 9" }
-          - { year: 2020, quarter: 4, months: "10 11 12" }
-          - { year: 2021, quarter: 1, months: "1 2 3" }
-          - { year: 2021, quarter: 2, months: "4 5 6" }
+          - { year: 2021, quarter: 2, months: "5 6" }
           - { year: 2021, quarter: 3, months: "7 8 9" }
           - { year: 2021, quarter: 4, months: "10 11 12" }
           - { year: 2022, quarter: 1, months: "1 2 3" }
@@ -82,7 +80,7 @@ jobs:
           python -m pip install -r validation/model_v5_requirements.txt
       - name: Verify EWDS credential
         run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
-      - name: Fetch archived operational GloFAS forecasts
+      - name: Fetch archived operational GloFAS control forecasts
         run: |
           python validation/fetch_glofas_operational_archive_v5.py \
             --year "${{ matrix.year }}" \
@@ -136,15 +134,15 @@ jobs:
           from pathlib import Path
           nasa = sorted(Path('validation/model_v5/work/nasa').glob('nasa_*.csv'))
           nasa_years = sorted({p.stem.split('_')[-1] for p in nasa})
-          required_nasa = [str(y) for y in range(2019, 2025)]
+          required_nasa = [str(y) for y in range(2021, 2025)]
           missing_nasa = sorted(set(required_nasa) - set(nasa_years))
           glofas = sorted(Path('validation/model_v5/work/glofas').glob('glofas_*_q*.csv'))
           print('NASA years:', nasa_years)
           print('GloFAS quarter files:', len(glofas))
           if missing_nasa:
               raise SystemExit(f'Missing reused NASA years: {missing_nasa}')
-          if len(glofas) != 21:
-              raise SystemExit(f'Expected 21 GloFAS quarter files, found {len(glofas)}')
+          if len(glofas) != 15:
+              raise SystemExit(f'Expected 15 GloFAS quarter files, found {len(glofas)}')
           PY
       - name: Compile and run Model v5 contract tests
         run: |
@@ -161,7 +159,7 @@ jobs:
             --nasa 'validation/model_v5/work/nasa/*.csv' \
             --glofas 'validation/model_v5/work/glofas/*.csv' \
             --events validation/model_v4_event_registry.csv \
-            --start 2019-11-05 \
+            --start 2021-05-26 \
             --end 2024-12-31 \
             --out validation/model_v5_issue_dataset.csv \
             --manifest validation/model_v5_dataset_manifest.json
