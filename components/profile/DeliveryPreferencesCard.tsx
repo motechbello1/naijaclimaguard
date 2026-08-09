@@ -117,7 +117,7 @@ export default function DeliveryPreferencesCard() {
         <Phone className="mt-0.5 h-5 w-5 text-radar" />
         <div>
           <h2 className="text-sm font-bold">How should we reach you?</h2>
-          <p className="mt-1 text-sm text-slate-500">Choose the channels and language you can act on fastest during a flood warning.</p>
+          <p className="mt-1 text-sm text-slate-500">Choose the channels you can act on fastest during a flood warning.</p>
         </div>
       </div>
 
@@ -149,10 +149,13 @@ export default function DeliveryPreferencesCard() {
         )}
 
         <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Alert language</label>
+          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Preferred alert language</label>
           <select value={delivery?.preferredLanguage || "ENGLISH"} onChange={(e) => save({ preferredLanguage: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm dark:border-midnight-border dark:bg-midnight sm:w-64">
             {LANGUAGES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
+          <p className="mt-2 max-w-xl text-xs leading-relaxed text-slate-500">
+            We save this preference now. Safety-reviewed Hausa, Yoruba, Igbo and Pidgin emergency templates are still being prepared; until a reviewed template is installed, emergency messages use the approved English fallback rather than an unverified translation.
+          </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
