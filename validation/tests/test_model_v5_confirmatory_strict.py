@@ -30,7 +30,7 @@ def test_event_detection_has_no_hidden_outer_year_filter():
     source = MODULE_PATH.read_text(encoding="utf-8")
     fn = source.split("def event_detection", 1)[1].split("def decision_summary", 1)[0]
     assert "OUTER_YEARS" not in fn
-    assert "events supplied by the caller" in fn
+    assert "event rows supplied by the caller" in fn
 
 
 def test_prior_event_filter_is_strictly_before_outer_year():
