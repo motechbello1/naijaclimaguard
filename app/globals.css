@@ -4,32 +4,20 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
 
-/* ── BASE ── */
 body {
   font-family: "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1), color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-x: hidden;
 }
-
 html, body { max-width: 100%; }
-
-.dark body {
-  background: #0B1120;
-  color: #e2e8f0;
-}
-
+.dark body { background: #0B1120; color: #e2e8f0; }
 html { scroll-behavior: smooth; }
 
-/* Adaptive product primitives.
-   Simple is not just a translation: whole analyst-only blocks disappear.
-   Role classes keep one backend while changing the visible task flow. */
 .simple-only { display: none; }
 .standard-up { display: block; }
 .technical-only { display: none; }
-
 html[data-explanation-mode="simple"] .simple-only { display: block; }
 html[data-explanation-mode="simple"] .standard-up,
 html[data-explanation-mode="simple"] .technical-only { display: none !important; }
@@ -44,8 +32,6 @@ html[data-experience-role="household"] .role-household-only { display: block; }
 html[data-experience-role="farmer"] .role-farmer-only { display: block; }
 html[data-experience-role="business"] .role-business-only { display: block; }
 html[data-experience-role="agency"] .role-agency-only { display: block; }
-
-/* Inline/flex variants for small adaptive labels. */
 .simple-inline,
 .role-household-inline,
 .role-farmer-inline,
@@ -57,45 +43,19 @@ html[data-experience-role="farmer"] .role-farmer-inline { display: inline; }
 html[data-experience-role="business"] .role-business-inline { display: inline; }
 html[data-experience-role="agency"] .role-agency-inline { display: inline; }
 
-.text-gradient-green {
-  color: #10B981;
-  background: none;
-  -webkit-text-fill-color: unset;
-}
-.text-gradient-blue {
-  color: #0891B2;
-  background: none;
-  -webkit-text-fill-color: unset;
-}
+.text-gradient-green { color: #10B981; background: none; -webkit-text-fill-color: unset; }
+.text-gradient-blue { color: #0891B2; background: none; -webkit-text-fill-color: unset; }
 
 .glass-card {
   min-width: 0;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-.dark .glass-card {
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(30, 41, 59, 0.5);
-}
-.dark .glass-card:hover {
-  border-color: rgba(30, 41, 59, 0.85);
-  box-shadow: 0 0 0 1px rgba(30, 41, 59, 0.3);
-}
-
-:root:not(.dark) .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
-              0 4px 12px rgba(0, 0, 0, 0.03);
-}
-:root:not(.dark) .glass-card:hover {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06),
-              0 8px 24px rgba(0, 0, 0, 0.05);
-}
+.dark .glass-card { background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(30, 41, 59, 0.5); }
+.dark .glass-card:hover { border-color: rgba(30, 41, 59, 0.85); box-shadow: 0 0 0 1px rgba(30, 41, 59, 0.3); }
+:root:not(.dark) .glass-card { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(226, 232, 240, 0.9); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03); }
+:root:not(.dark) .glass-card:hover { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.05); }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -114,12 +74,10 @@ button:focus-visible { outline: 2px solid #10B981; outline-offset: 1px; }
 @keyframes slide-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slide-down { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes scale-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
-
 .animate-fade-in { animation: fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) both; }
 .animate-slide-up { animation: slide-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-slide-down { animation: slide-down 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-scale-in { animation: scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
 .stagger > * { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .stagger > *:nth-child(1) { animation-delay: 0s; }
 .stagger > *:nth-child(2) { animation-delay: 0.06s; }
@@ -127,31 +85,19 @@ button:focus-visible { outline: 2px solid #10B981; outline-offset: 1px; }
 .stagger > *:nth-child(4) { animation-delay: 0.18s; }
 .stagger > *:nth-child(5) { animation-delay: 0.24s; }
 .stagger > *:nth-child(6) { animation-delay: 0.30s; }
-
 @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; filter: brightness(1.3); } }
 .animate-flash { animation: flash 0.5s ease-out; }
 
 @layer components {
-  .btn-primary {
-    @apply rounded-lg bg-radar px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 ease-out hover:brightness-110 active:scale-[0.98];
-    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.15);
-  }
+  .btn-primary { @apply rounded-lg bg-radar px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 ease-out hover:brightness-110 active:scale-[0.98]; box-shadow: 0 1px 2px rgba(16, 185, 129, 0.15); }
   .btn-primary:hover { box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2); }
-  .btn-ghost {
-    @apply rounded-lg border border-slate-200 dark:border-slate-700 px-5 py-2.5 text-sm font-medium transition-all duration-200 ease-out hover:border-radar/40 active:scale-[0.98];
-  }
+  .btn-ghost { @apply rounded-lg border border-slate-200 dark:border-slate-700 px-5 py-2.5 text-sm font-medium transition-all duration-200 ease-out hover:border-radar/40 active:scale-[0.98]; }
 }
 
-input, select, textarea {
-  max-width: 100%;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
+input, select, textarea { max-width: 100%; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
 input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
-
 ::selection { background: rgba(16, 185, 129, 0.2); color: inherit; }
 
-/* Phone-first safety net for older screens that were authored before the adaptive shell.
-   Only base (non-responsive) multi-column grids are collapsed; sm:/md:/lg: layouts remain controlled by Tailwind. */
 @media (max-width: 639px) {
   main { max-width: 100%; min-width: 0; }
   main > * { min-width: 0; max-width: 100%; }
@@ -164,28 +110,26 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(16, 185, 
   .grid.grid-cols-5,
   .grid.grid-cols-6 { grid-template-columns: minmax(0, 1fr) !important; }
 
-  main table {
-    display: block;
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  main table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  main pre, main code { max-width: 100%; overflow-x: auto; }
+  main button, main a, main input, main select, main textarea { min-width: 0; }
 
-  main pre,
-  main code { max-width: 100%; overflow-x: auto; }
+  /* Old dashboard/action rows should wrap rather than compress text and icons into one line. */
+  main .flex.items-center.justify-between,
+  main .flex.items-start.justify-between { flex-wrap: wrap; row-gap: 0.75rem; }
+  main .flex.items-center.justify-between > :first-child,
+  main .flex.items-start.justify-between > :first-child { min-width: 0; max-width: 100%; }
 
-  main button,
-  main a,
-  main input,
-  main select,
-  main textarea { min-width: 0; }
+  /* Touch controls stay comfortable without oversized desktop chrome. */
+  main button:not([class*="h-"]),
+  main a:not([class*="h-"]) { min-height: 2.5rem; }
+
+  /* Avoid giant desktop typography crowding narrow screens. */
+  main .text-5xl { font-size: 2.25rem; line-height: 1.08; }
+  main .text-6xl, main .text-7xl, main .text-8xl { font-size: 2.5rem; line-height: 1.05; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
   html { scroll-behavior: auto; }
 }
