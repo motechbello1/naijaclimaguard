@@ -33,7 +33,7 @@ export default function LanguagePreferenceSync() {
     fetch("/api/profile/delivery", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
       .then((data) => {
-        const saved = FROM_SERVER[String(data?.delivery?.preferredLanguage || "")];
+        const saved = FROM_SERVER[String(data?.delivery?.platformLanguage || "")];
         if (saved) {
           previousLocale.current = saved;
           setLocale(saved);
@@ -52,7 +52,7 @@ export default function LanguagePreferenceSync() {
     fetch("/api/profile/delivery", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ preferredLanguage: TO_SERVER[locale] }),
+      body: JSON.stringify({ platformLanguage: TO_SERVER[locale] }),
     }).catch(() => undefined);
   }, [locale, status]);
 
