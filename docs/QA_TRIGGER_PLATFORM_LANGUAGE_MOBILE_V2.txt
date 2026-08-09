@@ -1,0 +1,1 @@
+Run Product 2026 TypeScript/Prisma and explanation UX gates against the current main language/mobile v2 implementation.
