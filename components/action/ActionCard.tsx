@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronRight, ShieldCheck } from "lucide-react";
 import { ExplanationMode, getActionGuidance, UserRole } from "@/lib/action-guidance";
 
@@ -26,6 +26,15 @@ const MODE_LABELS: Record<ExplanationMode, string> = {
   technical: "Technical",
 };
 
+const ROLE_STORAGE_KEY = "naijaclimaguard.action-role";
+const MODE_STORAGE_KEY = "naijaclimaguard.explanation-mode";
+
+const isUserRole = (value: string | null): value is UserRole =>
+  value !== null && Object.prototype.hasOwnProperty.call(ROLE_LABELS, value);
+
+const isExplanationMode = (value: string | null): value is ExplanationMode =>
+  value !== null && Object.prototype.hasOwnProperty.call(MODE_LABELS, value);
+
 export default function ActionCard({
   score,
   level,
@@ -37,6 +46,24 @@ export default function ActionCard({
   const [role, setRole] = useState<UserRole>(defaultRole);
   const [mode, setMode] = useState<ExplanationMode>("simple");
   const [done, setDone] = useState<number[]>([]);
+
+  useEffect(() => {
+    const savedRole = window.localStorage.getItem(ROLE_STORAGE_KEY);
+    const savedMode = window.localStorage.getItem(MODE_STORAGE_KEY);
+    if (isUserRole(savedRole)) setRole(savedRole);
+    if (isExplanationMode(savedMode)) setMode(savedMode);
+  }, []);
+
+  const changeRole = (next: UserRole) => {
+    setRole(next);
+    setDone([]);
+    window.localStorage.setItem(ROLE_STORAGE_KEY, next);
+  };
+
+  const changeMode = (next: ExplanationMode) => {
+    setMode(next);
+    window.localStorage.setItem(MODE_STORAGE_KEY, next);
+  };
 
   const guidance = useMemo(
     () => getActionGuidance({ score, level, role, locationName, model, threshold }),
@@ -65,7 +92,7 @@ export default function ActionCard({
           <select
             id={`role-${locationName}`}
             value={role}
-            onChange={(e) => setRole(e.target.value as UserRole)}
+            onChange={(e) => changeRole(e.target.value as UserRole)}
             className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold dark:border-midnight-border dark:bg-midnight-light"
           >
             {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
@@ -78,7 +105,7 @@ export default function ActionCard({
           <button
             key={m}
             type="button"
-            onClick={() => setMode(m)}
+            onClick={() => changeMode(m)}
             className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${mode === m ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : "border border-slate-200 text-slate-500 dark:border-midnight-border"}`}
           >
             {MODE_LABELS[m]}
@@ -104,7 +131,7 @@ export default function ActionCard({
       </div>
 
       <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
-        Decision support only. Follow instructions from authorised emergency agencies and verified local responders. Completing an item here records only your local checklist state; it does not confirm an official evacuation or response action.
+        Your user type and explanation level are remembered on this device. Decision support only: follow instructions from authorised emergency agencies and verified local responders. Completing an item here records only your local checklist state; it does not confirm an official evacuation or response action.
       </p>
     </section>
   );
