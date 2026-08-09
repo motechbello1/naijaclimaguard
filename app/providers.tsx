@@ -6,6 +6,7 @@ import { ReactNode } from "react";
 import SplashScreen from "@/components/shared/SplashScreen";
 import { LanguageProvider } from "@/components/shared/LanguageProvider";
 import LanguageSelector from "@/components/shared/LanguageSelector";
+import LanguagePreferenceSync from "@/components/shared/LanguagePreferenceSync";
 import FloodAssistant from "@/components/assistant/FloodAssistant";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -13,6 +14,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <SessionProvider>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
         <LanguageProvider>
+          <LanguagePreferenceSync />
           <SplashScreen />
           {children}
           <div className="fixed bottom-5 left-5 z-[79]">
