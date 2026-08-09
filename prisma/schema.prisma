@@ -68,27 +68,76 @@ model Report {
 /// endpoint is provided. eventHash fingerprints the immutable event payload and
 /// previousHash links each user's events in issuance order when available.
 model EvidenceEvent {
-  id           String   @id @default(cuid())
-  eventType    String
-  occurredAt   DateTime @default(now())
-  createdAt    DateTime @default(now())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locationId   String?
-  location     Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  riskScore    Float?
-  riskLevel    String?
-  modelLabel   String?
-  assetType    String?
-  actionCode   String?
-  actionText   String?
-  channel      String?
+  id            String    @id @default(cuid())
+  eventType     String
+  occurredAt    DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId    String?
+  location      Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  riskScore     Float?
+  riskLevel     String?
+  modelLabel    String?
+  assetType     String?
+  actionCode    String?
+  actionText    String?
+  channel       String?
   deliveryState String?
-  previousHash String?
-  eventHash    String   @unique
-  metadata     Json?
+  previousHash  String?
+  eventHash     String    @unique
+  metadata      Json?
 
   @@index([userId, occurredAt])
   @@index([locationId, occurredAt])
   @@index([eventType, occurredAt])
+}
+
+/// Registered physical/partner source. A device existing here does not by itself
+/// make its measurements trusted; freshness, provider identity and individual
+/// signal provenance are evaluated separately.
+model SourceDevice {
+  id          String           @id @default(cuid())
+  externalId  String           @unique
+  name        String
+  sourceType  String
+  provider    String
+  latitude    Float
+  longitude   Float
+  status      String           @default("ACTIVE")
+  lastSeenAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  metadata    Json?
+  signals     ExternalSignal[]
+
+  @@index([sourceType, status])
+  @@index([latitude, longitude])
+}
+
+/// Immutable partner/agency signal. fingerprint gives idempotent ingestion and
+/// protects provenance. Signals are observations/advisories, not training labels.
+model ExternalSignal {
+  id             String        @id @default(cuid())
+  signalType     String
+  severity       String?
+  observedAt     DateTime
+  expiresAt      DateTime?
+  latitude       Float?
+  longitude      Float?
+  area           String?
+  numericValue   Float?
+  unit           String?
+  sourceName     String
+  authority      String?
+  deviceId       String?
+  device         SourceDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  fingerprint    String        @unique
+  rawPayload     Json?
+  createdAt      DateTime      @default(now())
+
+  @@index([signalType, observedAt])
+  @@index([deviceId, observedAt])
+  @@index([latitude, longitude, observedAt])
+  @@index([expiresAt])
 }
