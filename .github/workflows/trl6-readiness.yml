@@ -1,0 +1,26 @@
+name: TRL6 Readiness Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "prisma/**"
+      - "scripts/check-trl6-readiness.mjs"
+      - "validation/**"
+      - ".github/workflows/trl6-readiness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify TRL6 operational contracts
+        run: node scripts/check-trl6-readiness.mjs
