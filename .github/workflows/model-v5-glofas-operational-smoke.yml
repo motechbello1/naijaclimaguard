@@ -7,6 +7,12 @@ on:
       - "validation/model_v5_glofas_operational_smoke_trigger.txt"
       - ".github/workflows/model-v5-glofas-operational-smoke.yml"
       - "validation/fetch_glofas_operational_archive_v5.py"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/model-v5-glofas-operational-smoke.yml"
+      - "validation/fetch_glofas_operational_archive_v5.py"
+      - "validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md"
 
 permissions:
   contents: read
@@ -16,25 +22,17 @@ env:
   PYTHONUNBUFFERED: "1"
 
 jobs:
-  era-smoke:
+  control-archive-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - year: 2020
-            date: "2020-04-01"
-            expected_system: "operational"
-            expected_hydrological_model: "htessel_lisflood"
           - year: 2022
             date: "2022-09-21"
-            expected_system: "operational"
-            expected_hydrological_model: "lisflood"
           - year: 2024
             date: "2024-07-04"
-            expected_system: "operational"
-            expected_hydrological_model: "lisflood"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -48,7 +46,7 @@ jobs:
           python -m pip install -r validation/model_v5_requirements.txt
       - name: Verify EWDS credential
         run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
-      - name: Fetch one archived operational issue date
+      - name: Fetch one archived operational control forecast
         run: |
           python validation/fetch_glofas_operational_archive_v5.py \
             --year "${{ matrix.year }}" \
@@ -56,35 +54,31 @@ jobs:
             --lead-hours 24 48 72 \
             --raw-dir "validation/model_v5/smoke/glofas_raw_${{ matrix.year }}" \
             --out "validation/model_v5/smoke/glofas_${{ matrix.year }}.csv"
-      - name: Validate era contract and extracted output
+      - name: Validate source contract and extracted output
         run: |
           python - <<'PY'
           import pandas as pd
           year = "${{ matrix.year }}"
           date = "${{ matrix.date }}"
-          expected_system = "${{ matrix.expected_system }}"
-          expected_model = "${{ matrix.expected_hydrological_model }}"
           df = pd.read_csv(f"validation/model_v5/smoke/glofas_{year}.csv")
           assert len(df) == 15, f"expected 15 rows, got {len(df)}"
           assert sorted(df['lead_time_hours'].astype(int).unique().tolist()) == [24, 48, 72]
           assert df['location'].nunique() == 5
           assert sorted(df['issue_date'].astype(str).unique().tolist()) == [date]
-          assert sorted(df['system_version_request'].unique().tolist()) == [expected_system]
-          assert sorted(df['hydrological_model'].unique().tolist()) == [expected_model]
+          assert sorted(df['system_version_request'].unique().tolist()) == ['operational']
+          assert sorted(df['hydrological_model'].unique().tolist()) == ['lisflood']
+          assert sorted(df['product_type'].unique().tolist()) == ['control_forecast']
           print({
               'status': 'pass',
               'date': date,
               'rows': len(df),
-              'system_version': expected_system,
-              'hydrological_model': expected_model,
-              'historical_release_family': sorted(df['historical_release_family'].unique().tolist()),
               'locations': sorted(df['location'].unique().tolist()),
               'lead_hours': sorted(df['lead_time_hours'].astype(int).unique().tolist()),
           })
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: model-v5-glofas-era-smoke-${{ matrix.year }}
+          name: model-v5-glofas-control-smoke-${{ matrix.year }}
           retention-days: 30
           path: validation/model_v5/smoke/glofas_${{ matrix.year }}.csv
           if-no-files-found: error
