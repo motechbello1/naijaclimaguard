@@ -1,1 +1,1 @@
-Trigger exact heavy-run diagnosis after security rewrite.
+Trigger exact heavy-run diagnosis after protocol dependency fix and full-development retrigger.
