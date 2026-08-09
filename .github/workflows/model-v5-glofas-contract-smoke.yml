@@ -43,8 +43,8 @@ jobs:
                   'product_type': ['control_reforecast'],
                   'variable': ['river_discharge_in_the_last_24_hours'],
                   'hyear': [str(year)],
-                  'hmonth': ['03'],
-                  'hday': ['27'],
+                  'hmonth': ['01'],
+                  'hday': ['01'],
                   'leadtime_hour': ['24','48','72'],
                   'area': [13.0, 5.0, 4.0, 11.0],
                   'data_format': 'grib2',
@@ -59,7 +59,9 @@ jobs:
           Path('validation/model_v5_glofas_contract_smoke.json').write_text(json.dumps({
               'dataset': 'cems-glofas-reforecast',
               'system_version': 'version_4_0',
-              'probe_reference_month_day': '03-27',
+              'probe_reference_month_day': '01-01',
+              'reference_year': 2024,
+              'reference_date_weekday': 'Monday',
               'lead_hours': [24,48,72],
               'results': results,
           }, indent=2))
