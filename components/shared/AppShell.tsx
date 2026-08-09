@@ -100,5 +100,5 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  return <ExperienceProfileProvider><ExplanationModeProvider><AppShellInner>{children}</AppShellInner></ExperienceProfileProvider>;
+  return <ExperienceProfileProvider><ExplanationModeProvider><AppShellInner>{children}</AppShellInner></ExplanationModeProvider></ExperienceProfileProvider>;
 }
