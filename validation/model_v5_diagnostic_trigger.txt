@@ -1,1 +1,1 @@
-Refresh latest Model v5 diagnostic after single-date GloFAS fetcher commit 1f095fac3bffb2457c8e540d4557cbf1c0f69605 and three-date smoke workflow ad1ae15c8aace5d3a4df57e24b24d0161fbccad6.
+Inspect latest full Model v5 run launched from single-date archived GloFAS trigger 0be25020ad44fd787ba7837166b65f1c2a858283 plus latest three-date smoke.
