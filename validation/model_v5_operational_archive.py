@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
-"""Model v5 wrapper for archived operational GloFAS forecasts (2020-2024).
+"""Model v5 wrapper for the consistent archived operational GloFAS control era.
 
-Reuses the frozen Model v5 candidate implementations and threshold machinery,
-changing only the archive-eligible temporal folds and event denominator.
+The active source contract begins 2021-05-26 and uses actual archived
+`control_forecast` trajectories. Validation is walk-forward over 2022-2024.
+The candidate implementations, ranking, ablations and threshold gates remain
+those frozen before any Model v5 score existed.
 """
 from __future__ import annotations
 
 import pandas as pd
 import model_v5_operational_native as base
 
-VALIDATION_YEARS = range(2020, 2025)
+ARCHIVE_START = pd.Timestamp("2021-05-26")
+VALIDATION_YEARS = range(2022, 2025)
 
 
 def temporal_folds(df: pd.DataFrame):
+    eligible = df[df["issue_date"] >= ARCHIVE_START].copy()
     for year in VALIDATION_YEARS:
-        train = df[df["issue_date"] < pd.Timestamp(f"{year}-01-01")].copy()
-        val = df[df["issue_date"].dt.year.eq(year)].copy()
+        train = eligible[eligible["issue_date"] < pd.Timestamp(f"{year}-01-01")].copy()
+        val = eligible[eligible["issue_date"].dt.year.eq(year)].copy()
         if train.empty or val.empty or train["label"].nunique() < 2 or val["label"].nunique() < 2:
             yield year, train, val, False
         else:
@@ -25,7 +29,7 @@ def temporal_folds(df: pd.DataFrame):
 def event_detection(scored: pd.DataFrame, events: pd.DataFrame, threshold: float) -> dict:
     e = events[events["include_in_benchmark"].astype(str).str.lower().eq("true")].copy()
     e["observed_by_date"] = pd.to_datetime(e["observed_by_date"])
-    e = e[e["observed_by_date"].dt.year.between(2020, 2024)]
+    e = e[e["observed_by_date"].dt.year.between(2022, 2024)]
     rows: list[dict] = []
     for _, event in e.sort_values("observed_by_date").iterrows():
         anchor = event["observed_by_date"]
@@ -52,7 +56,7 @@ def event_detection(scored: pd.DataFrame, events: pd.DataFrame, threshold: float
         "evaluated_events": int(len(rows)),
         "event_detection_rate": float(detected / len(rows)) if rows else None,
         "events": rows,
-        "event_window": "2020-2024 archived operational eligibility",
+        "event_window": "2022-2024 OOF under consistent archived operational control-forecast contract",
     }
 
 
