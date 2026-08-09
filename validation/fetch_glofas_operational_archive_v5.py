@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fetch archived operational GloFAS control forecasts for Model v5.
 
-The active Model v5 source contract is deliberately restricted to the consistent
+The active Model v5 source contract is restricted to the consistently documented
 archived control-forecast era beginning 2021-05-26:
 - dataset: cems-glofas-forecast
 - system_version: operational
@@ -9,14 +9,15 @@ archived control-forecast era beginning 2021-05-26:
 - product_type: control_forecast
 - leads: +24/+48/+72 hours
 
-EWDS archived forecasts are requested one issue date at a time because multi-day
-forecast combinations are rejected by the current service and large batches can
-exceed request-cost limits.
+EWDS archived forecasts are requested one issue date at a time. Independent daily
+requests may be downloaded concurrently with a bounded worker pool; every request
+keeps the identical scientific source contract and retry/backoff rules.
 """
 from __future__ import annotations
 
 import argparse
 import calendar
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 from pathlib import Path
 import tempfile
@@ -106,9 +107,15 @@ def retrieve_day(client: cdsapi.Client, date: pd.Timestamp, leads: list[int], ra
             if attempt == 7 or not retryable(exc):
                 raise
             delay = min(120, 10 * (2 ** (attempt - 1)))
-            print(f"EWDS temporary/cost limit; sleeping {delay}s", flush=True)
+            print(f"EWDS temporary/cost limit for {date.date()}; sleeping {delay}s", flush=True)
             time.sleep(delay)
     raise RuntimeError(f"GloFAS operational retrieval failed for {date.date()}: {last}")
+
+
+def retrieve_one(date: pd.Timestamp, leads: list[int], raw_dir: Path, key: str) -> tuple[pd.Timestamp, Path]:
+    # Use a client per worker/task; cdsapi's legacy client is not treated as thread-safe.
+    client = cdsapi.Client(url=EWDS_URL, key=key)
+    return date, retrieve_day(client, date, leads, raw_dir)
 
 
 def discharge_variable(ds: xr.Dataset) -> str:
@@ -215,6 +222,7 @@ def main() -> None:
     ap.add_argument("--months", nargs="+", type=int, default=list(range(1, 13)))
     ap.add_argument("--dates", nargs="*", help="Optional explicit YYYY-MM-DD issue dates")
     ap.add_argument("--lead-hours", nargs="+", type=int, default=[24, 48, 72])
+    ap.add_argument("--workers", type=int, default=1, help="Concurrent independent daily EWDS requests")
     ap.add_argument("--raw-dir", required=True)
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
@@ -226,6 +234,8 @@ def main() -> None:
         raise ValueError("--months must contain values from 1 through 12")
     if sorted(set(args.lead_hours)) != [24, 48, 72]:
         raise ValueError("Model v5 contract requires exactly 24, 48, 72 hour leads")
+    if args.workers < 1 or args.workers > 8:
+        raise ValueError("--workers must be between 1 and 8")
 
     dates = issue_dates(args.year, months, args.dates)
     if len(dates) == 0:
@@ -236,12 +246,28 @@ def main() -> None:
         raise RuntimeError("EWDS_API_KEY is required")
     raw_dir = Path(args.raw_dir)
     raw_dir.mkdir(parents=True, exist_ok=True)
-    client = cdsapi.Client(url=EWDS_URL, key=key)
+
+    archives: dict[pd.Timestamp, Path] = {}
+    if args.workers == 1:
+        client = cdsapi.Client(url=EWDS_URL, key=key)
+        for date in dates:
+            ts = pd.Timestamp(date)
+            archives[ts] = retrieve_day(client, ts, args.lead_hours, raw_dir)
+    else:
+        print(f"Retrieving {len(dates)} issue dates with {args.workers} bounded workers", flush=True)
+        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+            futures = {
+                executor.submit(retrieve_one, pd.Timestamp(date), args.lead_hours, raw_dir, key): pd.Timestamp(date)
+                for date in dates
+            }
+            for future in as_completed(futures):
+                date, archive = future.result()
+                archives[pd.Timestamp(date)] = archive
+                print(f"Completed EWDS archive {date.date()} ({len(archives)}/{len(dates)})", flush=True)
 
     rows: list[dict] = []
-    for date in dates:
-        archive = retrieve_day(client, pd.Timestamp(date), args.lead_hours, raw_dir)
-        rows.extend(extract_archive(archive))
+    for date in sorted(archives):
+        rows.extend(extract_archive(archives[date]))
 
     out = pd.DataFrame(rows)
     if out.empty:
@@ -270,7 +296,7 @@ def main() -> None:
     out.to_csv(path, index=False)
     print(
         f"Wrote {len(out):,} operational GloFAS rows for {len(dates)} issue dates in {args.year}; "
-        f"coverage={coverage:.1%}; path={path}"
+        f"coverage={coverage:.1%}; workers={args.workers}; path={path}"
     )
 
 
