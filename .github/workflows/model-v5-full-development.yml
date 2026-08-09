@@ -89,12 +89,16 @@ jobs:
             --workers 3 \
             --raw-dir "validation/model_v5/work/glofas_raw_${{ matrix.year }}_q${{ matrix.quarter }}" \
             --out "validation/model_v5/work/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.csv"
-      - uses: actions/upload-artifact@v4
+      - name: Upload GloFAS source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: model-v5-glofas-${{ matrix.year }}-q${{ matrix.quarter }}
           retention-days: 30
-          if-no-files-found: error
-          path: validation/model_v5/work/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.csv
+          if-no-files-found: warn
+          path: |
+            validation/model_v5/work/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.csv
+            validation/model_v5/work/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.source_manifest.json
 
   develop:
     needs: [glofas]
@@ -138,8 +142,10 @@ jobs:
           required_nasa = [str(y) for y in range(2021, 2025)]
           missing_nasa = sorted(set(required_nasa) - set(nasa_years))
           glofas = sorted(Path('validation/model_v5/work/glofas').glob('glofas_*_q*.csv'))
+          manifests = sorted(Path('validation/model_v5/work/glofas').glob('glofas_*_q*.source_manifest.json'))
           print('NASA years:', nasa_years)
           print('GloFAS quarter files:', len(glofas))
+          print('GloFAS source manifests:', len(manifests))
           if missing_nasa:
               raise SystemExit(f'Missing reused NASA years: {missing_nasa}')
           if len(glofas) != 15:
