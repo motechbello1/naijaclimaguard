@@ -6,6 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Shield, LogIn, Loader2 } from "lucide-react";
 import Link from "next/link";
 
+function safeNext(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/dashboard";
+  return value;
+}
+
 function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,6 +19,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered") === "true";
+  const next = safeNext(searchParams.get("next"));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +27,10 @@ function LoginForm() {
     setError("");
     const result = await signIn("credentials", { email, password, redirect: false });
     if (result?.error) { setError("Invalid email or password"); setLoading(false); }
-    else router.push("/dashboard");
+    else router.push(next);
   };
+
+  const registerHref = next === "/dashboard" ? "/register" : `/register?next=${encodeURIComponent(next)}`;
 
   return (
     <div className="glass-card rounded-2xl p-8">
@@ -48,14 +56,9 @@ function LoginForm() {
       </form>
       <div className="mt-6 pt-6 border-t border-slate-100 dark:border-midnight-border text-center space-y-2">
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          No account? <Link href="/register" className="text-radar font-medium hover:underline">Create one free</Link>
+          No account? <Link href={registerHref} className="text-radar font-medium hover:underline">Create one free</Link>
         </p>
-        <div className="text-xs text-slate-400 space-y-1">
-          <p className="font-bold">Demo accounts (password: demo1234)</p>
-          <p>free@naijaclimaguard.com (Free plan)</p>
-          <p>pro@naijaclimaguard.com (Professional)</p>
-          <p>enterprise@naijaclimaguard.com (Enterprise)</p>
-        </div>
+        <p className="text-xs text-slate-400">Evaluation/demo access is issued privately. Credentials are never published on the production login page.</p>
       </div>
     </div>
   );
