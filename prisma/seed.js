@@ -3,23 +3,36 @@ const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
 
-async function main() {
-  const users = [
-    { email: "free@naijaclimaguard.com", name: "Free User", password: "demo1234", plan: "FREE" },
-    { email: "pro@naijaclimaguard.com", name: "Pro User", password: "demo1234", plan: "PROFESSIONAL" },
-    { email: "enterprise@naijaclimaguard.com", name: "Enterprise User", password: "demo1234", plan: "ENTERPRISE" },
-    { email: "demo@naijaclimaguard.com", name: "Demo User", password: "demo1234", plan: "PROFESSIONAL" },
-  ];
+const DEMOS = [
+  { email: "free@naijaclimaguard.com", name: "Free Demo", plan: "FREE", passwordEnv: "NCG_DEMO_FREE_PASSWORD" },
+  { email: "pro@naijaclimaguard.com", name: "Professional Demo", plan: "PROFESSIONAL", passwordEnv: "NCG_DEMO_PRO_PASSWORD" },
+  { email: "enterprise@naijaclimaguard.com", name: "Enterprise Demo", plan: "ENTERPRISE", passwordEnv: "NCG_DEMO_ENTERPRISE_PASSWORD" },
+];
 
-  for (const u of users) {
-    const hash = bcrypt.hashSync(u.password, 12);
+function requiredPassword(envName) {
+  const value = process.env[envName];
+  if (!value || value.length < 16) {
+    throw new Error(`${envName} must be set to a private password of at least 16 characters.`);
+  }
+  return value;
+}
+
+async function main() {
+  if (process.env.NCG_ENABLE_DEMO_SEED !== "true") {
+    console.log("Demo seed skipped. Set NCG_ENABLE_DEMO_SEED=true and private per-role passwords to create demo accounts.");
+    return;
+  }
+
+  for (const spec of DEMOS) {
+    const password = requiredPassword(spec.passwordEnv);
+    const hash = bcrypt.hashSync(password, 12);
     const user = await prisma.user.upsert({
-      where: { email: u.email },
-      update: {},
-      create: { email: u.email, name: u.name, passwordHash: hash, plan: u.plan },
+      where: { email: spec.email },
+      update: { name: spec.name, plan: spec.plan, passwordHash: hash },
+      create: { email: spec.email, name: spec.name, passwordHash: hash, plan: spec.plan },
     });
 
-    if (u.plan !== "FREE") {
+    if (spec.plan !== "FREE") {
       const existing = await prisma.location.count({ where: { userId: user.id } });
       if (existing === 0) {
         const locs = [
@@ -29,16 +42,23 @@ async function main() {
           { name: "Port Harcourt Depot", state: "Rivers", latitude: 4.8156, longitude: 7.0498 },
         ];
         for (const loc of locs) {
-          const l = await prisma.location.create({ data: { ...loc, userId: user.id } });
+          const location = await prisma.location.create({ data: { ...loc, userId: user.id } });
           await prisma.alert.create({
-            data: { threshold: 60, channels: '["email","sms"]', userId: user.id, locationId: l.id },
+            data: { threshold: 60, channels: '["EMAIL"]', userId: user.id, locationId: location.id },
           });
         }
       }
     }
-    console.log("Created: " + u.email + " (" + u.plan + ")");
+    console.log(`Prepared private demo account: ${spec.email} (${spec.plan})`);
   }
-  console.log("\nSeed complete. Password for all: demo1234");
+
+  console.log("Demo seed complete. Passwords were read from environment variables and are not printed.");
 }
 
-main().then(() => prisma.$disconnect()).catch((e) => { console.error(e); prisma.$disconnect(); process.exit(1); });
+main()
+  .then(() => prisma.$disconnect())
+  .catch((error) => {
+    console.error(error);
+    prisma.$disconnect();
+    process.exit(1);
+  });
