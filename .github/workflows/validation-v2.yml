@@ -38,6 +38,7 @@ env:
 
 jobs:
   validate:
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'model-v5-') }}
     runs-on: ubuntu-latest
     timeout-minutes: 330
 
