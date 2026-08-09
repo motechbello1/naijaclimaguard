@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useLanguage } from "./LanguageProvider";
 import { translatePlatformText } from "@/lib/i18n/platform-copy";
 
+// Curated native copy only: user data, source names and official text are never mutated.
 const ORIGINAL_TEXT = "data-ncg-original-text";
 const ORIGINAL_PLACEHOLDER = "data-ncg-original-placeholder";
 const ORIGINAL_TITLE = "data-ncg-original-title";
