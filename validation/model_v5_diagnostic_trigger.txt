@@ -1,1 +1,1 @@
-Inspect latest Model v5 full-development and archived-operational GloFAS smoke workflow states after operational-source switch.
+Inspect latest Model v5 full-development and archived-operational GloFAS smoke workflow after per-location cost-limit fix 6e9ab847.
