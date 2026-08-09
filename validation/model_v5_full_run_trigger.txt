@@ -1,6 +1,6 @@
-Model v5 single-date archived-operational development trigger.
-EWDS rejected multi-day forecast requests. Fetcher commit 1f095fac3bffb2457c8e540d4557cbf1c0f69605 now uses one valid issue date per request and extracts all five pilot locations from that day's Nigeria grid.
-Workflow reuses preserved NASA artifacts from run 31292573245 and retrieves only GloFAS, parallelized into 21 year-quarter jobs.
-Protocol remains validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md and was locked before any Model v5 score existed.
-Eligible archive period begins 2019-11-05; scoring remains walk-forward over 2020-2024 where usable.
-No model candidate, threshold gate, event registry, or evaluation criterion changed during this source-retrieval repair.
+Model v5 consistent-control archived operational development trigger.
+Active source protocol is validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md, restricted before scoring to the consistently documented control-forecast era beginning 2021-05-26.
+GloFAS requests use cems-glofas-forecast, system_version=operational, hydrological_model=lisflood, product_type=control_forecast, one issue date per request, leads 24/48/72 hours.
+Workflow reuses preserved NASA IMERG Early artifacts from source run 31292573245 and retrieves 15 GloFAS quarter artifacts covering 2021-05-26 through 2024-12-31.
+Walk-forward scoring years are 2022, 2023 and 2024.
+No Model v5 candidate score existed before this source-window amendment. Candidate hyperparameters, frozen event registry, target definition, threshold grid and freeze gates remain unchanged.
