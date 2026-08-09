@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """Fetch archived operational GloFAS control forecasts for Model v5.
 
-Important archive contract details, verified before Model v5 scoring:
-- Requests are issued one forecast date at a time.
-- The current EWDS forecast catalogue exposes three historical system selections:
-  * version_2_1 for forecasts issued 2019-11-05 through 2021-05-25
-  * version_3_1 for forecasts issued 2021-05-26 through 2023-07-25
-  * operational for forecasts issued 2023-07-26 onward
-- GloFAS v2.1 uses the legacy htessel_lisflood hydrological-model selector;
-  v3.1 and current operations use lisflood.
-- Only +24/+48/+72 h control-forecast discharge is retained.
+The source is the actual archived `cems-glofas-forecast` product. Requests are
+made one issue date at a time because EWDS rejects multi-day combinations and
+large multi-day requests exceed cost limits.
 
-The numerical ML protocol, labels, candidates and freeze thresholds are not
-changed by this source-contract mapping.
+Current EWDS behaviour verified before Model v5 scoring:
+- `operational` is the working selector for archived operational control forecasts.
+- Pre-2021-05-26 forecasts use the legacy `htessel_lisflood` hydrological selector.
+- Later forecasts use `lisflood`.
+- The historical GloFAS release family is recorded separately from the EWDS
+  request selector so provenance is explicit without pretending the current API
+  exposes every old minor release as a selectable value.
 """
 from __future__ import annotations
 
@@ -32,7 +31,7 @@ import xarray as xr
 
 EWDS_URL = "https://ewds.climate.copernicus.eu/api"
 DATASET = "cems-glofas-forecast"
-AREA = [13.0, 5.0, 4.0, 11.0]  # North, West, South, East; all five pilot sites.
+AREA = [13.0, 5.0, 4.0, 11.0]
 ARCHIVE_START = pd.Timestamp("2019-11-05")
 V3_START = pd.Timestamp("2021-05-26")
 V4_START = pd.Timestamp("2023-07-26")
@@ -47,31 +46,24 @@ LOCATIONS = {
 
 
 def source_contract(date: pd.Timestamp) -> tuple[str, str, str]:
-    """Return EWDS system_version, hydrological_model, and human provenance label."""
+    """Return EWDS selector, hydrological selector, and historical release family."""
     date = pd.Timestamp(date).normalize()
     if date < ARCHIVE_START:
-        raise ValueError(f"Archived operational GloFAS forecast unavailable before {ARCHIVE_START.date()}")
+        raise ValueError(f"Archived operational GloFAS unavailable before {ARCHIVE_START.date()}")
     if date < V3_START:
-        return "version_2_1", "htessel_lisflood", "GloFAS v2.1 legacy operational archive"
+        return "operational", "htessel_lisflood", "GloFAS v2.1/v2.2 operational era"
     if date < V4_START:
-        return "version_3_1", "lisflood", "GloFAS v3.x legacy operational archive via version_3_1 selector"
-    return "operational", "lisflood", "GloFAS current operational archive selector"
+        return "operational", "lisflood", "GloFAS v3.x operational era"
+    return "operational", "lisflood", "GloFAS v4.x operational era"
 
 
 def retryable(exc: Exception) -> bool:
     text = str(exc).lower()
     return any(
-        x in text
-        for x in (
-            "429",
-            "capacity",
-            "queued requests",
-            "too many requests",
-            "temporarily limited",
-            "cost limits exceeded",
-            "502",
-            "503",
-            "504",
+        token in text
+        for token in (
+            "429", "capacity", "queued requests", "too many requests",
+            "temporarily limited", "cost limits exceeded", "502", "503", "504",
         )
     )
 
@@ -97,7 +89,7 @@ def issue_dates(year: int, months: list[int], explicit_dates: list[str] | None) 
 
 def retrieve_day(client: cdsapi.Client, date: pd.Timestamp, leads: list[int], raw_dir: Path) -> Path:
     system_version, hydrological_model, _ = source_contract(date)
-    target = raw_dir / f"glofas_{system_version}_{date:%Y%m%d}.zip"
+    target = raw_dir / f"glofas_{system_version}_{hydrological_model}_{date:%Y%m%d}.zip"
     if target.exists() and target.stat().st_size > 0:
         return target
 
@@ -159,12 +151,6 @@ def lead_hours(value) -> int:
 
 
 def select_if_dimension(da: xr.DataArray, coord: str, value) -> xr.DataArray:
-    """Select an indexed coordinate only when it is a dimension.
-
-    Single-date/single-step GRIB groups often expose `time` or `step` as scalar
-    coordinates. Calling xarray.sel() on those 0-D coordinates raises a
-    PandasIndex error even though the value is already selected by cfgrib.
-    """
     if coord in da.dims:
         return da.sel({coord: value})
     return da
@@ -186,40 +172,35 @@ def extract_grib(path: Path) -> list[dict]:
 
         times = np.atleast_1d(da.coords[time_name].values)
         leads = np.atleast_1d(da.coords[lead_name].values)
-
         for issue_raw in times:
             issue = pd.Timestamp(issue_raw).tz_localize(None)
-            system_version, hydrological_model, source_label = source_contract(issue)
+            system_version, hydrological_model, historical_release_family = source_contract(issue)
             for lead_raw in leads:
                 lh = lead_hours(lead_raw)
                 if lh not in (24, 48, 72):
                     continue
-
                 selected = select_if_dimension(da, time_name, issue_raw)
                 selected = select_if_dimension(selected, lead_name, lead_raw)
                 if "number" in selected.dims:
                     selected = selected.isel(number=0)
-
                 for location, (qlat, qlon) in LOCATIONS.items():
                     point = selected.sel({lat_name: qlat, lon_name: qlon}, method="nearest")
-                    rows.append(
-                        {
-                            "issue_date": issue.strftime("%Y-%m-%d"),
-                            "issue_time_utc": issue.strftime("%Y-%m-%dT00:00:00Z"),
-                            "valid_time": (issue + pd.Timedelta(hours=lh)).isoformat(),
-                            "lead_time_hours": lh,
-                            "location": location,
-                            "latitude_requested": qlat,
-                            "longitude_requested": qlon,
-                            "forecast_discharge_m3s": float(np.asarray(point.values).squeeze()),
-                            "product_type": "control_forecast",
-                            "system_version_request": system_version,
-                            "hydrological_model": hydrological_model,
-                            "source_contract_label": source_label,
-                            "source": "Copernicus CEMS GloFAS archived operational forecast via EWDS",
-                            "source_file": path.name,
-                        }
-                    )
+                    rows.append({
+                        "issue_date": issue.strftime("%Y-%m-%d"),
+                        "issue_time_utc": issue.strftime("%Y-%m-%dT00:00:00Z"),
+                        "valid_time": (issue + pd.Timedelta(hours=lh)).isoformat(),
+                        "lead_time_hours": lh,
+                        "location": location,
+                        "latitude_requested": qlat,
+                        "longitude_requested": qlon,
+                        "forecast_discharge_m3s": float(np.asarray(point.values).squeeze()),
+                        "product_type": "control_forecast",
+                        "system_version_request": system_version,
+                        "hydrological_model": hydrological_model,
+                        "historical_release_family": historical_release_family,
+                        "source": "Copernicus CEMS GloFAS archived operational forecast via EWDS",
+                        "source_file": path.name,
+                    })
         ds.close()
     return rows
 
@@ -232,8 +213,7 @@ def extract_archive(archive: Path) -> list[dict]:
             with zipfile.ZipFile(archive) as zf:
                 zf.extractall(root)
             files = [
-                p
-                for p in root.rglob("*")
+                p for p in root.rglob("*")
                 if p.is_file() and p.suffix.lower() in {".grib", ".grib2", ".grb", ".grb2"}
             ]
         except zipfile.BadZipFile:
@@ -249,7 +229,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, required=True)
     ap.add_argument("--months", nargs="+", type=int, default=list(range(1, 13)))
-    ap.add_argument("--dates", nargs="*", help="Optional explicit YYYY-MM-DD issue dates for smoke tests")
+    ap.add_argument("--dates", nargs="*", help="Optional explicit YYYY-MM-DD issue dates")
     ap.add_argument("--lead-hours", nargs="+", type=int, default=[24, 48, 72])
     ap.add_argument("--raw-dir", required=True)
     ap.add_argument("--out", required=True)
@@ -270,7 +250,6 @@ def main() -> None:
     key = os.getenv("EWDS_API_KEY")
     if not key:
         raise RuntimeError("EWDS_API_KEY is required")
-
     raw_dir = Path(args.raw_dir)
     raw_dir.mkdir(parents=True, exist_ok=True)
     client = cdsapi.Client(url=EWDS_URL, key=key)
@@ -283,7 +262,6 @@ def main() -> None:
     out = pd.DataFrame(rows)
     if out.empty:
         raise RuntimeError(f"No operational GloFAS rows extracted for selected dates in {args.year}")
-
     out["issue_date"] = pd.to_datetime(out["issue_date"]).dt.strftime("%Y-%m-%d")
     out = out[out["lead_time_hours"].isin([24, 48, 72])].copy()
     out = out.sort_values(["issue_date", "location", "lead_time_hours"]).drop_duplicates(
@@ -309,7 +287,8 @@ def main() -> None:
     print(
         f"Wrote {len(out):,} operational GloFAS rows for {len(dates)} issue dates in {args.year}; "
         f"coverage={coverage:.1%}; path={path}; "
-        f"system_versions={sorted(out['system_version_request'].unique().tolist())}"
+        f"systems={sorted(out['system_version_request'].unique().tolist())}; "
+        f"hydrological_models={sorted(out['hydrological_model'].unique().tolist())}"
     )
 
 
