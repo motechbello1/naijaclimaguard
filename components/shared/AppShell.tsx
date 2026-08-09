@@ -15,23 +15,49 @@ import {
   ExplanationModeProvider,
   PageExplanation,
 } from "./ExplanationMode";
+import {
+  ExperienceProfileProvider,
+  ExperienceRoleControl,
+  useExperienceProfile,
+} from "./ExperienceProfile";
 
-const nav = [
-  { href: "/my-area", label: "My Area", icon: Home, badge: "Simple" },
-  { href: "/report", label: "Report Flood", icon: Megaphone },
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/intelligence", label: "Intelligence", icon: Radar, badge: "Live" },
-  { href: "/predict", label: "Predict", icon: Map, badge: "Layer 1" },
-  { href: "/outlook", label: "Outlook", icon: Telescope, badge: "2-6 wks" },
-  { href: "/action", label: "Action", icon: Zap, badge: "Layer 2" },
-  { href: "/prove", label: "Prove", icon: BarChart3, badge: "Layer 3" },
-];
+const NAV_BY_ROLE = {
+  HOUSEHOLD: [
+    { href: "/my-area", label: "My Area", icon: Home },
+    { href: "/dashboard", label: "My Safety", icon: LayoutDashboard },
+    { href: "/action", label: "My Alerts", icon: Zap },
+    { href: "/report", label: "Report Flood", icon: Megaphone },
+  ],
+  FARMER: [
+    { href: "/dashboard", label: "My Farm Risk", icon: LayoutDashboard },
+    { href: "/action", label: "Farm Alerts", icon: Zap },
+    { href: "/outlook", label: "Rain Outlook", icon: Telescope },
+    { href: "/report", label: "Report Flood", icon: Megaphone },
+  ],
+  BUSINESS: [
+    { href: "/dashboard", label: "Risk Overview", icon: LayoutDashboard },
+    { href: "/action", label: "Alerts & Actions", icon: Zap },
+    { href: "/intelligence", label: "Risk Intelligence", icon: Radar },
+    { href: "/prove", label: "Evidence", icon: BarChart3 },
+  ],
+  AGENCY: [
+    { href: "/dashboard", label: "Operations", icon: LayoutDashboard },
+    { href: "/intelligence", label: "Intelligence", icon: Radar },
+    { href: "/predict", label: "Location Analysis", icon: Map },
+    { href: "/outlook", label: "Outlook", icon: Telescope },
+    { href: "/action", label: "Alert Rules", icon: Zap },
+    { href: "/report", label: "Field Reports", icon: Megaphone },
+    { href: "/prove", label: "Evidence", icon: BarChart3 },
+  ],
+} as const;
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
+  const { role } = useExperienceProfile();
+  const nav = NAV_BY_ROLE[role];
 
   useEffect(() => {
     const handlePopState = () => {
@@ -92,14 +118,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
                 title={collapsed ? item.label : undefined}
               >
                 <item.icon className="h-[18px] w-[18px] shrink-0" />
-                {!collapsed && (
-                  <div className="flex items-center justify-between flex-1">
-                    <span>{item.label}</span>
-                    {item.badge && (
-                      <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">{item.badge}</span>
-                    )}
-                  </div>
-                )}
+                {!collapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -137,6 +156,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <header className="flex min-h-16 items-center justify-between gap-3 px-4 lg:px-6 py-2 border-b border-slate-200 dark:border-midnight-border bg-white/80 dark:bg-midnight/80 backdrop-blur-xl">
           <div className="min-w-0"><SatelliteStatus /></div>
           <div className="flex items-center gap-2 shrink-0">
+            <ExperienceRoleControl />
             <ExplanationModeControl />
             <ThemeToggle />
           </div>
@@ -153,8 +173,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <ExplanationModeProvider>
-      <AppShellInner>{children}</AppShellInner>
-    </ExplanationModeProvider>
+    <ExperienceProfileProvider>
+      <ExplanationModeProvider>
+        <AppShellInner>{children}</AppShellInner>
+      </ExplanationModeProvider>
+    </ExperienceProfileProvider>
   );
 }
