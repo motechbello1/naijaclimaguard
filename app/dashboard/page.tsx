@@ -98,6 +98,7 @@ function DashboardContent() {
 
   const deleteLocation = async (id: string) => {
     await fetch(`/api/locations?id=${id}`, { method: "DELETE" });
+    window.localStorage.removeItem(`naijaclimaguard.asset-profile.${id}`);
     setLocations((prev) => prev.filter((l) => l.id !== id));
   };
 
@@ -127,7 +128,7 @@ function DashboardContent() {
               Welcome back{session.user?.name ? `, ${session.user.name.split(" ")[0]}` : ""}
             </h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Know the risk, understand what it means, and see what to do next.
+              Know the risk, define what is exposed, and see what to do next.
             </p>
           </div>
           <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${PLAN_COLORS[plan] ?? PLAN_COLORS.FREE}`}>
@@ -143,7 +144,7 @@ function DashboardContent() {
             </p>
           </div>
           <div className="glass-card rounded-xl p-4">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Locations</p>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">Protected assets</p>
             <p className="mt-1 font-mono text-xl font-bold">{locations.length} <span className="text-xs text-slate-500">/ {limit}</span></p>
           </div>
           <div className="glass-card rounded-xl p-4">
@@ -161,12 +162,12 @@ function DashboardContent() {
         <div className="glass-card rounded-2xl p-6">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold">Your locations — risk and action</h2>
-              <p className="mt-1 text-xs text-slate-500">Every available live score now produces practical guidance. Change the user type and explanation level inside each card.</p>
+              <h2 className="text-sm font-semibold">Your assets — live risk and action</h2>
+              <p className="mt-1 text-xs text-slate-500">Classify each saved point as a home, farm, warehouse, school, insured property or facility. The asset profile changes the action plan, never the underlying flood score.</p>
             </div>
             <button onClick={() => setShowAdd((s) => !s)}
               className="flex items-center gap-1.5 rounded-lg border border-radar/40 px-3 py-1.5 text-xs font-semibold text-radar transition-all hover:bg-radar/5">
-              <Plus className="h-3.5 w-3.5" /> Add location
+              <Plus className="h-3.5 w-3.5" /> Add asset location
             </button>
           </div>
 
@@ -181,7 +182,7 @@ function DashboardContent() {
                   </button>
                 ))}
               </div>
-              <p className="mb-2 text-xs text-slate-500">Or enter custom coordinates:</p>
+              <p className="mb-2 text-xs text-slate-500">Or enter custom coordinates. After saving, choose what asset this point represents.</p>
               <div className="grid gap-2 sm:grid-cols-5">
                 {(["name", "state", "latitude", "longitude"] as const).map((f) => (
                   <input key={f} placeholder={f} value={(newLoc as any)[f]}
@@ -199,7 +200,7 @@ function DashboardContent() {
 
           {locations.length === 0 ? (
             <p className="py-8 text-center text-sm text-slate-500">
-              No locations yet. Add one above to retrieve the current risk index and action guidance.
+              No protected assets yet. Add a location above to retrieve the current risk index and build its action profile.
             </p>
           ) : (
             <div className="space-y-5">
@@ -244,6 +245,7 @@ function DashboardContent() {
                       <ActionCard
                         score={r.score}
                         level={r.level}
+                        locationId={loc.id}
                         locationName={loc.name}
                         model={r.model}
                       />
@@ -255,7 +257,7 @@ function DashboardContent() {
           )}
 
           <p className="mt-4 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-midnight-border">
-            Live risk scores currently come from the disclosed derived-v2 Open-Meteo heuristic. Action Cards are a deterministic guidance layer: they do not change the score, pretend to be Model v5, or replace official NiHSA, NEMA, state or local emergency instructions.
+            Live risk scores currently come from the disclosed derived-v2 Open-Meteo heuristic. Asset profiles and Action Cards are deterministic guidance layers: they do not change the score, pretend to be Model v5, or replace official NiHSA, NEMA, state or local emergency instructions. Asset profiles are currently stored on this device while the database migration is staged separately.
           </p>
         </div>
       </div>
