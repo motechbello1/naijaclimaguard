@@ -38,7 +38,12 @@ function DashboardContent() {
       const data = await response.json();
       setRisks((current) => ({
         ...current,
-        [loc.id]: { score: data.risk.score, level: data.risk.level, model: data.meta.model },
+        [loc.id]: {
+          score: data.risk.score,
+          level: data.risk.level,
+          model: data.meta.model,
+          safety: data.safety_state,
+        },
       }));
     } catch {
       setRisks((current) => ({ ...current, [loc.id]: "error" }));
