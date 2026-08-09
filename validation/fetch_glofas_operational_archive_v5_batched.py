@@ -2,12 +2,10 @@
 """Acquire Model v5 archived operational GloFAS with fewer EWDS submissions.
 
 Scientific contract is identical to fetch_glofas_operational_archive_v5.py.
-The only change is transport/orchestration: request one eligible month at a time,
-then fall back to the existing verified daily retriever if a monthly request is
-rejected or cannot be parsed. Resumed months with validated daily archives skip
-monthly submission entirely so only genuinely missing dates consume EWDS queue
-capacity. No issue dates, variables, leads, locations, labels or scoring gates
-are changed.
+The transport layer may preserve a transparently incomplete month pack when
+explicitly requested. Such a pack is NOT a source-QA pass by itself: the frozen
+>=90% source gate remains enforced on the final synchronized issue-time dataset
+by build_model_v5_dataset.py.
 """
 from __future__ import annotations
 
@@ -110,6 +108,16 @@ def main() -> None:
     ap.add_argument("--lead-hours", nargs="+", type=int, default=[24, 48, 72])
     ap.add_argument("--raw-dir", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument(
+        "--allow-partial-pack",
+        action="store_true",
+        help="Preserve available validated rows below per-pack coverage; final synchronized dataset QA remains >=90%.",
+    )
+    ap.add_argument(
+        "--existing-only",
+        action="store_true",
+        help="Do not submit EWDS requests; package only validated archives already present in raw-dir.",
+    )
     args = ap.parse_args()
 
     months = sorted(set(args.months))
@@ -120,8 +128,8 @@ def main() -> None:
     if sorted(set(args.lead_hours)) != [24, 48, 72]:
         raise ValueError("Model v5 contract requires exactly 24, 48, 72 hour leads")
     key = os.getenv("EWDS_API_KEY")
-    if not key:
-        raise RuntimeError("EWDS_API_KEY is required")
+    if not key and not args.existing_only:
+        raise RuntimeError("EWDS_API_KEY is required unless --existing-only is used")
 
     raw_dir = Path(args.raw_dir)
     raw_dir.mkdir(parents=True, exist_ok=True)
@@ -137,18 +145,32 @@ def main() -> None:
             continue
         expected_dates.extend(pd.Timestamp(d) for d in dates)
         month_key = f"{args.year}-{month:02d}"
-
         cached_daily_dates = [pd.Timestamp(d) for d in dates if archive_usable(daily_target(raw_dir, pd.Timestamp(d)))]
+
+        if args.existing_only:
+            request_modes[month_key] = "existing_validated_archives_only"
+            print(
+                f"Packaging {month_key} from {len(cached_daily_dates)}/{len(dates)} validated cached daily archives; no EWDS submissions",
+                flush=True,
+            )
+            for d in dates:
+                ts = pd.Timestamp(d)
+                target = daily_target(raw_dir, ts)
+                if archive_usable(target):
+                    rows.extend(extract_archive(target))
+                else:
+                    daily_failures[ts.strftime('%Y-%m-%d')] = "not_available_in_validated_cache_existing_only"
+            continue
+
         if cached_daily_dates:
             request_modes[month_key] = "daily_resume"
             print(
-                f"Resuming {month_key} from {len(cached_daily_dates)}/{len(dates)} validated daily archives; "
-                "skipping monthly EWDS submission",
+                f"Resuming {month_key} from {len(cached_daily_dates)}/{len(dates)} validated daily archives; skipping monthly EWDS submission",
                 flush=True,
             )
         else:
             try:
-                archive = monthly_request(args.year, month, dates, args.lead_hours, raw_dir, key)
+                archive = monthly_request(args.year, month, dates, args.lead_hours, raw_dir, str(key))
                 month_rows = extract_archive(archive)
                 expected = {d.strftime('%Y-%m-%d') for d in dates}
                 month_rows = [r for r in month_rows if str(r.get('issue_date')) in expected]
@@ -161,7 +183,7 @@ def main() -> None:
                 request_modes[month_key] = "daily_fallback"
                 print(f"Monthly batch failed for {month_key}; falling back to validated daily retrieval: {exc}", flush=True)
 
-        client = cdsapi.Client(url=EWDS_URL, key=key)
+        client = cdsapi.Client(url=EWDS_URL, key=str(key))
         for d in dates:
             ts = pd.Timestamp(d)
             try:
@@ -185,11 +207,13 @@ def main() -> None:
             ["issue_date", "location", "lead_time_hours"], keep="last"
         )
         out.to_csv(out_path, index=False)
+
     expected_rows = len(expected_dates) * len(LOCATIONS) * 3
     coverage = len(out) / expected_rows if expected_rows else 0.0
     actual_dates = set(out["issue_date"].unique()) if not out.empty else set()
     expected_set = {d.strftime('%Y-%m-%d') for d in expected_dates}
     missing_dates = sorted(expected_set - actual_dates)
+    pack_status = "complete_pack" if coverage >= MIN_COVERAGE else "partial_pack_pending_final_synchronized_coverage_qa"
 
     manifest = {
         "schema": "naijaclimaguard.model_v5_glofas_source_qa.v1",
@@ -200,7 +224,10 @@ def main() -> None:
         "expected_rows": expected_rows,
         "output_rows": int(len(out)),
         "coverage": coverage,
-        "minimum_coverage": MIN_COVERAGE,
+        "minimum_final_synchronized_coverage": MIN_COVERAGE,
+        "pack_status": pack_status,
+        "partial_pack_allowed": bool(args.allow_partial_pack),
+        "final_scientific_coverage_gate_scope": "build_model_v5_dataset synchronized issue-time dataset core features",
         "missing_issue_dates": missing_dates,
         "monthly_failures": monthly_failures,
         "retrieval_failures": daily_failures,
@@ -221,7 +248,7 @@ def main() -> None:
 
     if out.empty:
         raise RuntimeError("No operational GloFAS rows extracted")
-    if coverage < MIN_COVERAGE:
+    if coverage < MIN_COVERAGE and not args.allow_partial_pack:
         raise RuntimeError(
             f"Operational GloFAS coverage below {MIN_COVERAGE:.0%}: {len(out)}/{expected_rows} "
             f"({coverage:.1%}); missing dates sample={missing_dates[:10]}"
@@ -232,9 +259,8 @@ def main() -> None:
         raise RuntimeError("Operational GloFAS output does not contain all required lead times")
 
     print(
-        f"Wrote {len(out):,} rows for {len(actual_dates)}/{len(expected_dates)} issue dates; "
-        f"coverage={coverage:.1%}; strategy=monthly_batch_with_verified_daily_fallback_and_resume; "
-        f"manifest={manifest_path}"
+        f"Wrote {len(out):,} rows for {len(actual_dates)}/{len(expected_dates)} issue dates; coverage={coverage:.1%}; "
+        f"pack_status={pack_status}; final synchronized >=90% gate remains unchanged; manifest={manifest_path}"
     )
 
 
