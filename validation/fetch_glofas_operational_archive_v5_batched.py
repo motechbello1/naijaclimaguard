@@ -4,8 +4,10 @@
 Scientific contract is identical to fetch_glofas_operational_archive_v5.py.
 The only change is transport/orchestration: request one eligible month at a time,
 then fall back to the existing verified daily retriever if a monthly request is
-rejected or cannot be parsed. This reduces pressure on the EWDS queue without
-changing any issue dates, variables, leads, locations, labels or scoring gates.
+rejected or cannot be parsed. Resumed months with validated daily archives skip
+monthly submission entirely so only genuinely missing dates consume EWDS queue
+capacity. No issue dates, variables, leads, locations, labels or scoring gates
+are changed.
 """
 from __future__ import annotations
 
@@ -41,6 +43,10 @@ def eligible_dates(year: int, month: int) -> pd.DatetimeIndex:
     if end < start:
         return pd.DatetimeIndex([])
     return pd.date_range(start, end, freq="D")
+
+
+def daily_target(raw_dir: Path, date: pd.Timestamp) -> Path:
+    return raw_dir / f"glofas_operational_lisflood_{date:%Y%m%d}.zip"
 
 
 def monthly_request(year: int, month: int, dates: pd.DatetimeIndex, leads: list[int], raw_dir: Path, key: str) -> Path:
@@ -131,19 +137,29 @@ def main() -> None:
             continue
         expected_dates.extend(pd.Timestamp(d) for d in dates)
         month_key = f"{args.year}-{month:02d}"
-        try:
-            archive = monthly_request(args.year, month, dates, args.lead_hours, raw_dir, key)
-            month_rows = extract_archive(archive)
-            expected = {d.strftime('%Y-%m-%d') for d in dates}
-            month_rows = [r for r in month_rows if str(r.get('issue_date')) in expected]
-            rows.extend(month_rows)
-            request_modes[month_key] = "monthly_batch"
-            print(f"Monthly batch accepted for {month_key}: rows={len(month_rows)}", flush=True)
-            continue
-        except Exception as exc:
-            monthly_failures[month_key] = str(exc)[:2000]
-            request_modes[month_key] = "daily_fallback"
-            print(f"Monthly batch failed for {month_key}; falling back to validated daily retrieval: {exc}", flush=True)
+
+        cached_daily_dates = [pd.Timestamp(d) for d in dates if archive_usable(daily_target(raw_dir, pd.Timestamp(d)))]
+        if cached_daily_dates:
+            request_modes[month_key] = "daily_resume"
+            print(
+                f"Resuming {month_key} from {len(cached_daily_dates)}/{len(dates)} validated daily archives; "
+                "skipping monthly EWDS submission",
+                flush=True,
+            )
+        else:
+            try:
+                archive = monthly_request(args.year, month, dates, args.lead_hours, raw_dir, key)
+                month_rows = extract_archive(archive)
+                expected = {d.strftime('%Y-%m-%d') for d in dates}
+                month_rows = [r for r in month_rows if str(r.get('issue_date')) in expected]
+                rows.extend(month_rows)
+                request_modes[month_key] = "monthly_batch"
+                print(f"Monthly batch accepted for {month_key}: rows={len(month_rows)}", flush=True)
+                continue
+            except Exception as exc:
+                monthly_failures[month_key] = str(exc)[:2000]
+                request_modes[month_key] = "daily_fallback"
+                print(f"Monthly batch failed for {month_key}; falling back to validated daily retrieval: {exc}", flush=True)
 
         client = cdsapi.Client(url=EWDS_URL, key=key)
         for d in dates:
@@ -189,7 +205,7 @@ def main() -> None:
         "monthly_failures": monthly_failures,
         "retrieval_failures": daily_failures,
         "parse_failures": {},
-        "request_strategy": "monthly_batch_with_verified_daily_fallback",
+        "request_strategy": "monthly_batch_with_verified_daily_fallback_and_resume",
         "request_modes": request_modes,
         "source_contract": {
             "dataset": DATASET,
@@ -217,7 +233,8 @@ def main() -> None:
 
     print(
         f"Wrote {len(out):,} rows for {len(actual_dates)}/{len(expected_dates)} issue dates; "
-        f"coverage={coverage:.1%}; strategy=monthly_batch_with_verified_daily_fallback; manifest={manifest_path}"
+        f"coverage={coverage:.1%}; strategy=monthly_batch_with_verified_daily_fallback_and_resume; "
+        f"manifest={manifest_path}"
     )
 
 
