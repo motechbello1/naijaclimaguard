@@ -24,9 +24,13 @@ env:
 jobs:
   control-archive-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
+    concurrency:
+      group: model-v5-ewds-source-access
+      cancel-in-progress: false
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
           - year: 2022
@@ -46,6 +50,13 @@ jobs:
           python -m pip install -r validation/model_v5_requirements.txt
       - name: Verify EWDS credential
         run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
+      - name: Restore successful archived source file from earlier attempts
+        uses: actions/cache/restore@v4
+        with:
+          path: validation/model_v5/smoke/glofas_raw_${{ matrix.year }}
+          key: model-v5-glofas-smoke-${{ matrix.year }}-${{ matrix.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            model-v5-glofas-smoke-${{ matrix.year }}-${{ matrix.date }}-
       - name: Fetch one archived operational control forecast
         run: |
           python validation/fetch_glofas_operational_archive_v5.py \
@@ -54,6 +65,12 @@ jobs:
             --lead-hours 24 48 72 \
             --raw-dir "validation/model_v5/smoke/glofas_raw_${{ matrix.year }}" \
             --out "validation/model_v5/smoke/glofas_${{ matrix.year }}.csv"
+      - name: Persist any successfully downloaded source file
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: validation/model_v5/smoke/glofas_raw_${{ matrix.year }}
+          key: model-v5-glofas-smoke-${{ matrix.year }}-${{ matrix.date }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Validate source contract and extracted output
         run: |
           python - <<'PY'
@@ -77,8 +94,11 @@ jobs:
           })
           PY
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: model-v5-glofas-control-smoke-${{ matrix.year }}
           retention-days: 30
-          path: validation/model_v5/smoke/glofas_${{ matrix.year }}.csv
-          if-no-files-found: error
+          path: |
+            validation/model_v5/smoke/glofas_${{ matrix.year }}.csv
+            validation/model_v5/smoke/glofas_${{ matrix.year }}.source_manifest.json
+          if-no-files-found: warn
