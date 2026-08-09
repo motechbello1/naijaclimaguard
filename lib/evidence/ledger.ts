@@ -28,6 +28,25 @@ export interface AppendEvidenceInput {
   metadata?: Record<string, string | number | boolean | null> | null;
 }
 
+export interface VerifiableEvidenceEvent {
+  id: string;
+  eventType: string;
+  occurredAt: Date;
+  createdAt: Date;
+  locationId: string | null;
+  riskScore: number | null;
+  riskLevel: string | null;
+  modelLabel: string | null;
+  assetType: string | null;
+  actionCode: string | null;
+  actionText: string | null;
+  channel: string | null;
+  deliveryState: string | null;
+  previousHash: string | null;
+  eventHash: string;
+  metadata: unknown;
+}
+
 function stable(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stable);
   if (value && typeof value === "object") {
@@ -42,6 +61,62 @@ function stable(value: unknown): unknown {
 
 function fingerprint(payload: Record<string, unknown>) {
   return createHash("sha256").update(JSON.stringify(stable(payload))).digest("hex");
+}
+
+function immutablePayload(userId: string, event: Omit<VerifiableEvidenceEvent, "createdAt" | "eventHash">) {
+  return {
+    id: event.id,
+    eventType: event.eventType,
+    occurredAt: event.occurredAt.toISOString(),
+    userId,
+    locationId: event.locationId ?? null,
+    riskScore: event.riskScore ?? null,
+    riskLevel: event.riskLevel ?? null,
+    modelLabel: event.modelLabel ?? null,
+    assetType: event.assetType ?? null,
+    actionCode: event.actionCode ?? null,
+    actionText: event.actionText ?? null,
+    channel: event.channel ?? null,
+    deliveryState: event.deliveryState ?? null,
+    previousHash: event.previousHash ?? null,
+    metadata: event.metadata ?? null,
+  };
+}
+
+/**
+ * Verifies every hash in the supplied evidence window and all links between
+ * adjacent events in that window. The oldest event may point to a predecessor
+ * outside the window, so callers must separately disclose whether the window
+ * is truncated.
+ */
+export function verifyEvidenceWindow(userId: string, input: VerifiableEvidenceEvent[]) {
+  const events = [...input].sort((a, b) => {
+    const occurred = a.occurredAt.getTime() - b.occurredAt.getTime();
+    if (occurred !== 0) return occurred;
+    return a.createdAt.getTime() - b.createdAt.getTime();
+  });
+
+  const failures: Array<{ id: string; reason: "hash_mismatch" | "broken_previous_hash" }> = [];
+
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index];
+    const expectedHash = fingerprint(immutablePayload(userId, event));
+    if (expectedHash !== event.eventHash) failures.push({ id: event.id, reason: "hash_mismatch" });
+
+    if (index > 0) {
+      const previous = events[index - 1];
+      if (event.previousHash !== previous.eventHash) {
+        failures.push({ id: event.id, reason: "broken_previous_hash" });
+      }
+    }
+  }
+
+  return {
+    valid: failures.length === 0,
+    failures,
+    oldestPreviousHash: events[0]?.previousHash ?? null,
+    newestEventHash: events.at(-1)?.eventHash ?? null,
+  };
 }
 
 export async function appendEvidenceEvent(input: AppendEvidenceInput) {
