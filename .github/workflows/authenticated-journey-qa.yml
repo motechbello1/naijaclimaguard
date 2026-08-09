@@ -1,0 +1,28 @@
+name: Authenticated Journey QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "scripts/check-authenticated-journeys.mjs"
+      - "scripts/check-production-smoke.mjs"
+      - ".github/workflows/authenticated-journey-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  journey-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Verify authenticated journey invariants
+        run: node scripts/check-authenticated-journeys.mjs
