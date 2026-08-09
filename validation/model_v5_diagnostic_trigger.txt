@@ -1,1 +1,1 @@
-Refresh diagnostic for latest operational-selector era smoke after fetcher commit 29312416230b172ecd32aaa06d5a36fdddaa134f and smoke commit 991c6e2c6e8642920ec5822b57dc618d859a5645.
+Refresh newest three-era GloFAS operational archive smoke after corrected source fetcher 29312416230b172ecd32aaa06d5a36fdddaa134f and workflow 991c6e2c6e8642920ec5822b57dc618d859a5645. Inspect 2020/2022/2024 exact states before full rerun.
