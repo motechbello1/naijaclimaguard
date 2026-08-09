@@ -1,8 +1,9 @@
 Model v5 resumable combined NASA + archived operational GloFAS development trigger.
 Active protocol remains validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md with source eligibility from 2021-05-26 and walk-forward scoring years 2022-2024.
 NASA IMERG Early artifacts remain reused from preserved source run 31292573245.
-GloFAS acquisition is now fully serialized through a shared EWDS concurrency guard and every successfully downloaded daily archive is cached across failed/retried runs, so source throttling no longer discards completed work.
+GloFAS acquisition is fully serialized through a shared EWDS concurrency guard and every successfully downloaded daily archive is cached across failed/retried runs, so source throttling no longer discards completed work.
 Each quarter uses exactly 1 daily EWDS worker and the >=90% source-coverage gate remains unchanged.
+The smoke workflow shares the same EWDS concurrency group so smoke and full-development jobs cannot compete with each other for source capacity.
 This changes acquisition mechanics only. It does not change the event registry, candidate models, hyperparameters, target definition, threshold grid, sanity gates, source contract, or freeze rules.
 Combined NASA + GloFAS remains the eligible winning feature group and must still beat both NASA-only and GloFAS-only ablations.
 No Model v5 performance result from an older workflow checkout is accepted as final; the synchronized decision must be produced by this repaired branch code and carry archived-operational provenance.
