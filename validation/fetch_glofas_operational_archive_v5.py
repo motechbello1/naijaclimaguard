@@ -22,6 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 from pathlib import Path
+import random
 import tempfile
 import time
 import zipfile
@@ -54,8 +55,41 @@ def retryable(exc: Exception) -> bool:
         for token in (
             "429", "capacity", "queued requests", "too many requests",
             "temporarily limited", "cost limits exceeded", "502", "503", "504",
+            "incomplete glofas archive", "invalid glofas archive",
         )
     )
+
+
+def queue_limited(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return any(token in text for token in ("queued requests", "temporarily limited", "capacity", "cost limits exceeded", "429"))
+
+
+def retry_delay(exc: Exception, attempt: int) -> int:
+    if queue_limited(exc):
+        schedule = [60, 120, 240, 300, 300, 300]
+    else:
+        schedule = [15, 30, 60, 120, 180, 240]
+    base = schedule[min(attempt - 1, len(schedule) - 1)]
+    return base + random.randint(0, 15)
+
+
+def archive_usable(path: Path) -> bool:
+    if not path.exists() or path.stat().st_size <= 0:
+        return False
+    if not zipfile.is_zipfile(path):
+        return False
+    try:
+        with zipfile.ZipFile(path) as zf:
+            if zf.testzip() is not None:
+                return False
+            grib_names = [
+                name for name in zf.namelist()
+                if Path(name).suffix.lower() in {".grib", ".grib2", ".grb", ".grb2"}
+            ]
+            return bool(grib_names)
+    except (OSError, zipfile.BadZipFile):
+        return False
 
 
 def issue_dates(year: int, months: list[int], explicit_dates: list[str] | None) -> pd.DatetimeIndex:
@@ -82,8 +116,12 @@ def retrieve_day(client: cdsapi.Client, date: pd.Timestamp, leads: list[int], ra
         raise ValueError(f"Model v5 consistent control-forecast contract begins {ARCHIVE_START.date()}")
 
     target = raw_dir / f"glofas_operational_lisflood_{date:%Y%m%d}.zip"
-    if target.exists() and target.stat().st_size > 0:
+    if archive_usable(target):
+        print(f"Reusing validated cached GloFAS archive for {date.date()}", flush=True)
         return target
+    if target.exists():
+        print(f"Removing incomplete cached GloFAS archive for {date.date()}", flush=True)
+        target.unlink(missing_ok=True)
 
     request = {
         "system_version": "operational",
@@ -104,13 +142,18 @@ def retrieve_day(client: cdsapi.Client, date: pd.Timestamp, leads: list[int], ra
         try:
             print(f"EWDS operational/lisflood {date.date()}: attempt {attempt}/7", flush=True)
             client.retrieve(DATASET, request).download(str(target))
+            if not archive_usable(target):
+                target.unlink(missing_ok=True)
+                raise RuntimeError("Incomplete GloFAS archive returned by EWDS")
             return target
         except Exception as exc:
             last = exc
+            target.unlink(missing_ok=True)
             if attempt == 7 or not retryable(exc):
                 raise
-            delay = min(120, 10 * (2 ** (attempt - 1)))
-            print(f"EWDS temporary/cost limit for {date.date()}; sleeping {delay}s", flush=True)
+            delay = retry_delay(exc, attempt)
+            kind = "queue/capacity" if queue_limited(exc) else "temporary"
+            print(f"EWDS {kind} limit for {date.date()}; sleeping {delay}s before retry", flush=True)
             time.sleep(delay)
     raise RuntimeError(f"GloFAS operational retrieval failed for {date.date()}: {last}")
 
