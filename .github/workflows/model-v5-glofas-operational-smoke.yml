@@ -9,16 +9,32 @@ on:
       - "validation/fetch_glofas_operational_archive_v5.py"
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
   PYTHONUNBUFFERED: "1"
 
 jobs:
-  smoke:
+  era-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - year: 2020
+            date: "2020-04-01"
+            expected_system: "version_2_1"
+            expected_hydrological_model: "htessel_lisflood"
+          - year: 2022
+            date: "2022-09-21"
+            expected_system: "version_3_1"
+            expected_hydrological_model: "lisflood"
+          - year: 2024
+            date: "2024-07-04"
+            expected_system: "operational"
+            expected_hydrological_model: "lisflood"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,54 +48,42 @@ jobs:
           python -m pip install -r validation/model_v5_requirements.txt
       - name: Verify EWDS credential
         run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
-      - name: Fetch three known 2022 archived operational issue dates
+      - name: Fetch one archived operational issue date
         run: |
           python validation/fetch_glofas_operational_archive_v5.py \
-            --year 2022 \
-            --dates 2022-09-21 2022-09-22 2022-09-23 \
+            --year "${{ matrix.year }}" \
+            --dates "${{ matrix.date }}" \
             --lead-hours 24 48 72 \
-            --raw-dir validation/model_v5/smoke/glofas_raw_2022 \
-            --out validation/model_v5/smoke/glofas_2022_three_day.csv
-      - name: Validate smoke output
+            --raw-dir "validation/model_v5/smoke/glofas_raw_${{ matrix.year }}" \
+            --out "validation/model_v5/smoke/glofas_${{ matrix.year }}.csv"
+      - name: Validate era contract and extracted output
         run: |
           python - <<'PY'
-          import json
-          from pathlib import Path
           import pandas as pd
-          p = Path('validation/model_v5/smoke/glofas_2022_three_day.csv')
-          df = pd.read_csv(p)
-          expected = 3 * 5 * 3
-          result = {
+          year = "${{ matrix.year }}"
+          date = "${{ matrix.date }}"
+          expected_system = "${{ matrix.expected_system }}"
+          expected_model = "${{ matrix.expected_hydrological_model }}"
+          df = pd.read_csv(f"validation/model_v5/smoke/glofas_{year}.csv")
+          assert len(df) == 15, f"expected 15 rows, got {len(df)}"
+          assert sorted(df['lead_time_hours'].astype(int).unique().tolist()) == [24, 48, 72]
+          assert df['location'].nunique() == 5
+          assert sorted(df['issue_date'].astype(str).unique().tolist()) == [date]
+          assert sorted(df['system_version_request'].unique().tolist()) == [expected_system]
+          assert sorted(df['hydrological_model'].unique().tolist()) == [expected_model]
+          print({
               'status': 'pass',
-              'dates': ['2022-09-21', '2022-09-22', '2022-09-23'],
-              'rows': int(len(df)),
-              'expected_rows': expected,
-              'coverage': float(len(df) / expected),
+              'date': date,
+              'rows': len(df),
+              'system_version': expected_system,
+              'hydrological_model': expected_model,
               'locations': sorted(df['location'].unique().tolist()),
-              'lead_hours': sorted(int(x) for x in df['lead_time_hours'].unique()),
-              'issue_dates': sorted(df['issue_date'].unique().tolist()),
-          }
-          assert result['coverage'] >= 0.90
-          assert result['lead_hours'] == [24, 48, 72]
-          assert len(result['locations']) == 5
-          assert result['issue_dates'] == result['dates']
-          Path('validation/model_v5_glofas_operational_smoke.json').write_text(json.dumps(result, indent=2))
-          print(json.dumps(result, indent=2))
+              'lead_hours': sorted(df['lead_time_hours'].astype(int).unique().tolist()),
+          })
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: model-v5-glofas-operational-smoke-2022-three-day
+          name: model-v5-glofas-era-smoke-${{ matrix.year }}
           retention-days: 30
-          path: validation/model_v5/smoke/glofas_2022_three_day.csv
+          path: validation/model_v5/smoke/glofas_${{ matrix.year }}.csv
           if-no-files-found: error
-      - name: Persist smoke result
-        if: always()
-        run: |
-          test -f validation/model_v5_glofas_operational_smoke.json || exit 1
-          git config user.name "naijaclimaguard-model-v5-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add validation/model_v5_glofas_operational_smoke.json
-          git diff --cached --quiet && exit 0
-          git commit -m "model-v5: record archived operational GloFAS smoke result"
-          git pull --rebase origin model-v5-operational-native
-          git push origin HEAD:model-v5-operational-native
