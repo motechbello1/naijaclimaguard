@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { AlertTriangle, CheckCircle2, Crown, LocateFixed, MapPin, Plus, RefreshCw, Trash2, Zap } from "lucide-react";
 import ActionCard from "@/components/action/ActionCard";
 import SimpleDashboardSummary from "@/components/dashboard/SimpleDashboardSummary";
+import MultiSourceIntelligencePanel from "@/components/dashboard/MultiSourceIntelligencePanel";
 import { useExperienceProfile } from "@/components/shared/ExperienceProfile";
 import { useExplanationMode } from "@/components/shared/ExplanationMode";
 import { getRiskLevel } from "@/lib/data";
@@ -56,8 +58,8 @@ const PRESETS = [
 const ROLE_TITLES = {
   HOUSEHOLD: { title: "My Safety", subtitle: "See if a place you care about needs attention and what to do next." },
   FARMER: { title: "My Farm Risk", subtitle: "Protect your farm, livestock, produce and access routes before flooding becomes dangerous." },
-  BUSINESS: { title: "Business Risk Overview", subtitle: "See which saved site needs attention and what continuity action to take." },
-  AGENCY: { title: "Operations Overview", subtitle: "Prioritise monitored locations, actions and evidence from one operational view." },
+  BUSINESS: { title: "Business Risk Overview", subtitle: "See which assets and operations need attention, what sources support the decision, and what continuity action to take." },
+  AGENCY: { title: "Operations Overview", subtitle: "Prioritise monitored locations, intelligence sources, warnings, actions and evidence from one operational view." },
 } as const;
 
 const plainRiskLabel = (level: string) => {
@@ -69,11 +71,17 @@ const plainRiskLabel = (level: string) => {
 };
 
 export default function AdaptiveDashboard(props: Props) {
-  const { role } = useExperienceProfile();
+  const { role, setRole } = useExperienceProfile();
   const { mode } = useExplanationMode();
   const copy = ROLE_TITLES[role];
   const scored = Object.values(props.risks).filter((risk): risk is LiveRisk => typeof risk === "object");
   const peak = scored.length ? Math.max(...scored.map((risk) => risk.score)) : null;
+
+  useEffect(() => {
+    if (props.plan !== "ENTERPRISE") return;
+    const stored = window.localStorage.getItem("naijaclimaguard.action-role");
+    if (!stored) setRole("BUSINESS");
+  }, [props.plan, setRole]);
 
   const useMyLocation = () => {
     if (!navigator.geolocation) return;
@@ -107,6 +115,10 @@ export default function AdaptiveDashboard(props: Props) {
         )}
       </div>
 
+      {(role === "BUSINESS" || role === "AGENCY") && (
+        <MultiSourceIntelligencePanel technical={mode === "technical"} />
+      )}
+
       {mode === "simple" ? (
         <SimpleDashboardSummary role={role} locations={props.locations} risks={props.risks} />
       ) : (
@@ -133,7 +145,7 @@ export default function AdaptiveDashboard(props: Props) {
       <div className="glass-card rounded-2xl p-4 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold">{mode === "simple" ? "Places I care about" : "Your assets — live risk and action"}</h2>
+            <h2 className="text-base font-semibold">{mode === "simple" ? "Places I care about" : role === "BUSINESS" || role === "AGENCY" ? "Monitored assets — live risk and action" : "Your assets — live risk and action"}</h2>
             <p className="mt-1 text-xs text-slate-500">
               {mode === "simple" ? "You do not need to understand weather numbers. Open a place and follow the action steps." : "Asset type changes the action plan, never the underlying flood score."}
             </p>
@@ -218,7 +230,7 @@ export default function AdaptiveDashboard(props: Props) {
         <p className="mt-4 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-midnight-border">
           {mode === "simple"
             ? "NaijaClimaGuard helps you decide what to do. Always follow official emergency instructions and verified local responders."
-            : "Live scores currently use the disclosed derived-v2 Open-Meteo risk engine. Asset profiles and Action Cards change guidance, not the model score. Model v5 remains separate until validation is complete."}
+            : "Live scores currently use the disclosed derived-v2 Open-Meteo risk engine. The source coverage panel separately shows which additional flood-intelligence streams are live, validating, integration-ready or not connected. Model v5 remains separate until validation is complete."}
         </p>
       </div>
     </div>
