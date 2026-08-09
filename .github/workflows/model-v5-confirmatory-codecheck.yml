@@ -6,8 +6,10 @@ on:
       - model-v5-confirmatory-scoring
     paths:
       - "validation/model_v5_confirmatory_nested.py"
+      - "validation/model_v5_confirmatory_strict.py"
       - "validation/MODEL_V5_CONFIRMATORY_SCORING_PROTOCOL.md"
       - "validation/tests/test_model_v5_confirmatory_nested.py"
+      - "validation/tests/test_model_v5_confirmatory_strict.py"
       - ".github/workflows/model-v5-confirmatory-codecheck.yml"
 
 permissions:
@@ -27,21 +29,26 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r validation/model_v5_requirements.txt pytest
-      - name: Compile confirmatory scorer
-        run: python -m py_compile validation/model_v5_confirmatory_nested.py
+      - name: Compile confirmatory scorers
+        run: |
+          python -m py_compile validation/model_v5_confirmatory_nested.py
+          python -m py_compile validation/model_v5_confirmatory_strict.py
       - name: Run temporal-isolation tests
-        run: pytest -q validation/tests/test_model_v5_confirmatory_nested.py
-      - name: Assert scoring-only contract
+        run: |
+          pytest -q validation/tests/test_model_v5_confirmatory_nested.py
+          pytest -q validation/tests/test_model_v5_confirmatory_strict.py
+      - name: Assert strict scoring-only contract
         run: |
           python - <<'PY'
           from pathlib import Path
-          src = Path('validation/model_v5_confirmatory_nested.py').read_text()
+          src = Path('validation/model_v5_confirmatory_strict.py').read_text()
           protocol = Path('validation/MODEL_V5_CONFIRMATORY_SCORING_PROTOCOL.md').read_text()
           assert 'OUTER_YEARS = (2022, 2023, 2024)' in src
           assert 'PREDECLARED_FALLBACK_THRESHOLD = 0.50' in src
           assert 'strictly before each outer scoring year' in src
+          assert 'all_outer_years_present' in src
           assert 'must not retrieve new source data' in protocol
           assert 'freeze_candidate_serialized_not_production_validated' in protocol
           assert 'freeze_blocked' in protocol
-          print('Confirmatory scoring-only contract: PASS')
+          print('Strict confirmatory scoring-only contract: PASS')
           PY
