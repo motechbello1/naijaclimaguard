@@ -1,0 +1,26 @@
+name: Platform Experience QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/i18n/**"
+      - "prisma/schema.prisma"
+      - "scripts/check-platform-experience.mjs"
+      - "vercel.json"
+      - ".github/workflows/platform-experience-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  experience-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify platform language, mobile and accessibility invariants
+        run: node scripts/check-platform-experience.mjs
