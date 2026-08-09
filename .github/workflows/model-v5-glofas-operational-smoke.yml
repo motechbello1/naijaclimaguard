@@ -1,0 +1,86 @@
+name: Model v5 GloFAS Operational Archive Smoke
+
+on:
+  push:
+    branches: [model-v5-operational-native]
+    paths:
+      - "validation/model_v5_glofas_operational_smoke_trigger.txt"
+      - ".github/workflows/model-v5-glofas-operational-smoke.yml"
+      - "validation/fetch_glofas_operational_archive_v5.py"
+
+permissions:
+  contents: write
+
+env:
+  EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install Model v5 runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+      - name: Verify EWDS credential
+        run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
+      - name: Fetch September 2022 archived operational GloFAS
+        run: |
+          python validation/fetch_glofas_operational_archive_v5.py \
+            --year 2022 \
+            --months 9 \
+            --lead-hours 24 48 72 \
+            --raw-dir validation/model_v5/smoke/glofas_raw_2022_09 \
+            --out validation/model_v5/smoke/glofas_2022_09.csv
+      - name: Validate smoke output
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          p = Path('validation/model_v5/smoke/glofas_2022_09.csv')
+          df = pd.read_csv(p)
+          expected = 30 * 5 * 3
+          result = {
+              'status': 'pass',
+              'year': 2022,
+              'month': 9,
+              'rows': int(len(df)),
+              'expected_rows': expected,
+              'coverage': float(len(df) / expected),
+              'locations': sorted(df['location'].unique().tolist()),
+              'lead_hours': sorted(int(x) for x in df['lead_time_hours'].unique()),
+              'issue_date_min': str(df['issue_date'].min()),
+              'issue_date_max': str(df['issue_date'].max()),
+          }
+          assert result['coverage'] >= 0.90
+          assert result['lead_hours'] == [24, 48, 72]
+          assert len(result['locations']) == 5
+          Path('validation/model_v5_glofas_operational_smoke.json').write_text(json.dumps(result, indent=2))
+          print(json.dumps(result, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: model-v5-glofas-operational-smoke-2022-09
+          retention-days: 30
+          path: validation/model_v5/smoke/glofas_2022_09.csv
+          if-no-files-found: error
+      - name: Persist smoke result
+        if: always()
+        run: |
+          test -f validation/model_v5_glofas_operational_smoke.json || exit 1
+          git config user.name "naijaclimaguard-model-v5-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add validation/model_v5_glofas_operational_smoke.json
+          git diff --cached --quiet && exit 0
+          git commit -m "model-v5: record archived operational GloFAS smoke result"
+          git pull --rebase origin model-v5-operational-native
+          git push origin HEAD:model-v5-operational-native
