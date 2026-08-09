@@ -1,4 +1,4 @@
-name: Model v5 Full Operational-Native Development
+name: Model v5 Full Operational-Archive Development
 
 on:
   workflow_dispatch:
@@ -22,18 +22,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Verify protocol exists before source retrieval
+      - name: Verify preregistered operational-archive protocol
         run: |
-          test -f validation/MODEL_V5_PROTOCOL.md
+          test -f validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md
           test -f validation/model_v4_event_registry.csv
           python - <<'PY'
           import csv
           with open('validation/model_v4_event_registry.csv', newline='', encoding='utf-8') as f:
               rows = list(csv.DictReader(f))
           enabled = [r for r in rows if str(r.get('include_in_benchmark', '')).lower() == 'true']
-          event_ids = {r.get('event_id') for r in enabled if r.get('event_id')}
-          assert len(event_ids) == 35, f'Expected 35 enabled unique events, found {len(event_ids)}'
-          print('Frozen 35-event registry verified')
+          assert len({r.get('event_id') for r in enabled if r.get('event_id')}) == 35
+          print('Frozen 35-event registry verified; operational archive protocol locked before scoring')
           PY
 
   nasa:
@@ -43,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        year: [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+        year: [2019, 2020, 2021, 2022, 2023, 2024]
     env:
       EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
     steps:
@@ -53,8 +52,7 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: validation/model_v5_requirements.txt
-      - name: Install Model v5 runtime
-        run: |
+      - run: |
           python -m pip install --upgrade pip
           python -m pip install -r validation/model_v5_requirements.txt
       - name: Verify Earthdata credential
@@ -62,7 +60,7 @@ jobs:
       - name: Fetch NASA IMERG Early V07 year
         run: |
           START="${{ matrix.year }}-01-01"
-          if [ "${{ matrix.year }}" = "2018" ]; then START="2017-12-01"; fi
+          if [ "${{ matrix.year }}" = "2019" ]; then START="2019-10-01"; fi
           python validation/fetch_nasa_imerg_early_history_v5.py \
             --start "$START" \
             --end "${{ matrix.year }}-12-31" \
@@ -82,7 +80,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        year: [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+        year: [2019, 2020, 2021, 2022, 2023, 2024]
     env:
       EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
     steps:
@@ -92,18 +90,15 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: validation/model_v5_requirements.txt
-      - name: Install Model v5 runtime
-        run: |
+      - run: |
           python -m pip install --upgrade pip
           python -m pip install -r validation/model_v5_requirements.txt
       - name: Verify EWDS credential
         run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
-      - name: Fetch GloFAS operational-version reforecasts
+      - name: Fetch archived operational GloFAS forecasts
         run: |
-          python validation/fetch_glofas_reforecast_v5.py \
+          python validation/fetch_glofas_operational_archive_v5.py \
             --year "${{ matrix.year }}" \
-            --reference-year 2024 \
-            --system-version operational \
             --lead-hours 24 48 72 \
             --raw-dir "validation/model_v5/work/glofas_raw_${{ matrix.year }}" \
             --out "validation/model_v5/work/glofas_${{ matrix.year }}.csv"
@@ -117,7 +112,7 @@ jobs:
   develop:
     needs: [nasa, glofas]
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -147,23 +142,25 @@ jobs:
       - name: Compile and run Model v5 contract tests
         run: |
           python -m py_compile \
+            validation/fetch_glofas_operational_archive_v5.py \
             validation/build_model_v5_dataset.py \
             validation/model_v5_operational_native.py \
+            validation/model_v5_operational_archive.py \
             validation/freeze_model_v5_candidate.py
           python -m unittest discover -s validation/tests -p 'test_model_v5.py' -v
-      - name: Build strict issue-time development dataset
+      - name: Build strict issue-time operational dataset
         run: |
           python validation/build_model_v5_dataset.py \
             --nasa 'validation/model_v5/work/nasa/*.csv' \
             --glofas 'validation/model_v5/work/glofas/*.csv' \
             --events validation/model_v4_event_registry.csv \
-            --start 2018-01-01 \
+            --start 2019-11-05 \
             --end 2024-12-31 \
             --out validation/model_v5_issue_dataset.csv \
             --manifest validation/model_v5_dataset_manifest.json
       - name: Run preregistered temporal candidates and ablations
         run: |
-          python validation/model_v5_operational_native.py \
+          python validation/model_v5_operational_archive.py \
             --dataset validation/model_v5_issue_dataset.csv \
             --events validation/model_v4_event_registry.csv \
             --output validation/model_v5_results.json \
@@ -175,7 +172,7 @@ jobs:
             --dataset-manifest validation/model_v5_dataset_manifest.json \
             --events validation/model_v4_event_registry.csv \
             --results validation/model_v5_results.json \
-            --protocol validation/MODEL_V5_PROTOCOL.md \
+            --protocol validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md \
             --model-out validation/model_v5_freeze_candidate.joblib \
             --manifest-out validation/model_v5_freeze_manifest.json
       - name: Summarize scientific decision
@@ -184,17 +181,16 @@ jobs:
           import json
           r = json.load(open('validation/model_v5_results.json'))
           f = json.load(open('validation/model_v5_freeze_manifest.json'))
+          m = r['selected_candidate_metrics']['pooled_oof_metrics']
           print('STATUS:', r['status'])
           print('WINNER:', r['selected_candidate'])
-          m = r['selected_candidate_metrics']['pooled_oof_metrics']
           print('POOLED PR-AUC:', m['pr_auc'])
           print('POOLED ROC-AUC:', m['roc_auc'])
           print('POOLED BRIER:', m['brier_score'])
           print('SANITY:', r['sanity'])
           print('THRESHOLD:', r['threshold_policy']['chosen_threshold'])
           print('FREEZE:', f['status'])
-          if f['status'] == 'freeze_blocked':
-              print('BLOCKERS:', f['blockers'])
+          if f['status'] == 'freeze_blocked': print('BLOCKERS:', f['blockers'])
           PY
       - name: Preserve machine-readable decision on development branch
         if: github.ref_name == 'model-v5-operational-native'
@@ -207,7 +203,7 @@ jobs:
             validation/model_v5_freeze_manifest.json \
             validation/model_v5_environment_freeze.txt
           git diff --cached --quiet && exit 0
-          git commit -m "model-v5: preserve operational-native development decision ${GITHUB_RUN_ID}"
+          git commit -m "model-v5: preserve operational-archive development decision ${GITHUB_RUN_ID}"
           git pull --rebase origin model-v5-operational-native
           git push origin HEAD:model-v5-operational-native
       - uses: actions/upload-artifact@v4
