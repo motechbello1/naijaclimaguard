@@ -28,17 +28,18 @@ enum ObservationQuality {
 }
 
 model User {
-  id             String          @id @default(cuid())
-  email          String          @unique
-  name           String?
-  passwordHash   String
-  plan           String          @default("FREE")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  locations      Location[]
-  alerts         Alert[]
-  reports        Report[]
-  evidenceEvents EvidenceEvent[]
+  id                  String              @id @default(cuid())
+  email               String              @unique
+  name                String?
+  passwordHash        String
+  plan                String              @default("FREE")
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  locations           Location[]
+  alerts              Alert[]
+  reports             Report[]
+  evidenceEvents      EvidenceEvent[]
+  agencyCommandCases  AgencyCommandCase[] @relation("AgencyCommandCreator")
 }
 
 model Location {
@@ -141,9 +142,9 @@ model IntelligenceCredential {
 }
 
 model IntelligenceObservation {
-  id               String             @id @default(cuid())
+  id               String               @id @default(cuid())
   sourceId         String
-  source           IntelligenceSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  source           IntelligenceSource   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   variable         String
   value            Json
   unit             String
@@ -154,7 +155,7 @@ model IntelligenceObservation {
   locationName     String?
   state            String?
   country          String?
-  qualityStatus    ObservationQuality @default(UNKNOWN)
+  qualityStatus    ObservationQuality   @default(UNKNOWN)
   confidence       Float?
   flags            Json?
   sourceVersion    String?
@@ -162,10 +163,32 @@ model IntelligenceObservation {
   originalUnit     String?
   originalVariable String?
   metadata         Json?
-  dedupeKey        String             @unique
-  createdAt        DateTime           @default(now())
+  dedupeKey        String               @unique
+  createdAt        DateTime             @default(now())
+  commandCase      AgencyCommandCase?
 
   @@index([sourceId, observedAt])
   @@index([variable, observedAt])
   @@index([latitude, longitude, observedAt])
+}
+
+/// Operational handling record for an immutable authenticated official advisory.
+/// The source observation is never edited; this records the agency response lifecycle.
+model AgencyCommandCase {
+  id              String                  @id @default(cuid())
+  observationId   String                  @unique
+  observation     IntelligenceObservation @relation(fields: [observationId], references: [id], onDelete: Cascade)
+  status          String                  @default("RECEIVED")
+  priority        String                  @default("NORMAL")
+  notes           String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  acknowledgedAt  DateTime?
+  escalatedAt     DateTime?
+  resolvedAt      DateTime?
+  createdByUserId String
+  createdBy       User                    @relation("AgencyCommandCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([status, updatedAt])
+  @@index([priority, updatedAt])
 }

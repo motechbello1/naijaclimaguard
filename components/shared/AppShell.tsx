@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   Shield, LayoutDashboard, Map, Zap, BarChart3,
-  LogOut, ChevronLeft, ChevronRight, User, Radar, Home, Megaphone, Telescope, FileCheck2,
+  LogOut, ChevronLeft, ChevronRight, User, Radar, Home, Megaphone, Telescope, FileCheck2, ShieldAlert,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
@@ -36,6 +36,7 @@ const NAV_BY_ROLE = {
   ],
   AGENCY: [
     { href: "/dashboard", label: "Operations", icon: LayoutDashboard },
+    { href: "/command", label: "Command Queue", icon: ShieldAlert },
     { href: "/intelligence", label: "Intelligence", icon: Radar },
     { href: "/predict", label: "Location Analysis", icon: Map },
     { href: "/outlook", label: "Outlook", icon: Telescope },
