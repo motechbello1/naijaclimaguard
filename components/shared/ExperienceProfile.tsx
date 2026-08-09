@@ -34,20 +34,26 @@ export function ExperienceProfileProvider({ children }: { children: React.ReactN
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY) as ExperienceRole | null;
-    if (stored && stored in EXPERIENCE_LABELS) setRoleState(stored);
+    const initial = stored && stored in EXPERIENCE_LABELS ? stored : "HOUSEHOLD";
+    setRoleState(initial);
+    document.documentElement.dataset.experienceRole = initial.toLowerCase();
     setHydrated(true);
   }, []);
 
   const setRole = (next: ExperienceRole) => {
     setRoleState(next);
     window.localStorage.setItem(STORAGE_KEY, next);
+    document.documentElement.dataset.experienceRole = next.toLowerCase();
     window.dispatchEvent(new CustomEvent("naijaclimaguard:role-change", { detail: next }));
   };
 
   useEffect(() => {
     const sync = (event: Event) => {
       const next = (event as CustomEvent<ExperienceRole>).detail;
-      if (next && next in EXPERIENCE_LABELS) setRoleState(next);
+      if (next && next in EXPERIENCE_LABELS) {
+        setRoleState(next);
+        document.documentElement.dataset.experienceRole = next.toLowerCase();
+      }
     };
     window.addEventListener("naijaclimaguard:role-change", sync);
     return () => window.removeEventListener("naijaclimaguard:role-change", sync);
