@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { fetchDerivedV2Risk } from "@/lib/risk/derived-v2";
+import { findOfficialSafetyState, OfficialSafetyState } from "@/lib/intelligence/official-advisory";
 
 const NOTIFICATION_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
@@ -28,6 +29,14 @@ export interface AlertEvaluationResult {
   score?: number;
   level?: string;
   threshold: number;
+  triggerReason?: "model_threshold" | "official_advisory";
+  officialSafety?: {
+    level: string;
+    headline: string;
+    authority: string;
+    sourceName: string;
+    observedAt: string;
+  };
   status:
     | "triggered"
     | "already_notified"
@@ -67,10 +76,31 @@ async function sendEmail(
   to: string,
   locationName: string,
   score: number,
-  threshold: number
+  threshold: number,
+  official: OfficialSafetyState | null,
 ): Promise<"email_sent" | "email_failed" | "email_pending_credential"> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return "email_pending_credential";
+
+  const subject = official
+    ? `${official.headline} — ${locationName}`
+    : `Flood-risk threshold crossed at ${locationName}`;
+
+  const text = official
+    ? [
+        `${official.headline} — ${locationName}`,
+        official.instruction,
+        `Authority: ${official.authority}`,
+        `Official level: ${official.rawLevel}`,
+        `NaijaClimaGuard model score remains ${score}/100 (configured threshold ${threshold}). The official warning is a separate safety overlay and does not alter that score.`,
+        "Follow the issuing authority and verified local emergency instructions.",
+      ].join("\n\n")
+    : [
+        `Flood-risk alert — ${locationName}`,
+        `The current NaijaClimaGuard risk index is ${score}/100, crossing your configured threshold of ${threshold}.`,
+        "This index is calculated from current Open-Meteo precipitation, recent rainfall intensity, and evapotranspiration context using the disclosed derived-v2 model.",
+        "Follow official NiHSA, NiMet, NEMA, SEMA, and local emergency guidance where applicable.",
+      ].join("\n\n");
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -82,16 +112,8 @@ async function sendEmail(
       body: JSON.stringify({
         from: process.env.ALERT_FROM_EMAIL ?? "NaijaClimaGuard <onboarding@resend.dev>",
         to: [to],
-        subject: `Flood-risk threshold crossed at ${locationName}`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:520px">
-            <h2 style="color:#EF4444">Flood-Risk Alert — ${locationName}</h2>
-            <p>The current NaijaClimaGuard risk index is <strong>${score}/100</strong>, crossing your configured threshold of ${threshold}.</p>
-            <p style="color:#555">This index is calculated from current Open-Meteo precipitation, recent rainfall intensity, and evapotranspiration context using the disclosed derived-v2 model.</p>
-            <p><a href="https://naijaclimaguard.vercel.app/my-area" style="color:#10B981;font-weight:bold">Open NaijaClimaGuard →</a></p>
-            <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
-            <p style="font-size:12px;color:#999">Decision-support signal only. Follow official NiHSA, NiMet, NEMA, SEMA, and local emergency guidance where applicable.</p>
-          </div>`,
+        subject,
+        text,
       }),
       signal: AbortSignal.timeout(8000),
     });
@@ -107,15 +129,16 @@ function coordinateKey(latitude: number, longitude: number) {
 }
 
 /**
- * Evaluate alert rules against the exact same derived-v2 model used by the
- * public risk API. Weather requests are deduplicated by coordinate for the
- * duration of this evaluation batch.
+ * Evaluate alert rules against derived-v2 plus an independent official-safety
+ * overlay. An official advisory may trigger a user warning even when the model
+ * threshold is not crossed; it never changes the underlying model score.
  */
 export async function evaluateAlertRules(
   rules: AlertRuleForEvaluation[],
   now = new Date()
 ): Promise<AlertEvaluationResult[]> {
   const weatherByCoordinate = new Map<string, ReturnType<typeof fetchDerivedV2Risk>>();
+  const officialByCoordinate = new Map<string, ReturnType<typeof findOfficialSafetyState>>();
 
   const riskFor = (latitude: number, longitude: number) => {
     const key = coordinateKey(latitude, longitude);
@@ -123,6 +146,16 @@ export async function evaluateAlertRules(
     if (!request) {
       request = fetchDerivedV2Risk(latitude, longitude);
       weatherByCoordinate.set(key, request);
+    }
+    return request;
+  };
+
+  const officialFor = (latitude: number, longitude: number) => {
+    const key = coordinateKey(latitude, longitude);
+    let request = officialByCoordinate.get(key);
+    if (!request) {
+      request = findOfficialSafetyState(latitude, longitude);
+      officialByCoordinate.set(key, request);
     }
     return request;
   };
@@ -146,14 +179,16 @@ export async function evaluateAlertRules(
       continue;
     }
 
+    const official = await officialFor(alert.location.latitude, alert.location.longitude).catch(() => null);
     const score = risk.risk.score;
     const crossed = score >= alert.threshold;
+    const officialActive = Boolean(official?.active);
     const recentlyNotified = Boolean(
       alert.lastNotifiedAt &&
         now.getTime() - alert.lastNotifiedAt.getTime() < NOTIFICATION_COOLDOWN_MS
     );
 
-    if (!crossed) {
+    if (!crossed && !officialActive) {
       results.push({
         alertId: alert.id,
         userId: alert.user.id,
@@ -166,6 +201,17 @@ export async function evaluateAlertRules(
       continue;
     }
 
+    const triggerReason: "model_threshold" | "official_advisory" = officialActive ? "official_advisory" : "model_threshold";
+    const officialSafety = official
+      ? {
+          level: official.level,
+          headline: official.headline,
+          authority: official.authority,
+          sourceName: official.sourceName,
+          observedAt: official.observedAt,
+        }
+      : undefined;
+
     if (recentlyNotified) {
       results.push({
         alertId: alert.id,
@@ -174,6 +220,8 @@ export async function evaluateAlertRules(
         score,
         level: risk.risk.level,
         threshold: alert.threshold,
+        triggerReason,
+        officialSafety,
         status: "already_notified",
       });
       continue;
@@ -182,14 +230,12 @@ export async function evaluateAlertRules(
     const wantsEmail = channels.includes("EMAIL");
     const wantsSms = channels.includes("SMS");
     const emailStatus = wantsEmail
-      ? await sendEmail(alert.user.email, alert.location.name, score, alert.threshold)
+      ? await sendEmail(alert.user.email, alert.location.name, score, alert.threshold, official)
       : "email_not_selected";
     const smsStatus = wantsSms
       ? "sms_disabled_phone_not_collected"
       : "sms_not_selected";
 
-    // Only claim a notification happened when a real delivery channel succeeded.
-    // This prevents a missing/failed email credential from suppressing retries for 12h.
     const deliveryRecorded = emailStatus === "email_sent";
     if (deliveryRecorded) {
       await prisma.alert.update({
@@ -205,6 +251,8 @@ export async function evaluateAlertRules(
       score,
       level: risk.risk.level,
       threshold: alert.threshold,
+      triggerReason,
+      officialSafety,
       status: "triggered",
       emailStatus,
       smsStatus,
@@ -239,11 +287,6 @@ export async function getActiveAlertRulesForUser(
   }));
 }
 
-/**
- * Select a stable rotating page of active alerts. The page is derived from the
- * current time bucket, so deployments with more alerts than one function should
- * process do not permanently starve rules beyond the first page.
- */
 export async function getBackgroundAlertBatch(
   limit = 250,
   now = new Date()

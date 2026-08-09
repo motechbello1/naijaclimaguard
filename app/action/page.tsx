@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Zap, Plus, Trash2, Play, Loader2, MailCheck, MessageSquareOff,
-  BellRing, BellOff, CheckCircle2, AlertTriangle, MapPin, ShieldCheck,
+  BellRing, BellOff, AlertTriangle, MapPin, ShieldCheck, ShieldAlert,
 } from "lucide-react";
 
 interface Loc { id: string; name: string; state: string; latitude: number; longitude: number; }
@@ -16,6 +16,14 @@ interface AlertRule {
 interface CheckResult {
   location: string; score?: number; threshold?: number;
   status: string; emailStatus?: string; smsStatus?: string;
+  triggerReason?: "model_threshold" | "official_advisory";
+  officialSafety?: {
+    level: string;
+    headline: string;
+    authority: string;
+    sourceName: string;
+    observedAt: string;
+  };
 }
 
 const SIMPLE_LEVELS = [
@@ -96,13 +104,25 @@ export default function ActionPage() {
 
   const simpleStatus = (r: CheckResult) => {
     if (r.status === "feed_unreachable") return { cls: "text-slate-500", text: "We could not check this place right now." };
+    if (r.triggerReason === "official_advisory" && (r.status === "triggered" || r.status === "already_notified")) {
+      return {
+        cls: "text-crimson",
+        text: r.status === "triggered"
+          ? "An official warning is active for this place. Follow the issuing authority now."
+          : "An official warning is still active. We already notified you recently.",
+      };
+    }
     if (r.status === "triggered") return { cls: "text-crimson", text: "Risk is high enough for your alert. Take a look now." };
     if (r.status === "already_notified") return { cls: "text-amber", text: "Risk is still high. We already warned you recently." };
     return { cls: "text-radar", text: "No alert is needed right now." };
   };
 
   const technicalStatus = (r: CheckResult) => {
-    if (r.status === "feed_unreachable") return `feed unreachable`;
+    if (r.status === "feed_unreachable") return "weather feed unreachable";
+    if (r.triggerReason === "official_advisory") {
+      const model = r.score == null ? "model score unavailable" : `model ${r.score}/100`;
+      return `official advisory override · ${model} · ${r.officialSafety?.authority ?? "authorised source"}`;
+    }
     if (r.status === "triggered") return `${r.score}/100 ≥ threshold ${r.threshold}`;
     if (r.status === "already_notified") return `${r.score}/100 above threshold; within 12h cooldown`;
     return `${r.score}/100 below threshold ${r.threshold}`;
@@ -119,7 +139,7 @@ export default function ActionPage() {
               <span className="standard-up">Alerts & Action</span>
             </h1>
             <p className="simple-only mt-1 text-sm text-slate-500">Choose when NaijaClimaGuard should warn you about a place you care about.</p>
-            <p className="standard-up mt-1 text-sm text-slate-500 dark:text-slate-400">Create and manage alert rules for your saved locations.</p>
+            <p className="standard-up mt-1 text-sm text-slate-500 dark:text-slate-400">Create and manage alert rules for your saved locations. A fresh connected official warning can alert you even when the model score is below your chosen threshold.</p>
           </div>
           <button onClick={runCheck} disabled={checking || alerts.length === 0}
             className="flex items-center gap-2 rounded-lg bg-radar px-5 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40">
@@ -134,7 +154,7 @@ export default function ActionPage() {
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-radar" />
             <div>
               <p className="font-semibold">You do not need to understand flood scores.</p>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Pick how early you want to hear from us. We will use the numbers in the background and show you the warning in plain language.</p>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Pick how early you want to hear from us. If a connected authorised agency issues a fresh warning for your place, we will show that separately and it takes priority over reassurance from a low score.</p>
             </div>
           </div>
         </div>
@@ -145,12 +165,24 @@ export default function ActionPage() {
             <div className="space-y-2">
               {checkResults.map((r, i) => {
                 const simple = simpleStatus(r);
+                const official = r.triggerReason === "official_advisory" && r.officialSafety;
                 return (
-                  <div key={i} className="rounded-xl border border-slate-100 dark:border-midnight-border px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-semibold">{r.location}</span>
-                      <span className={`simple-only text-sm font-semibold ${simple.cls}`}>{simple.text}</span>
-                      <span className="standard-up font-mono text-xs text-slate-500">{technicalStatus(r)}</span>
+                  <div key={i} className={`rounded-xl border px-4 py-3 ${official ? "border-crimson/30 bg-crimson/5" : "border-slate-100 dark:border-midnight-border"}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="text-sm font-semibold">{r.location}</span>
+                        {official && (
+                          <div className="mt-2 flex items-start gap-2 text-xs text-crimson">
+                            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                            <div>
+                              <p className="font-bold">{official.headline}</p>
+                              <p className="standard-up mt-1 text-slate-500">{official.authority} · {new Date(official.observedAt).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <span className={`simple-only max-w-sm text-right text-sm font-semibold ${simple.cls}`}>{simple.text}</span>
+                      <span className="standard-up max-w-sm text-right font-mono text-xs text-slate-500">{technicalStatus(r)}</span>
                     </div>
                   </div>
                 );
@@ -160,6 +192,7 @@ export default function ActionPage() {
             <div className="technical-only mt-4 border-t border-slate-100 pt-3 dark:border-midnight-border">
               <p className="flex items-center gap-2 text-xs font-mono text-slate-500"><MailCheck className="h-3.5 w-3.5" /> Email channel: {channels?.email ?? "unknown"}</p>
               <p className="mt-1 flex items-center gap-2 text-xs font-mono text-slate-500"><MessageSquareOff className="h-3.5 w-3.5" /> SMS: phone capture not yet implemented</p>
+              <p className="mt-1 text-xs font-mono text-slate-500">Official-advisory alerts are an independent safety overlay; they do not increase or rewrite the model score.</p>
             </div>
           </div>
         )}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { AlertTriangle, CheckCircle2, Crown, LocateFixed, MapPin, Plus, RefreshCw, Trash2, Zap } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Crown, LocateFixed, MapPin, Plus, RefreshCw, ShieldAlert, Trash2, Zap } from "lucide-react";
 import ActionCard from "@/components/action/ActionCard";
 import SimpleDashboardSummary from "@/components/dashboard/SimpleDashboardSummary";
 import MultiSourceIntelligencePanel from "@/components/dashboard/MultiSourceIntelligencePanel";
@@ -23,6 +23,15 @@ export interface LiveRisk {
   score: number;
   level: string;
   model: string;
+  safety?: {
+    active: boolean;
+    level: string;
+    headline: string | null;
+    instruction: string;
+    authority?: string;
+    sourceName?: string;
+    observedAt?: string;
+  };
 }
 
 interface Props {
@@ -192,6 +201,7 @@ export default function AdaptiveDashboard(props: Props) {
           <div className="space-y-5">
             {props.locations.map((loc) => {
               const risk = props.risks[loc.id];
+              const official = typeof risk === "object" && risk.safety?.active ? risk.safety : null;
               return (
                 <div id={`location-${loc.id}`} key={loc.id} className="scroll-mt-6 space-y-3 rounded-2xl border border-slate-100 p-4 dark:border-midnight-border">
                   <div className="flex items-center justify-between gap-3">
@@ -208,7 +218,9 @@ export default function AdaptiveDashboard(props: Props) {
                       ) : risk === "error" ? (
                         <button onClick={() => props.fetchRisk(loc)} className="flex items-center gap-1 text-sm text-slate-500"><AlertTriangle className="h-4 w-4" /> Try again</button>
                       ) : mode === "simple" ? (
-                        <span className="rounded-full border border-slate-200 px-3 py-1.5 text-sm font-bold dark:border-midnight-border">{plainRiskLabel(risk.level)}</span>
+                        <span className={`rounded-full border px-3 py-1.5 text-sm font-bold ${official ? "border-crimson/40 bg-crimson/5 text-crimson" : "border-slate-200 dark:border-midnight-border"}`}>
+                          {official ? "OFFICIAL WARNING" : plainRiskLabel(risk.level)}
+                        </span>
                       ) : (
                         <div className="text-right">
                           <p className="font-mono text-lg font-bold" style={{ color: getRiskLevel(risk.score).color }}>{risk.score}</p>
@@ -220,6 +232,24 @@ export default function AdaptiveDashboard(props: Props) {
                     </div>
                   </div>
 
+                  {official && (
+                    <div className="rounded-xl border border-crimson/30 bg-crimson/5 p-4">
+                      <div className="flex items-start gap-3">
+                        <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-crimson" />
+                        <div>
+                          <p className="font-bold text-crimson">{official.headline ?? "OFFICIAL ADVISORY ACTIVE"}</p>
+                          <p className="mt-1 text-sm leading-relaxed text-slate-700 dark:text-slate-200">{official.instruction}</p>
+                          {mode !== "simple" && (
+                            <p className="mt-2 text-xs text-slate-500">
+                              Authority: {official.authority ?? "authorised source"}{official.observedAt ? ` · issued ${new Date(official.observedAt).toLocaleString()}` : ""}
+                            </p>
+                          )}
+                          <p className="mt-2 text-xs font-semibold">This official safety state does not change the model score shown below.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {typeof risk === "object" && <ActionCard score={risk.score} level={risk.level} locationId={loc.id} locationName={loc.name} model={risk.model} />}
                 </div>
               );
@@ -229,8 +259,8 @@ export default function AdaptiveDashboard(props: Props) {
 
         <p className="mt-4 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-midnight-border">
           {mode === "simple"
-            ? "NaijaClimaGuard helps you decide what to do. Always follow official emergency instructions and verified local responders."
-            : "Live scores currently use the disclosed derived-v2 Open-Meteo risk engine. The source coverage panel separately shows which additional flood-intelligence streams are live, validating, integration-ready or not connected. Model v5 remains separate until validation is complete."}
+            ? "NaijaClimaGuard helps you decide what to do. A connected official warning is shown above the model result and must be followed even when the rainfall-based score is low."
+            : "Live scores currently use the disclosed derived-v2 Open-Meteo risk engine. Official advisories are a separate safety overlay and never rewrite the model score. The source coverage panel separately shows which additional flood-intelligence streams are live, validating, integration-ready or not connected. Model v5 remains separate until validation is complete."}
         </p>
       </div>
     </div>
