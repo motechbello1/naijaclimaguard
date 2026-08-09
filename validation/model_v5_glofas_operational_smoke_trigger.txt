@@ -1,0 +1,1 @@
+Run the archived operational GloFAS September 2022 smoke test before launching the full 2019-2024 source run.
