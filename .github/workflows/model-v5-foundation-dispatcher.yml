@@ -1,0 +1,26 @@
+name: Model v5 Foundation Challenger Dispatcher
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "validation/model_v5_foundation_main_runner_trigger.txt"
+      - ".github/workflows/model-v5-foundation-dispatcher.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch isolated foundation challenger
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run model-v5-foundation-challenger.yml \
+            --repo "${{ github.repository }}" \
+            --ref model-v5-foundation-challenger
+          echo "Dispatched Model v5 Foundation Challenger on model-v5-foundation-challenger"
