@@ -97,10 +97,10 @@ export function computeImpactGraph(assets: ImpactAsset[], decisionScore: number,
   const officialFactor = officialWarning ? 1.12 : 1;
   return assets
     .filter((asset) => asset.enabled)
-    .map((asset) => {
+    .map((asset): ImpactNode => {
       const severity = (asset.criticality * 0.45 + asset.vulnerability * 0.35 + asset.recoveryDifficulty * 0.2) / 5;
       const exposureScore = Math.min(100, Math.round(hazard * severity * officialFactor * 100));
-      const priority = exposureScore >= 75 ? "critical" : exposureScore >= 55 ? "high" : exposureScore >= 30 ? "moderate" : "watch";
+      const priority: ImpactNode["priority"] = exposureScore >= 75 ? "critical" : exposureScore >= 55 ? "high" : exposureScore >= 30 ? "moderate" : "watch";
       return { ...asset, exposureScore, priority };
     })
     .sort((a, b) => b.exposureScore - a.exposureScore);
