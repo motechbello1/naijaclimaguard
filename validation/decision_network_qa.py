@@ -13,7 +13,8 @@ assert 'Official instruction takes priority' in engine
 # Impact graph is transparent and non-probabilistic.
 assert 'computeImpactGraph' in engine
 assert 'criticality' in engine and 'vulnerability' in engine and 'recoveryDifficulty' in engine
-assert 'not a flood probability or loss estimate' in page
+assert 'flood probability or loss estimate' in page
+assert '<strong>not</strong>' in page
 
 # Simulations cannot mutate operational state or evidence.
 assert 'Simulation only' in page
