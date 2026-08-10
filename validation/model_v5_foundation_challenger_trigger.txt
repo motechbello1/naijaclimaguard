@@ -4,4 +4,4 @@ Immediate lane: reuse preserved NASA IMERG Early V07 artifacts from run 31292573
 
 Do not contact EWDS. Do not modify the operational archive branch. Do not claim OpenHydroNet 2022/2023 temporal performance from released weights trained through 2023. OpenHydroNet remains 2024+ / prospective only.
 
-Triggered 2026-08-10.
+Triggered 2026-08-10T05:37+01:00.
