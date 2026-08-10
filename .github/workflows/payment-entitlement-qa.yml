@@ -1,0 +1,23 @@
+name: Payment Entitlement QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/api/payment/**"
+      - "scripts/qa-payment-entitlement.mjs"
+      - ".github/workflows/payment-entitlement-qa.yml"
+  workflow_dispatch:
+
+jobs:
+  payment-entitlement-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify public checkout entitlement invariants
+        run: node scripts/qa-payment-entitlement.mjs
