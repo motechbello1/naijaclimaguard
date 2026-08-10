@@ -1,0 +1,176 @@
+name: Model v5 Foundation Challenger
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [model-v5-foundation-challenger]
+    paths:
+      - "validation/model_v5_foundation_challenger_trigger.txt"
+      - "validation/MODEL_V5_FOUNDATION_CHALLENGER_PROTOCOL.md"
+      - "validation/model_v5_tabpfn_challenger.py"
+      - "validation/build_model_v5_nasa_only_issue_dataset.py"
+      - "validation/model_v5_nasa_only_baselines.py"
+      - "validation/model_v5_foundation_requirements.txt"
+      - ".github/workflows/model-v5-foundation-challenger.yml"
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+  NASA_SOURCE_RUN_ID: "31292573245"
+  TABPFN_ALLOW_CPU_LARGE_DATASET: "true"
+
+jobs:
+  nasa_only_foundation_challenger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: model-v5-foundation-challenger
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            validation/model_v5_requirements.txt
+            validation/model_v5_foundation_requirements.txt
+
+      - name: Verify preregistered challenger contract before any score
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('validation/MODEL_V5_FOUNDATION_CHALLENGER_PROTOCOL.md').read_text()
+          assert 'Evaluation years: 2022, 2023, 2024.' in p
+          assert 'TabPFN v2' in p
+          assert 'OpenHydroNet' in p
+          assert 'NOT eligible for NaijaClimaGuard\'s 2022 or 2023 temporal benchmark' in p
+          s=Path('validation/model_v5_tabpfn_challenger.py').read_text()
+          assert 'ModelVersion.V2' in s
+          assert 'OUTER_YEARS = (2022, 2023, 2024)' in s
+          assert 'predeclared_0.50_fallback_no_prior_inner_oof' in s
+          print('Foundation challenger protocol pinned before scoring')
+          PY
+
+      - name: Install Model v5 + foundation challenger runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+          python -m pip install -r validation/model_v5_foundation_requirements.txt
+          python -m pip freeze > validation/model_v5_foundation_environment_freeze.txt
+
+      - name: Compile challenger code
+        run: |
+          python -m py_compile \
+            validation/build_model_v5_nasa_only_issue_dataset.py \
+            validation/model_v5_nasa_only_baselines.py \
+            validation/model_v5_tabpfn_challenger.py
+
+      - name: Reuse preserved NASA IMERG Early artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.NASA_SOURCE_RUN_ID }}
+          pattern: model-v5-nasa-*
+          path: validation/model_v5/work/nasa
+          merge-multiple: true
+
+      - name: Verify NASA years
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          files=sorted(Path('validation/model_v5/work/nasa').glob('nasa_*.csv'))
+          years=sorted({p.stem.split('_')[-1] for p in files})
+          required=['2021','2022','2023','2024']
+          missing=sorted(set(required)-set(years))
+          print('NASA files:', [p.name for p in files])
+          print('NASA years:', years)
+          if missing: raise SystemExit(f'Missing NASA years: {missing}')
+          PY
+
+      - name: Build NASA-only issue-time challenger dataset
+        run: |
+          python validation/build_model_v5_nasa_only_issue_dataset.py \
+            --nasa 'validation/model_v5/work/nasa/*.csv' \
+            --events validation/model_v4_event_registry.csv \
+            --start 2021-05-26 \
+            --end 2024-12-31 \
+            --out validation/model_v5_nasa_only_issue_dataset.csv \
+            --manifest validation/model_v5_nasa_only_issue_dataset.manifest.json
+
+      - name: Score classical NASA-only baselines
+        run: |
+          python validation/model_v5_nasa_only_baselines.py \
+            --dataset validation/model_v5_nasa_only_issue_dataset.csv \
+            --output validation/model_v5_nasa_only_baselines.json
+
+      - name: Score pretrained TabPFN v2 NASA-only challenger
+        run: |
+          python validation/model_v5_tabpfn_challenger.py \
+            --dataset validation/model_v5_nasa_only_issue_dataset.csv \
+            --events validation/model_v4_event_registry.csv \
+            --groups nasa_only \
+            --output validation/model_v5_tabpfn_nasa_only_results.json
+
+      - name: Compare pretrained challenger with classical baselines
+        run: |
+          python - <<'PY'
+          import json
+          b=json.load(open('validation/model_v5_nasa_only_baselines.json'))['results']
+          t=json.load(open('validation/model_v5_tabpfn_nasa_only_results.json'))['results']['nasa_only']
+          classical={k: float(v['mean_fold_pr_auc']) for k,v in b.items()}
+          best_name=max(classical,key=classical.get)
+          best=classical[best_name]
+          tab=float(t['mean_temporal_fold_pr_auc'])
+          summary={
+            'status':'nasa_only_foundation_challenger_scored',
+            'best_classical_candidate':best_name,
+            'best_classical_mean_temporal_pr_auc':best,
+            'tabpfn_v2_mean_temporal_pr_auc':tab,
+            'tabpfn_improvement_vs_best_classical':tab-best,
+            'tabpfn_pooled_pr_auc':t['pooled_outer_metrics']['pr_auc'],
+            'tabpfn_pooled_roc_auc':t['pooled_outer_metrics']['roc_auc'],
+            'tabpfn_brier':t['pooled_outer_metrics']['brier_score'],
+            'tabpfn_event_detection':t['eligible_event_detection']['event_detection_rate'],
+            'tabpfn_precision':t['threshold_dependent_outer_metrics']['precision'],
+            'tabpfn_fp_per_1000':t['threshold_dependent_outer_metrics']['false_positive_issue_rows_per_1000_negative'],
+            'tabpfn_gate_like_pass':t['meets_original_v5_operational_gate_on_challenger_outer_predictions'],
+            'decision':'retain_for_combined_test_when_glofas_ready' if tab > best else 'do_not_promote_based_on_nasa_only_test',
+            'warning':'Research challenger only; no production or public alert authorization.'
+          }
+          open('validation/model_v5_foundation_challenger_summary.json','w').write(json.dumps(summary,indent=2,sort_keys=True))
+          print(json.dumps(summary,indent=2))
+          PY
+
+      - name: Commit machine-readable NASA-only challenger evidence
+        run: |
+          git config user.name "naijaclimaguard-model-v5-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            validation/model_v5_nasa_only_issue_dataset.manifest.json \
+            validation/model_v5_nasa_only_baselines.json \
+            validation/model_v5_tabpfn_nasa_only_results.json \
+            validation/model_v5_foundation_challenger_summary.json \
+            validation/model_v5_foundation_environment_freeze.txt
+          git diff --cached --quiet && exit 0
+          git commit -m "model-v5: preserve NASA-only foundation challenger decision ${GITHUB_RUN_ID}"
+          git pull --rebase origin model-v5-foundation-challenger
+          git push origin HEAD:model-v5-foundation-challenger
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: model-v5-foundation-challenger-${{ github.run_id }}
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            validation/model_v5_nasa_only_issue_dataset.csv
+            validation/model_v5_nasa_only_issue_dataset.manifest.json
+            validation/model_v5_nasa_only_baselines.json
+            validation/model_v5_tabpfn_nasa_only_results.json
+            validation/model_v5_foundation_challenger_summary.json
+            validation/model_v5_foundation_environment_freeze.txt
