@@ -27,7 +27,7 @@ assert 'writing operational evidence' in page
 assert 'ACTION_ACKNOWLEDGED' in page
 assert 'decisionNetworkVersion: "fdn-v1"' in page
 assert 'outcomeState: "acknowledged"' in page
-assert 'acknowledgement only' in page
+assert 'prove acknowledgement, not successful action or flood occurrence' in page
 
 # No Model v5 coupling or production-model mutation.
 assert 'model_v5' not in engine.lower()
