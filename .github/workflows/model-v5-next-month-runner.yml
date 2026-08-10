@@ -1,0 +1,136 @@
+name: Model v5 Next Month Runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "validation/model_v5_next_month_runner_trigger.txt"
+      - ".github/workflows/model-v5-next-month-runner.yml"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: model-v5-ewds-source-access
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: "1"
+  TARGET_BRANCH: model-v5-operational-native
+  MONTH_DIR: validation/model_v5/operational_archive_months
+
+jobs:
+  next_month:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: model-v5-operational-native
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install pinned Model v5 runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+      - name: Verify source credential
+        run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
+      - name: Select first missing durable month
+        id: month
+        run: |
+          python - <<'PY'
+          import json, os, pandas as pd
+          from pathlib import Path
+          root=Path('validation/model_v5/operational_archive_months')
+          expected=[(y,m) for y in range(2021,2025) for m in range(5 if y==2021 else 1,13)]
+          missing=[]
+          for y,m in expected:
+              csvp=root/f'glofas_{y}_m{m:02d}.csv'; manp=root/f'glofas_{y}_m{m:02d}.source_manifest.json'
+              ok=False
+              if csvp.exists() and manp.exists():
+                  try:
+                      j=json.loads(manp.read_text()); c=j.get('source_contract',{}); df=pd.read_csv(csvp)
+                      ok=(len(df)>0 and int(j.get('output_rows',0))==len(df)
+                          and c.get('dataset')=='cems-glofas-forecast'
+                          and c.get('system_version')=='operational'
+                          and c.get('hydrological_model')=='lisflood'
+                          and c.get('product_type')=='control_forecast'
+                          and c.get('lead_hours')==[24,48,72]
+                          and c.get('archive_start')=='2021-05-26'
+                          and set(df['lead_time_hours'].unique())=={24,48,72}
+                          and df['location'].nunique()==5)
+                  except Exception: ok=False
+              if not ok:
+                  missing.append((y,m)); break
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              if missing:
+                  y,m=missing[0]; f.write(f'ready=false\nyear={y}\nmonth={m}\n')
+                  print(f'Next missing month: {y}-{m:02d}')
+              else:
+                  f.write('ready=true\n')
+                  print('All 44 month packs exist')
+          PY
+      - name: Restore raw progress
+        if: steps.month.outputs.ready != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: validation/model_v5/work/month_${{ steps.month.outputs.year }}_${{ steps.month.outputs.month }}
+          key: model-v5-glofas-month-${{ steps.month.outputs.year }}-${{ steps.month.outputs.month }}-${{ github.run_id }}
+          restore-keys: |
+            model-v5-glofas-month-${{ steps.month.outputs.year }}-${{ steps.month.outputs.month }}-
+      - name: Acquire selected month
+        id: acquire
+        if: steps.month.outputs.ready != 'true'
+        run: |
+          Y='${{ steps.month.outputs.year }}'; M='${{ steps.month.outputs.month }}'; MM=$(printf '%02d' "$M")
+          python validation/fetch_glofas_operational_archive_v5_batched.py \
+            --year "$Y" --months "$M" --lead-hours 24 48 72 \
+            --raw-dir "validation/model_v5/work/month_${Y}_${M}" \
+            --out "$MONTH_DIR/glofas_${Y}_m${MM}.csv" \
+            --allow-partial-pack
+      - name: Save raw progress
+        if: always() && steps.month.outputs.ready != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: validation/model_v5/work/month_${{ steps.month.outputs.year }}_${{ steps.month.outputs.month }}
+          key: model-v5-glofas-month-${{ steps.month.outputs.year }}-${{ steps.month.outputs.month }}-${{ github.run_id }}
+      - name: Verify and commit durable month
+        if: steps.month.outputs.ready != 'true' && steps.acquire.outcome == 'success'
+        run: |
+          Y='${{ steps.month.outputs.year }}'; M='${{ steps.month.outputs.month }}'; MM=$(printf '%02d' "$M")
+          python - <<'PY'
+          import json, os, pandas as pd
+          from pathlib import Path
+          y=int('${{ steps.month.outputs.year }}'); m=int('${{ steps.month.outputs.month }}')
+          root=Path('validation/model_v5/operational_archive_months')
+          csvp=root/f'glofas_{y}_m{m:02d}.csv'; manp=root/f'glofas_{y}_m{m:02d}.source_manifest.json'
+          j=json.loads(manp.read_text()); df=pd.read_csv(csvp); c=j['source_contract']
+          assert c=={'archive_start':'2021-05-26','dataset':'cems-glofas-forecast','hydrological_model':'lisflood','lead_hours':[24,48,72],'product_type':'control_forecast','system_version':'operational'}
+          assert len(df)>0 and len(df)==int(j['output_rows'])
+          assert set(df['lead_time_hours'].unique())=={24,48,72} and df['location'].nunique()==5
+          print(f'Validated {y}-{m:02d}: rows={len(df)}, coverage={float(j["coverage"]):.1%}, missing={j.get("missing_issue_dates", [])}')
+          PY
+          git config user.name "naijaclimaguard-model-v5-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$MONTH_DIR/glofas_${Y}_m${MM}.csv" "$MONTH_DIR/glofas_${Y}_m${MM}.source_manifest.json"
+          git commit -m "model-v5: preserve GloFAS ${Y}-${MM} source pack"
+          git pull --rebase origin "$TARGET_BRANCH"
+          git push origin HEAD:"$TARGET_BRANCH"
+      - name: Dispatch next month after successful preservation
+        if: steps.month.outputs.ready != 'true' && steps.acquire.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run model-v5-next-month-runner.yml --repo "${{ github.repository }}" --ref main
+      - name: Dispatch final scorer when all month packs exist
+        if: steps.month.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run model-v5-monthly-durable-closure.yml --repo "${{ github.repository }}" --ref model-v5-operational-native
