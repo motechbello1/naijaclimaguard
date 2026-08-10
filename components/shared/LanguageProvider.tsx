@@ -5,6 +5,7 @@ import { APP_LANGUAGES, AppLocale, isAppLocale, LOCALE_STORAGE_KEY } from "@/lib
 import { MESSAGES, MessageKey } from "@/lib/i18n/messages";
 import { translateActionOSExact } from "@/lib/i18n/action-os";
 import { translateActionOSDetailExact } from "@/lib/i18n/action-os-detail";
+import { translateDecisionNetworkExact } from "@/lib/i18n/decision-network";
 
 type LanguageContextValue = {
   locale: AppLocale;
@@ -15,7 +16,7 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
-const ACTION_OS_PATHS = ["/action-center", "/drill", "/emergency-pack"];
+const TRANSLATED_PRODUCT_PATHS = ["/action-center", "/drill", "/emergency-pack", "/decision-network"];
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<AppLocale>("en");
@@ -32,7 +33,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [locale]);
 
   useEffect(() => {
-    if (!ACTION_OS_PATHS.some((path) => window.location.pathname.startsWith(path))) return;
+    if (!TRANSLATED_PRODUCT_PATHS.some((path) => window.location.pathname.startsWith(path))) return;
 
     let applying = false;
     const translateTree = (root: Node) => {
@@ -53,9 +54,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
           const trimmed = raw.trim();
           if (!trimmed) continue;
 
-          // Detail/safety sentences are resolved first; short UI labels use the core pack.
-          const detailed = translateActionOSDetailExact(trimmed, locale);
-          let translated = detailed !== trimmed ? detailed : translateActionOSExact(trimmed, locale);
+          // Decision Network copy is checked first on its route; official authority text and
+          // user-entered values are absent from the exact-copy packs and therefore untouched.
+          let translated = window.location.pathname.startsWith("/decision-network")
+            ? translateDecisionNetworkExact(trimmed, locale)
+            : trimmed;
+          if (translated === trimmed) {
+            const detailed = translateActionOSDetailExact(trimmed, locale);
+            translated = detailed !== trimmed ? detailed : translateActionOSExact(trimmed, locale);
+          }
           // Guard against a legacy typo in the first Igbo pack while keeping the pack backwards-compatible.
           if (translated === "Mụọ ihe ị ga-eme tupu ịdọ aka ná ntị bụrụ nkeจริง.") {
             translated = "Mụọ ihe ị ga-eme tupu ịdọ aka ná ntị bụrụ nke n'ezie.";
