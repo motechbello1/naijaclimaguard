@@ -5,6 +5,6 @@ Acquisition packaging correction: month packs preserve every validated retrieved
 
 May 2021 is already preserved transparently with 5/6 validated dates (75/90 rows), missing only 2021-05-30. Do not retry that one blocked date as a prerequisite. Continue June 2021 through December 2024, permanently committing provenance-valid month packs as they complete. When all 44 packs exist, run the unchanged synchronized dataset QA first; only if that >=90% gate passes may development scoring proceed.
 
-After the frozen development artifact exists, final closure requires the separate scoring-only strict nested confirmatory pass on branch model-v5-confirmatory-scoring. No new source retrieval is permitted in that confirmatory pass.
+After the frozen development artifact exists, final closure requires the separate scoring-only strict nested confirmatory pass. No new source retrieval is permitted in that confirmatory pass.
 
-Corrected closure trigger: 2026-08-09 synchronized-coverage execution.
+Definitive closure trigger: 2026-08-10T04:17+01:00.
