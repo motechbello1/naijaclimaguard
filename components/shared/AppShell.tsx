@@ -7,7 +7,7 @@ import { signOut, useSession } from "next-auth/react";
 import {
   Shield, LayoutDashboard, Map, Zap, BarChart3,
   LogOut, ChevronDown, ChevronLeft, ChevronRight, User, Radar, Home, Megaphone, Telescope, FileCheck2, ShieldAlert,
-  Menu, X, Settings2,
+  Menu, X, Settings2, ClipboardCheck,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
@@ -22,12 +22,14 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   HOUSEHOLD: [
     { href: "/my-area", key: "myArea", icon: Home },
     { href: "/dashboard", key: "mySafety", icon: LayoutDashboard },
+    { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "myAlerts", icon: Zap },
     { href: "/evidence", key: "myHistory", icon: FileCheck2 },
     { href: "/report", key: "reportFlood", icon: Megaphone },
   ],
   FARMER: [
     { href: "/dashboard", key: "myFarmRisk", icon: LayoutDashboard },
+    { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "farmAlerts", icon: Zap },
     { href: "/outlook", key: "rainOutlook", icon: Telescope },
     { href: "/evidence", key: "farmHistory", icon: FileCheck2 },
@@ -35,6 +37,7 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
   BUSINESS: [
     { href: "/dashboard", key: "riskOverview", icon: LayoutDashboard },
+    { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "alertsActions", icon: Zap },
     { href: "/intelligence", key: "riskIntelligence", icon: Radar },
     { href: "/evidence", key: "operationalEvidence", icon: FileCheck2 },
@@ -42,6 +45,7 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   AGENCY: [
     { href: "/dashboard", key: "operations", icon: LayoutDashboard },
     { href: "/command", key: "commandQueue", icon: ShieldAlert },
+    { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/intelligence", key: "intelligence", icon: Radar },
     { href: "/predict", key: "locationAnalysis", icon: Map },
     { href: "/outlook", key: "outlook", icon: Telescope },
