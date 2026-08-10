@@ -65,22 +65,23 @@ const HEALTH_WEIGHT: Record<SourceHealth, number> = {
 };
 
 export function assessSourceTrust(sources: SourceSignal[]): TrustAssessment {
+  // Restricted sources are excluded because the user is not entitled to inspect them.
+  // Missing configured sources remain in the denominator so absence degrades trust instead of disappearing.
   const visible = sources.filter((s) => s.health !== "restricted");
-  const usable = visible.filter((s) => s.health !== "missing");
-  const numerator = usable.reduce((sum, source) => sum + KIND_WEIGHT[source.kind] * HEALTH_WEIGHT[source.health], 0);
-  const denominator = usable.reduce((sum, source) => sum + KIND_WEIGHT[source.kind], 0);
+  const numerator = visible.reduce((sum, source) => sum + KIND_WEIGHT[source.kind] * HEALTH_WEIGHT[source.health], 0);
+  const denominator = visible.reduce((sum, source) => sum + KIND_WEIGHT[source.kind], 0);
   const score = denominator ? Math.round((numerator / denominator) * 100) : 0;
   const freshSources = visible.filter((s) => s.health === "fresh").length;
   const degradedSources = visible.filter((s) => ["stale", "suspect", "missing"].includes(s.health)).length;
   const authoritativeWarning = sources.some((s) => s.kind === "official" && s.health === "fresh");
 
-  const freshOfficial = sources.some((s) => s.kind === "official" && s.health === "fresh");
-  const freshNonOfficial = sources.filter((s) => s.kind !== "official" && s.health === "fresh");
-  const conflict = freshOfficial && freshNonOfficial.length > 0;
+  // We do not infer a semantic source conflict unless comparable directional values are available.
+  // A fresh official advisory and a fresh model can coexist without implying disagreement.
+  const conflict = false;
   const band = score >= 80 ? "strong" : score >= 60 ? "usable" : score >= 35 ? "degraded" : "insufficient";
 
   const explanation = authoritativeWarning
-    ? "A fresh official advisory is present. It remains operationally authoritative even when predictive sources disagree."
+    ? "A fresh official advisory is present. It remains operationally authoritative even when predictive sources are also available."
     : band === "strong"
       ? "Most visible evidence sources are fresh and internally usable. This is source-confidence, not flood probability."
       : band === "usable"
@@ -92,14 +93,15 @@ export function assessSourceTrust(sources: SourceSignal[]): TrustAssessment {
   return { score, band, freshSources, degradedSources, authoritativeWarning, conflict, explanation };
 }
 
-export function computeImpactGraph(assets: ImpactAsset[], decisionScore: number, officialWarning: boolean): ImpactNode[] {
+export function computeImpactGraph(assets: ImpactAsset[], decisionScore: number, _officialWarning: boolean): ImpactNode[] {
+  // Official-warning state is intentionally not used in exposure mathematics. It changes action policy,
+  // not the numeric hazard/index or the user's vulnerability profile.
   const hazard = Math.max(0, Math.min(100, decisionScore)) / 100;
-  const officialFactor = officialWarning ? 1.12 : 1;
   return assets
     .filter((asset) => asset.enabled)
     .map((asset): ImpactNode => {
       const severity = (asset.criticality * 0.45 + asset.vulnerability * 0.35 + asset.recoveryDifficulty * 0.2) / 5;
-      const exposureScore = Math.min(100, Math.round(hazard * severity * officialFactor * 100));
+      const exposureScore = Math.min(100, Math.round(hazard * severity * 100));
       const priority: ImpactNode["priority"] = exposureScore >= 75 ? "critical" : exposureScore >= 55 ? "high" : exposureScore >= 30 ? "moderate" : "watch";
       return { ...asset, exposureScore, priority };
     })
