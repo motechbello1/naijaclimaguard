@@ -1,0 +1,1 @@
+Registers a default-branch dispatcher that launches the isolated NASA-only foundation challenger on model-v5-foundation-challenger. It does not alter the frozen operational archive protocol or contact EWDS directly.
