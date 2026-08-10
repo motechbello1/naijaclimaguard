@@ -1,0 +1,3 @@
+triggered_at=2026-08-10T16:54+01:00
+purpose=produce authoritative NASA-only TabPFN result or explicit failure diagnostic
+scientific_protocol_unchanged=true
