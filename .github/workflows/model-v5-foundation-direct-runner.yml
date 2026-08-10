@@ -1,0 +1,121 @@
+name: Model v5 Foundation Direct Runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "validation/model_v5_foundation_direct_trigger.txt"
+      - ".github/workflows/model-v5-foundation-direct-runner.yml"
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+  NASA_SOURCE_RUN_ID: "31292573245"
+  TARGET_BRANCH: model-v5-foundation-challenger
+  TABPFN_ALLOW_CPU_LARGE_DATASET: "true"
+
+jobs:
+  challenger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: model-v5-foundation-challenger
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            validation/model_v5_requirements.txt
+            validation/model_v5_foundation_requirements.txt
+      - name: Install challenger runtime
+        id: install
+        continue-on-error: true
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+          python -m pip install -r validation/model_v5_foundation_requirements.txt
+          python -m pip freeze > validation/model_v5_foundation_environment_freeze.txt
+      - name: Reuse preserved NASA artifacts
+        id: nasa
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.NASA_SOURCE_RUN_ID }}
+          pattern: model-v5-nasa-*
+          path: validation/model_v5/work/nasa
+          merge-multiple: true
+      - name: Build NASA-only issue dataset
+        id: build
+        if: steps.nasa.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python validation/build_model_v5_nasa_only_issue_dataset.py \
+            --nasa 'validation/model_v5/work/nasa/*.csv' \
+            --events validation/model_v4_event_registry.csv \
+            --start 2021-05-26 --end 2024-12-31 \
+            --out validation/model_v5_nasa_only_issue_dataset.csv \
+            --manifest validation/model_v5_nasa_only_issue_dataset.manifest.json
+      - name: Score classical NASA-only baselines
+        id: baseline
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: python validation/model_v5_nasa_only_baselines.py --dataset validation/model_v5_nasa_only_issue_dataset.csv --output validation/model_v5_nasa_only_baselines.json
+      - name: Score TabPFN v2 challenger
+        id: tabpfn
+        if: steps.baseline.outcome == 'success'
+        continue-on-error: true
+        run: python validation/model_v5_tabpfn_challenger.py --dataset validation/model_v5_nasa_only_issue_dataset.csv --events validation/model_v4_event_registry.csv --groups nasa_only --output validation/model_v5_tabpfn_nasa_only_results.json
+      - name: Build authoritative comparison summary
+        id: summary
+        if: steps.tabpfn.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import json
+          b=json.load(open('validation/model_v5_nasa_only_baselines.json'))['results']
+          t=json.load(open('validation/model_v5_tabpfn_nasa_only_results.json'))['results']['nasa_only']
+          classical={k:float(v['mean_fold_pr_auc']) for k,v in b.items()}
+          best_name=max(classical,key=classical.get); best=classical[best_name]; tab=float(t['mean_temporal_fold_pr_auc'])
+          out={'status':'nasa_only_foundation_challenger_scored','best_classical_candidate':best_name,'best_classical_mean_temporal_pr_auc':best,'tabpfn_v2_mean_temporal_pr_auc':tab,'tabpfn_improvement_vs_best_classical':tab-best,'tabpfn_pooled_pr_auc':t['pooled_outer_metrics']['pr_auc'],'tabpfn_pooled_roc_auc':t['pooled_outer_metrics']['roc_auc'],'tabpfn_brier':t['pooled_outer_metrics']['brier_score'],'tabpfn_event_detection':t['eligible_event_detection']['event_detection_rate'],'tabpfn_precision':t['threshold_dependent_outer_metrics']['precision'],'tabpfn_fp_per_1000':t['threshold_dependent_outer_metrics']['false_positive_issue_rows_per_1000_negative'],'decision':'retain_for_combined_test_when_glofas_ready' if tab>best else 'do_not_promote_based_on_nasa_only_test','production_status':'research_challenger_not_authorized_for_public_alerts'}
+          open('validation/model_v5_foundation_challenger_summary.json','w').write(json.dumps(out,indent=2,sort_keys=True))
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Write explicit failure diagnostic when challenger does not complete
+        if: always() && steps.summary.outcome != 'success'
+        env:
+          INSTALL: ${{ steps.install.outcome }}
+          NASA: ${{ steps.nasa.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          BASELINE: ${{ steps.baseline.outcome }}
+          TABPFN: ${{ steps.tabpfn.outcome }}
+          SUMMARY: ${{ steps.summary.outcome }}
+        run: |
+          python - <<'PY'
+          import json, os
+          out={'status':'foundation_challenger_execution_failed','run_id':os.environ.get('GITHUB_RUN_ID'),'stages':{k:os.environ.get(k) for k in ['INSTALL','NASA','BUILD','BASELINE','TABPFN','SUMMARY']},'note':'Execution failure only; no scientific score or production authorization.'}
+          open('validation/model_v5_foundation_failure.json','w').write(json.dumps(out,indent=2,sort_keys=True))
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Commit result or failure diagnostic
+        if: always()
+        run: |
+          git config user.name "naijaclimaguard-model-v5-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add validation/model_v5_foundation_environment_freeze.txt validation/model_v5_nasa_only_issue_dataset.manifest.json validation/model_v5_nasa_only_baselines.json validation/model_v5_tabpfn_nasa_only_results.json validation/model_v5_foundation_challenger_summary.json validation/model_v5_foundation_failure.json 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -m "model-v5: preserve foundation challenger execution ${GITHUB_RUN_ID}"
+          git pull --rebase origin "$TARGET_BRANCH"
+          git push origin HEAD:"$TARGET_BRANCH"
+      - name: Fail workflow if no authoritative summary exists
+        if: always()
+        run: test -f validation/model_v5_foundation_challenger_summary.json
