@@ -1,0 +1,1 @@
+Registers the Model v5 foundation challenger workflow on the default branch so GitHub can execute the isolated model-v5-foundation-challenger branch workflow. No production model, source contract, or EWDS path is changed.
