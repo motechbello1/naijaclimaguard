@@ -1,0 +1,3 @@
+Launch isolated NASA-only foundation challenger from the registered default-branch workflow.
+The job must checkout model-v5-foundation-challenger, reuse preserved NASA artifacts only, and must not contact EWDS or modify the frozen operational archive experiment.
+Triggered 2026-08-10.
