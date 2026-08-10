@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { APP_LANGUAGES, AppLocale, isAppLocale, LOCALE_STORAGE_KEY } from "@/lib/i18n/config";
 import { MESSAGES, MessageKey } from "@/lib/i18n/messages";
 import { translateActionOSExact } from "@/lib/i18n/action-os";
+import { translateActionOSDetailExact } from "@/lib/i18n/action-os-detail";
 
 type LanguageContextValue = {
   locale: AppLocale;
@@ -51,7 +52,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
           const raw = node.nodeValue || "";
           const trimmed = raw.trim();
           if (!trimmed) continue;
-          const translated = translateActionOSExact(trimmed, locale);
+
+          // Detail/safety sentences are resolved first; short UI labels use the core pack.
+          const detailed = translateActionOSDetailExact(trimmed, locale);
+          let translated = detailed !== trimmed ? detailed : translateActionOSExact(trimmed, locale);
+          // Guard against a legacy typo in the first Igbo pack while keeping the pack backwards-compatible.
+          if (translated === "Mụọ ihe ị ga-eme tupu ịdọ aka ná ntị bụrụ nkeจริง.") {
+            translated = "Mụọ ihe ị ga-eme tupu ịdọ aka ná ntị bụrụ nke n'ezie.";
+          }
           if (translated !== trimmed) node.nodeValue = raw.replace(trimmed, translated);
         }
       } finally {
