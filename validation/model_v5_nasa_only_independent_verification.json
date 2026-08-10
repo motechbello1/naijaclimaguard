@@ -1,0 +1,35 @@
+{
+  "status": "independent_local_reproduction_not_foundation_final",
+  "purpose": "Independent verification of the NASA-only classical hurdle using preserved NASA IMERG Early 2021-2024 artifacts and the frozen 35-event registry. This is not a TabPFN result and cannot authorize production use.",
+  "dataset": {
+    "rows": 6517,
+    "positive_issue_rows": 63,
+    "prevalence": 0.00966702470461869,
+    "eligibility_start": "2021-05-26",
+    "outer_years": [2022, 2023, 2024],
+    "target": "documented flood strictly after issue and within next 72 hours"
+  },
+  "results": {
+    "logistic_operational_native": {
+      "mean_fold_pr_auc": 0.04307553519398046,
+      "pooled_pr_auc": 0.03139882947675107,
+      "pooled_roc_auc": 0.7433679240964879,
+      "pooled_brier": 0.10278026396521298
+    },
+    "random_forest_operational_native": {
+      "mean_fold_pr_auc": 0.033469408309237156,
+      "pooled_pr_auc": 0.028957314181714648,
+      "pooled_roc_auc": 0.6887387122296984,
+      "pooled_brier": 0.010726348352684356
+    },
+    "xgboost_operational_native": {
+      "mean_fold_pr_auc": 0.04723430468871017,
+      "pooled_pr_auc": 0.032489942204444705,
+      "pooled_roc_auc": 0.6685400605501828,
+      "pooled_brier": 0.014961834175174627
+    }
+  },
+  "best_classical_by_preregistered_mean_temporal_pr_auc": "xgboost_operational_native",
+  "best_classical_mean_temporal_pr_auc": 0.04723430468871017,
+  "warning": "Supporting independent reproduction only. The registered GitHub Actions challenger remains authoritative for TabPFN comparison and final challenger evidence."
+}
