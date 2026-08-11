@@ -1,0 +1,9 @@
+{
+  "status": "freeze_blocked",
+  "replacement_authorized": false,
+  "production_engine_remains": "derived-v2",
+  "blockers": [
+    "Model v6 did not pass the preregistered development freeze gate.",
+    "No eligible operating threshold exists."
+  ]
+}
