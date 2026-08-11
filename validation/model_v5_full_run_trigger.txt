@@ -11,3 +11,4 @@ Combined NASA + GloFAS remains the eligible winning feature group and must still
 No Model v5 performance result from an older workflow checkout is accepted as final; the synchronized decision must be produced by this repaired branch code and carry archived-operational provenance.
 
 Resume trigger: 2026-08-09 final-closure attempt 2. Preserve valid cached archives; do not reset source progress.
+Execution trigger: 2026-08-11 synchronized archive-closed scoring attempt. Reuse all preserved source packs and proceed through inventory, synchronization, QA, scoring, threshold, and freeze gates without protocol changes.
