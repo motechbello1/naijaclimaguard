@@ -1,0 +1,49 @@
+name: Riverine Watch v1 QA
+
+on:
+  pull_request:
+    paths:
+      - "validation/riverine_watch_v1*"
+      - "validation/RIVERINE_WATCH_V1_FREEZE_MANIFEST.json"
+      - "validation/fetch_glofas_riverine_watch.py"
+      - "validation/tests/test_riverine_watch_v1.py"
+      - "lib/risk/riverine-watch-*.ts"
+      - "app/api/v1/riverine-watch/**"
+      - ".github/workflows/riverine-watch-v1-*.yml"
+  push:
+    branches: [main]
+    paths:
+      - "validation/riverine_watch_v1*"
+      - "validation/RIVERINE_WATCH_V1_FREEZE_MANIFEST.json"
+      - "validation/fetch_glofas_riverine_watch.py"
+      - "validation/tests/test_riverine_watch_v1.py"
+      - "lib/risk/riverine-watch-*.ts"
+      - "app/api/v1/riverine-watch/**"
+      - ".github/workflows/riverine-watch-v1-*.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  frozen-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Verify frozen content hashes
+        run: |
+          test "$(git hash-object validation/riverine_watch_v1_model.json)" = "fe21155b33acdbe491b2bc0d130ccf2d889ff5fb"
+          test "$(git hash-object validation/riverine_watch_v1.py)" = "a7e6709095d1efcf1cf8ada621e6b5c578767e7f"
+          test "$(git hash-object validation/riverine_watch_v1_retrospective_metrics.json)" = "c69ed8b423910a824d6f479d2eaef318af5a0171"
+
+      - name: Replay real operational source regression
+        run: python -m unittest validation.tests.test_riverine_watch_v1 -v
+
+      - name: Syntax-check operational issuer
+        run: |
+          python -m py_compile validation/riverine_watch_v1_prospective.py
+          python -m py_compile validation/fetch_glofas_riverine_watch.py

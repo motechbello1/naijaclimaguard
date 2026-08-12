@@ -1,0 +1,70 @@
+{
+  "model_id": "riverine-watch-v1",
+  "evidence_class": "post_freeze_operational_source_replay_not_prospective_issuance",
+  "replay_recorded_date": "2026-08-12",
+  "model_issue_date": "2026-08-10",
+  "source_bundle": {
+    "origin_workflow_run_id": 31469645424,
+    "origin_artifact_id": 9093066740,
+    "origin_artifact_name": "model-v4-shadow-source-pack-31469645424",
+    "origin_artifact_digest": "sha256:2d61e63166c241f1c84e9a0616b95f2ca82b2811a6ddd4639599e933de3a2804",
+    "glofas_issue_date": "2026-08-10",
+    "nasa_feature_window": "2026-07-11 through 2026-08-09; exactly 30 complete days before the GloFAS issue",
+    "source_substitution": false
+  },
+  "results": [
+    {
+      "location": "Lokoja",
+      "probability": 0.04075237319720808,
+      "state": "NORMAL",
+      "features": {
+        "rain_1d": 0.5299999713897705,
+        "rain_3d": 3.2049999237060547,
+        "rain_7d": 6.129999909549951,
+        "rain_14d": 21.444998588413,
+        "rain_30d": 98.81999849900603,
+        "rain_accel_3d": 2.6249999664723873,
+        "rain_3_14_ratio": 0.14945208604423363,
+        "rain_7_30_ratio": 0.062031976731710146,
+        "wet_days_7d": 2,
+        "wet_days_30d": 17,
+        "q24": 0.625,
+        "q48": 0.515625,
+        "q72": 0.328125,
+        "qmax_72": 0.625,
+        "q48_minus_q24": -0.109375,
+        "q72_minus_q24": -0.296875,
+        "q72_pct_rise": -0.47499924000121596,
+        "q_slope_per_day": -0.1484375,
+        "q_monotonic_rise": 0
+      }
+    },
+    {
+      "location": "Makurdi",
+      "probability": 0.8503209079848945,
+      "state": "WATCH",
+      "features": {
+        "rain_1d": 11.704998970031738,
+        "rain_3d": 13.474998950958252,
+        "rain_7d": 29.864998392760754,
+        "rain_14d": 64.31499957293272,
+        "rain_30d": 125.32999860495329,
+        "rain_accel_3d": -0.005000405013561249,
+        "rain_3_14_ratio": 0.20951564690849542,
+        "rain_7_30_ratio": 0.23829089991938715,
+        "wet_days_7d": 4,
+        "wet_days_30d": 19,
+        "q24": 3465.453125,
+        "q48": 3696.53125,
+        "q72": 3903.515625,
+        "qmax_72": 3903.515625,
+        "q48_minus_q24": 231.078125,
+        "q72_minus_q24": 438.0625,
+        "q72_pct_rise": 0.12640843320412581,
+        "q_slope_per_day": 219.03125,
+        "q_monotonic_rise": 1
+      }
+    }
+  ],
+  "claim_boundary": "This proves deterministic scoring on a genuine preserved NASA+GloFAS operational bundle. It is not counted as prospective validation because the replay was performed after the source issue date."
+}

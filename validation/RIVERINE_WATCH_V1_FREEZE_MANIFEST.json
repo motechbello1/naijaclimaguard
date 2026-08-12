@@ -1,0 +1,40 @@
+{
+  "model_id": "riverine-watch-v1",
+  "freeze_date": "2026-08-12",
+  "status": "shadow_candidate_serialized_not_production_validated",
+  "replacement_authorized": false,
+  "public_action_authorized": false,
+  "supported_locations": ["Lokoja", "Makurdi"],
+  "forecast_horizon_days": 14,
+  "watch_threshold": 0.7,
+  "cooldown_days": 7,
+  "frozen_artifacts": {
+    "model_path": "validation/riverine_watch_v1_model.json",
+    "model_git_blob_sha": "fe21155b33acdbe491b2bc0d130ccf2d889ff5fb",
+    "python_inference_path": "validation/riverine_watch_v1.py",
+    "python_inference_git_blob_sha": "a7e6709095d1efcf1cf8ada621e6b5c578767e7f",
+    "retrospective_metrics_path": "validation/riverine_watch_v1_retrospective_metrics.json",
+    "retrospective_metrics_git_blob_sha": "c69ed8b423910a824d6f479d2eaef318af5a0171"
+  },
+  "retrospective_evidence": {
+    "outer_years": [2022, 2023, 2024],
+    "eligible_onset_events": 5,
+    "detected_events": 4,
+    "event_detection_rate": 0.8,
+    "pooled_pr_auc": 0.1763367025320199,
+    "pooled_roc_auc": 0.8371472784191798,
+    "alert_episode_precision": 0.26666666666666666,
+    "false_alert_episodes_per_location_year": 1.8333333333333333,
+    "evidence_class": "retrospective_development_shadow_pilot_not_prospective_validation"
+  },
+  "source_contract": {
+    "rainfall": "NASA GPM IMERG Early V07 daily; exactly 30 complete days strictly before the selected GloFAS issue date",
+    "river": "CEMS GloFAS operational LISFLOOD control forecast at +24/+48/+72 hours",
+    "substitutions_allowed": false,
+    "candidate_glofas_source_ages_days": [0, 1, 2],
+    "max_live_shadow_emit_age_days": 1,
+    "age_2_policy": "score_as_delayed_backfill_only_no_new_watch_episode",
+    "older_than_2_days_policy": "no_model_issue_source_delayed"
+  },
+  "promotion_rule": "Do not replace the existing production risk engine until prospective evidence is accumulated and independently reviewed."
+}
