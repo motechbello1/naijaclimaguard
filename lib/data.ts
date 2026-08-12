@@ -61,9 +61,9 @@ export const PRICING = [
     cta: "Choose Professional", highlighted: true,
   },
   {
-    name: "Enterprise", price: "Custom", period: "", description: "For banks, government & reinsurers",
-    features: ["Custom location requirements", "API and data integration planning", "Institutional reporting", "Deployment support", "Technical onboarding", "Custom workflow integrations"],
-    cta: "Contact Sales", highlighted: false,
+    name: "Enterprise", price: "Scoped", period: "", description: "For agencies, banks, telcos & institutional pilots",
+    features: ["Controlled pilot scoping", "Selected-location workflow evaluation", "API and data integration planning", "Institutional reporting and evidence review", "Delivery-channel integration planning", "Technical onboarding and pilot close-out"],
+    cta: "Discuss a Pilot", highlighted: false,
   },
 ];
 
