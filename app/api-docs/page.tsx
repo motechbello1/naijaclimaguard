@@ -1,13 +1,14 @@
 "use client";
 
 import AppShell from "@/components/shared/AppShell";
+import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
 import { useState } from "react";
-import { Key, Globe, Lock, Zap, Copy, Check } from "lucide-react";
+import { Key, Globe, Lock, Zap, Copy, Check, Brain } from "lucide-react";
 
 const endpoints = [
-  { method: "GET", path: "/v1/risk", desc: "Get flood risk score for a location", params: [{ name: "latitude", type: "float", req: true }, { name: "longitude", type: "float", req: true }, { name: "forecast_hours", type: "int", req: false }] },
-  { method: "GET", path: "/v1/risk/batch", desc: "Batch risk scores for multiple locations (max 50)", params: [{ name: "locations", type: "array", req: true }, { name: "forecast_hours", type: "int", req: false }] },
-  { method: "GET", path: "/v1/risk/state/{code}", desc: "Aggregated state-level risk overview", params: [{ name: "state_code", type: "string", req: true }, { name: "include_lgas", type: "boolean", req: false }] },
+  { method: "GET", path: "/v1/risk", desc: "Get the current derived-v2 flood-risk decision-support score for a location", params: [{ name: "latitude", type: "float", req: true }, { name: "longitude", type: "float", req: true }, { name: "forecast_hours", type: "int", req: false }] },
+  { method: "GET", path: "/v1/risk/batch", desc: "Batch current risk scores for multiple locations (max 50)", params: [{ name: "locations", type: "array", req: true }, { name: "forecast_hours", type: "int", req: false }] },
+  { method: "GET", path: "/v1/risk/state/{code}", desc: "Aggregated state-level current-risk overview", params: [{ name: "state_code", type: "string", req: true }, { name: "include_lgas", type: "boolean", req: false }] },
   { method: "GET", path: "/v1/history", desc: "Historical risk data for a location", params: [{ name: "latitude", type: "float", req: true }, { name: "longitude", type: "float", req: true }, { name: "start_date", type: "ISO8601", req: true }, { name: "end_date", type: "ISO8601", req: true }] },
   { method: "POST", path: "/v1/alerts", desc: "Create alert configuration", params: [{ name: "latitude", type: "float", req: true }, { name: "longitude", type: "float", req: true }, { name: "threshold", type: "int", req: true }, { name: "channels", type: "array", req: true }] },
 ];
@@ -20,7 +21,7 @@ export default function ApiDocsPage() {
       <div className="space-y-8 max-w-4xl">
         <div>
           <h1 className="font-display text-2xl font-bold">API Documentation</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Integrate flood risk intelligence into your systems</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Integrate flood-risk intelligence into your systems</p>
           <div className="mt-4 flex flex-wrap gap-4 text-sm">
             <span className="flex items-center gap-1.5"><Globe className="h-4 w-4 text-radar" /> Base: <code className="font-mono text-radar">https://api.naijaclimaguard.com</code></span>
             <span className="flex items-center gap-1.5"><Lock className="h-4 w-4 text-radar" /> Bearer token auth</span>
@@ -28,7 +29,18 @@ export default function ApiDocsPage() {
           </div>
         </div>
 
-        {/* Auth */}
+        <RiverineWatchEvidence compact />
+
+        <div className="rounded-xl border border-radar/20 bg-radar/[0.04] p-5">
+          <div className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-radar" />
+            <h2 className="font-bold">Riverine Watch v1 model route</h2>
+          </div>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+            Riverine Watch v1 is currently a shadow/pilot model, not the general commercial risk API. The platform exposes a separate <code className="font-mono">POST /api/v1/riverine-watch/live</code> route for source-compatible scoring in Lokoja and Makurdi. It requires 30 complete prior NASA IMERG Early rainfall days and matching GloFAS +24/+48/+72-hour discharge, then returns NORMAL, MONITOR or WATCH for the 14-day horizon.
+          </p>
+        </div>
+
         <div className="glass-card rounded-xl p-6">
           <div className="flex items-center gap-3 mb-3">
             <Key className="h-5 w-5 text-radar" />
@@ -49,7 +61,6 @@ export default function ApiDocsPage() {
           </div>
         </div>
 
-        {/* Endpoints */}
         {endpoints.map((ep, i) => (
           <div key={i} className="glass-card rounded-xl overflow-hidden">
             <div className="flex items-center gap-3 p-5 border-b border-slate-100 dark:border-midnight-border">
@@ -91,7 +102,6 @@ export default function ApiDocsPage() {
           </div>
         ))}
 
-        {/* SDKs */}
         <div className="glass-card rounded-xl p-6">
           <h2 className="font-bold mb-4">SDKs & Libraries</h2>
           <div className="grid sm:grid-cols-3 gap-4">

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, Zap, Shield, Activity, Clock, Users, Award, Satellite, Brain, Bell, Check, Code, Copy, Sprout, Landmark, Building2 } from "lucide-react";
+import { ArrowRight, Zap, Shield, Activity, Satellite, Brain, Bell, Check, Code, Copy, Sprout, Landmark, Building2, Clock3, MapPin } from "lucide-react";
 import ThemeToggle from "@/components/shared/ThemeToggle";
-import { LOKOJA_TIMELINE, PRICING, API_EXAMPLE } from "@/lib/data";
+import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
+import { PRICING, API_EXAMPLE } from "@/lib/data";
 
 export default function LandingPage() {
   const [apiTab, setApiTab] = useState<"request" | "response">("request");
@@ -12,7 +13,6 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen">
-      {/* Nav */}
       <nav className="fixed top-0 inset-x-0 z-50 border-b border-slate-200 dark:border-midnight-border bg-white/80 dark:bg-midnight/80 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
@@ -22,7 +22,7 @@ export default function LandingPage() {
             <span className="font-display text-lg font-bold">NaijaClima<span className="text-radar">Guard</span></span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#validation" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Validation</a>
+            <a href="#validation" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Model Evidence</a>
             <a href="#api" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">API</a>
             <a href="#pricing" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Pricing</a>
             <Link href="/how-to-use" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">How to Use</Link>
@@ -30,9 +30,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Link href="/login" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-              Sign In
-            </Link>
+            <Link href="/login" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Sign In</Link>
             <Link href="/register" className="rounded-lg bg-radar px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:brightness-110 active:scale-[0.98]" style={{ boxShadow: "0 1px 4px rgba(16, 185, 129, 0.15)" }}>
               Get Started Free
             </Link>
@@ -40,7 +38,6 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero */}
       <section className="relative min-h-[90vh] flex items-center justify-center pt-16 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-radar/[0.04] dark:bg-radar/[0.03] bg-emerald-100/40 blur-[140px]" />
@@ -55,29 +52,28 @@ export default function LandingPage() {
             <span>Understand flood risk</span><br />
             <span className="text-radar">before decisions are made.</span>
           </h1>
-          <p className="mt-6 max-w-2xl mx-auto text-lg sm:text-xl text-slate-500 dark:text-slate-400 leading-relaxed">
-            NaijaClimaGuard turns live weather signals into location-specific flood-risk intelligence. Our Validation v2 pipeline is independently testing a fusion of NASA GPM IMERG rainfall, Copernicus/ECMWF GloFAS river discharge, and ERA5-Land surface-state data against documented Nigerian flood events.
+          <p className="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-slate-500 dark:text-slate-400 leading-relaxed">
+            NaijaClimaGuard combines a live public risk engine with Riverine Watch v1, a separate 14-day shadow model that uses NASA rainfall history and operational GloFAS river forecasts to identify elevated flood-onset conditions in Lokoja and Makurdi.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/register" className="group flex items-center gap-2 rounded-lg bg-radar px-7 py-3.5 text-base font-semibold text-white transition-all duration-200 ease-out hover:brightness-110 active:scale-[0.98]" style={{ boxShadow: "0 2px 8px rgba(16, 185, 129, 0.18)" }}>
               Start Free <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
             </Link>
             <Link href="#validation" className="rounded-lg border border-slate-200 dark:border-midnight-border px-7 py-3.5 text-base font-medium hover:border-radar/40 transition-all duration-200">
-              See Validation Status
+              See Model Evidence
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Metrics Bar */}
       <section className="border-y border-slate-200 dark:border-midnight-border bg-slate-50/50 dark:bg-midnight-light/50">
         <div className="mx-auto max-w-7xl px-4 py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { icon: Activity, value: "Live", unit: "API", label: "Current Risk Monitoring" },
-              { icon: Satellite, value: "3", unit: "Data Families", label: "Validation v2 Architecture" },
-              { icon: Brain, value: "XGBoost", unit: "v2", label: "Independent Revalidation" },
-              { icon: Shield, value: "Nigeria", unit: "Focus", label: "Local Decision Support" },
+              { icon: Activity, value: "80%", unit: "4/5 events", label: "Historical Event Detection" },
+              { icon: Clock3, value: "14", unit: "days", label: "Riverine Watch Horizon" },
+              { icon: MapPin, value: "2", unit: "pilot locations", label: "Lokoja + Makurdi" },
+              { icon: Shield, value: "Live", unit: "derived-v2", label: "Current Public Risk Engine" },
             ].map((m) => (
               <div key={m.label} className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-radar/10 border border-radar/20">
@@ -96,40 +92,43 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Lokoja Validation */}
-      <section id="validation" className="py-24">
+      <section id="validation" className="py-24 scroll-mt-16">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="text-center mb-16">
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold">Lokoja 2022 — rebuilding the evidence.</h2>
-            <p className="mt-4 max-w-2xl mx-auto text-slate-500 dark:text-slate-400 text-lg">The case study is being independently reconstructed from documented flood dates, Nigerian hydrology, NASA rainfall, and archived forecast inputs. No government-advantage or fixed lead-time claim is published until that replay is complete.</p>
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 rounded-full border border-radar/20 bg-radar/5 px-4 py-1.5 mb-5">
+              <Brain className="h-3.5 w-3.5 text-radar" />
+              <span className="text-xs font-medium text-radar">Frozen model evidence</span>
+            </div>
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold">Riverine Watch v1</h2>
+            <p className="mt-4 max-w-3xl mx-auto text-slate-500 dark:text-slate-400 text-lg">
+              Our current riverine pilot model is no longer an undefined “model under validation.” Its function, scope and retrospective result are stated explicitly below.
+            </p>
           </div>
-          <div className="max-w-3xl mx-auto">
-            {LOKOJA_TIMELINE.map((item, i) => (
-              <div key={i} className="flex gap-6 pb-10 last:pb-0 relative">
-                {i < LOKOJA_TIMELINE.length - 1 && <div className="absolute left-[19px] top-10 bottom-0 w-px border-l-2 border-dashed border-slate-200 dark:border-midnight-border" />}
-                <div className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${item.type === "disaster" ? "bg-crimson/10 text-crimson" : item.type === "government" ? "bg-amber/10 text-amber" : "bg-radar/10 text-radar"}`}>
-                  <span className="text-xs font-bold">{item.score}</span>
-                </div>
-                <div className="glass-card rounded-xl p-5 flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="text-xs font-mono font-medium text-slate-400">{item.date}</span>
-                    {item.type === "prediction" && <span className="text-[10px] font-bold uppercase tracking-wider bg-radar/10 text-radar px-2 py-0.5 rounded-full">Historical Signal</span>}
-                    {item.type === "government" && <span className="text-[10px] font-bold uppercase tracking-wider bg-amber/10 text-amber px-2 py-0.5 rounded-full">Official Record</span>}
-                  </div>
-                  <h3 className="text-base font-semibold">{item.event}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{item.detail}</p>
-                </div>
-              </div>
-            ))}
+
+          <div className="max-w-5xl mx-auto">
+            <RiverineWatchEvidence />
           </div>
-          <div className="mt-16 max-w-3xl mx-auto glass-card rounded-xl p-8 text-center">
-            <p className="text-2xl font-display font-bold">Historical case study under independent revalidation.</p>
-            <p className="mt-2 text-slate-500 dark:text-slate-400">Validation v2 separates documented flood onset from the hydrological peak and tests what information was actually available at T−72, T−48, and T−24.</p>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3 max-w-5xl mx-auto">
+            <div className="glass-card rounded-xl p-5">
+              <Satellite className="h-5 w-5 text-radar" />
+              <h3 className="mt-3 font-display font-bold">Rainfall history</h3>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Uses the 30 complete NASA GPM IMERG Early rainfall days strictly before the model issue date.</p>
+            </div>
+            <div className="glass-card rounded-xl p-5">
+              <Activity className="h-5 w-5 text-radar" />
+              <h3 className="mt-3 font-display font-bold">River trajectory</h3>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Uses matching Copernicus CEMS GloFAS operational control-forecast discharge at +24, +48 and +72 hours.</p>
+            </div>
+            <div className="glass-card rounded-xl p-5">
+              <Bell className="h-5 w-5 text-radar" />
+              <h3 className="mt-3 font-display font-bold">Decision output</h3>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Returns NORMAL, MONITOR or WATCH for a 14-day flood-onset horizon. WATCH begins at the frozen 0.70 threshold.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
       <section className="py-24 bg-slate-50 dark:bg-midnight-light/30">
         <div className="mx-auto max-w-7xl px-4">
           <div className="text-center mb-16">
@@ -137,9 +136,9 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-8 stagger">
             {[
-              { icon: Satellite, step: "01", title: "Monitor", heading: "Live Risk Signals", desc: "The current public risk API uses live Open-Meteo precipitation, hourly rainfall intensity, and evapotranspiration context to produce a disclosed risk score." },
-              { icon: Brain, step: "02", title: "Validate", heading: "NASA + GloFAS + ERA5-Land", desc: "Validation v2 tests an XGBoost fusion model using NASA GPM IMERG rainfall, Copernicus/ECMWF GloFAS discharge, ERA5-Land surface state, and independent Nigerian flood-event labels." },
-              { icon: Bell, step: "03", title: "Deliver", heading: "Decision Support", desc: "REST API, dashboard, email alert rules, and downloadable situation reports support operational workflows. Additional delivery channels remain under integration." },
+              { icon: Satellite, step: "01", title: "Monitor", heading: "Current Public Risk", desc: "The current general risk API remains the disclosed derived-v2 decision-support engine. It monitors connected live weather inputs and keeps official advisories as a separate safety overlay." },
+              { icon: Brain, step: "02", title: "Watch", heading: "Riverine Watch v1", desc: "For Lokoja and Makurdi, the shadow model combines prior NASA rainfall with GloFAS river-discharge forecasts to look for elevated flood-onset conditions within the next 14 days." },
+              { icon: Bell, step: "03", title: "Act", heading: "Decision Support", desc: "The dashboard, Action OS, alerts, reports and evidence tools turn risk information into clear actions while preserving official-warning precedence and source provenance." },
             ].map((s) => (
               <div key={s.step} className="glass-card rounded-2xl p-8 hover:border-radar/30 transition-all duration-200">
                 <span className="font-mono text-xs text-slate-400">{s.step}</span>
@@ -155,7 +154,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Use Cases */}
       <section className="py-24">
         <div className="mx-auto max-w-7xl px-4">
           <div className="text-center mb-16">
@@ -165,7 +163,7 @@ export default function LandingPage() {
             {[
               { icon: Shield, title: "Insurance & Reinsurance", desc: "Explore location-specific flood-risk signals for climate-risk assessment workflows." },
               { icon: Sprout, title: "Agribusiness & Farming", desc: "Monitor changing rainfall and flood-risk conditions around crop and field locations." },
-              { icon: Landmark, title: "Government & Emergency Agencies", desc: "Augment early-warning workflows with location-specific, auditable risk signals and integration-ready APIs." },
+              { icon: Landmark, title: "Government & Emergency Agencies", desc: "Augment early-warning workflows with location-specific, auditable risk signals, action tools and integration-ready APIs." },
               { icon: Building2, title: "Infrastructure & Lending", desc: "Support physical climate-risk screening for assets, projects, and lending decisions." },
             ].map((uc) => (
               <div key={uc.title} className="glass-card rounded-2xl p-8 hover:border-radar/20 transition-all">
@@ -184,7 +182,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* API Preview */}
       <section id="api" className="py-24 bg-slate-50 dark:bg-midnight-light/30">
         <div className="mx-auto max-w-7xl px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -194,7 +191,7 @@ export default function LandingPage() {
                 <span className="text-xs font-medium text-radar">Developer-First</span>
               </div>
               <h2 className="font-display text-3xl sm:text-4xl font-bold">One API call.<br /><span className="text-radar">Auditable risk context.</span></h2>
-              <p className="mt-4 text-slate-500 dark:text-slate-400 text-lg">The current REST endpoint returns a location-specific risk score, contributing factors, recent rainfall intensity, source attribution, and model metadata.</p>
+              <p className="mt-4 text-slate-500 dark:text-slate-400 text-lg">The current REST endpoint returns a location-specific derived-v2 risk score, contributing factors, recent rainfall intensity, source attribution, official-warning safety context and model metadata.</p>
             </div>
             <div className="rounded-2xl border border-slate-200 dark:border-midnight-border bg-white dark:bg-midnight overflow-hidden shadow-xl dark:shadow-none">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-midnight-border px-4">
@@ -216,7 +213,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
       <section id="pricing" className="py-24">
         <div className="mx-auto max-w-7xl px-4">
           <div className="text-center mb-16">
@@ -242,20 +238,7 @@ export default function LandingPage() {
                     if (tier.name === "Explorer") {
                       window.location.href = "/register";
                     } else if (tier.name === "Professional") {
-                      const email = prompt("Enter your email to start your Professional plan:");
-                      if (email) {
-                        fetch("/api/payment/initialize", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ email, plan: "professional" }),
-                        })
-                          .then((r) => r.json())
-                          .then((data) => {
-                            if (data.authorization_url) window.location.href = data.authorization_url;
-                            else alert("Error: " + (data.error || "Payment failed"));
-                          })
-                          .catch(() => alert("Could not connect to payment service"));
-                      }
+                      window.location.href = "/login?next=%2Fprofile%3Fupgrade%3Dprofessional";
                     } else {
                       window.location.href = "/contact";
                     }
@@ -271,15 +254,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-slate-200 dark:border-midnight-border py-12">
         <div className="mx-auto max-w-7xl px-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-400">© {new Date().getFullYear()} NaijaClimaGuard · Built by Bello Muhammad Mustapha</p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/about" className="text-xs text-slate-400 hover:text-radar transition-colors">About</Link>
             <Link href="/how-to-use" className="text-xs text-slate-400 hover:text-radar transition-colors">How to Use</Link>
             <Link href="/contact" className="text-xs text-slate-400 hover:text-radar transition-colors">Contact Sales</Link>
-            <span className="text-xs text-slate-400">Live: Open-Meteo · Validation v2: NASA GPM IMERG + Copernicus/ECMWF GloFAS + ERA5-Land</span>
+            <span className="text-xs text-slate-400">Public risk: derived-v2 · Riverine Watch v1 shadow: NASA IMERG + GloFAS · Lokoja + Makurdi</span>
           </div>
         </div>
       </footer>

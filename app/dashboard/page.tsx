@@ -7,6 +7,7 @@
  */
 
 import AppShell from "@/components/shared/AppShell";
+import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
 import AdaptiveDashboard, { LocationData, LiveRisk } from "@/components/dashboard/AdaptiveDashboard";
 import ActionOSBanner from "@/components/dashboard/ActionOSBanner";
 import { useSession } from "next-auth/react";
@@ -118,23 +119,26 @@ function DashboardContent() {
 
   return (
     <AppShell>
-      <ActionOSBanner />
-      <AdaptiveDashboard
-        userName={session.user?.name}
-        paymentStatus={paymentStatus}
-        locations={locations}
-        risks={risks}
-        limit={limit}
-        plan={plan}
-        showAdd={showAdd}
-        setShowAdd={setShowAdd}
-        newLoc={newLoc}
-        setNewLoc={setNewLoc}
-        addErr={addErr}
-        addLocation={addLocation}
-        deleteLocation={deleteLocation}
-        fetchRisk={fetchRisk}
-      />
+      <div className="space-y-5">
+        <ActionOSBanner />
+        <RiverineWatchEvidence compact />
+        <AdaptiveDashboard
+          userName={session.user?.name}
+          paymentStatus={paymentStatus}
+          locations={locations}
+          risks={risks}
+          limit={limit}
+          plan={plan}
+          showAdd={showAdd}
+          setShowAdd={setShowAdd}
+          newLoc={newLoc}
+          setNewLoc={setNewLoc}
+          addErr={addErr}
+          addLocation={addLocation}
+          deleteLocation={deleteLocation}
+          fetchRisk={fetchRisk}
+        />
+      </div>
     </AppShell>
   );
 }
