@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Brain, Clock3, Database, MapPin, ShieldCheck } from "lucide-react";
+import { Brain, Building2, Clock3, Database, MapPin, ShieldCheck } from "lucide-react";
 
 type RiverineWatchEvidenceProps = {
   compact?: boolean;
@@ -72,12 +72,20 @@ export default function RiverineWatchEvidence({
         </div>
 
         {!compact && (
-          <Link
-            href="/model-evidence"
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-radar/20 bg-white/70 px-4 py-3 text-sm font-semibold text-radar transition-colors hover:bg-radar/10 dark:bg-midnight-light/70"
-          >
-            <ShieldCheck className="h-4 w-4" /> Open evidence pack
-          </Link>
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
+            <Link
+              href="/model-evidence"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-radar/20 bg-white/70 px-4 py-3 text-sm font-semibold text-radar transition-colors hover:bg-radar/10 dark:bg-midnight-light/70"
+            >
+              <ShieldCheck className="h-4 w-4" /> Open evidence pack
+            </Link>
+            <Link
+              href="/institutional-pilot"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm font-semibold transition-colors hover:border-radar/30 hover:text-radar dark:border-midnight-border dark:bg-midnight-light/70"
+            >
+              <Building2 className="h-4 w-4" /> Institutional pilot
+            </Link>
+          </div>
         )}
       </div>
     </section>
