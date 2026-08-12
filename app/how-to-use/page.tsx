@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Shield, UserPlus, MapPin, Bell, BarChart3, FileText, Code, ArrowRight, CheckCircle } from "lucide-react";
+import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
 
 const steps = [
   {
@@ -25,7 +26,7 @@ const steps = [
   {
     icon: BarChart3,
     title: "4. Read the risk in the level you understand",
-    description: "Use Simple, Standard or Technical explanations. The dashboard can show the current disclosed risk score, contributing weather context, role-specific actions and any connected official advisory without hiding one inside the other.",
+    description: "Use Simple, Standard or Technical explanations. The dashboard can show the current disclosed derived-v2 risk score, contributing weather context, role-specific actions and any connected official advisory. Riverine Watch v1 is shown separately so its shadow-model evidence is not confused with the current public risk score.",
     action: null,
   },
   {
@@ -37,7 +38,7 @@ const steps = [
   {
     icon: Code,
     title: "6. Integrate the risk API",
-    description: "The REST risk endpoint returns location-specific risk context and model metadata. Commercial access, limits and integration terms should follow the entitlement shown for the account rather than an assumed plan allowance.",
+    description: "The REST risk endpoint returns location-specific risk context and model metadata. Riverine Watch v1 has separate shadow scoring routes for its supported pilot locations and is not presented as a general national replacement for the current risk API.",
     action: { label: "View API Docs", href: "/api-docs" },
   },
 ];
@@ -51,11 +52,15 @@ const plans = [
 const faqs = [
   {
     q: "How accurate is the flood prediction?",
-    a: "The public live score is currently the disclosed derived-v2 decision-support engine, not Model v5 and not a published percentage-accuracy claim. Model v5 is being evaluated separately with archived operational data and walk-forward scoring. Until its final evidence and freeze decision exist, it must not be presented as production validated.",
+    a: "Riverine Watch v1 detected 4 of 5 eligible historical flood-onset events in retrospective testing for Lokoja and Makurdi, an 80% event-detection rate. That is not the same as 80% accuracy, it is not a national result, and it is not yet prospective public-warning validation. The public live score remains the separate derived-v2 decision-support engine.",
+  },
+  {
+    q: "What does Riverine Watch v1 do?",
+    a: "Riverine Watch v1 looks for conditions that indicate a riverine flood onset may develop within the next 14 days in Lokoja or Makurdi. It uses the 30 complete rainfall days before the model issue date from NASA GPM IMERG Early and operational GloFAS river-discharge forecasts at +24, +48 and +72 hours. It returns NORMAL, MONITOR or WATCH, with 0.70 as the frozen WATCH threshold.",
   },
   {
     q: "What data sources do you use?",
-    a: "The current public risk path uses connected live weather inputs and keeps official advisories as a separate safety overlay when they are available in the intelligence store. NASA IMERG and Copernicus GloFAS are used in the independent validation work. GloFAS is modelled discharge, not a local physical river-gauge measurement.",
+    a: "The current public derived-v2 risk path uses connected live weather inputs and keeps official advisories as a separate safety overlay when available. Riverine Watch v1 separately uses NASA GPM IMERG Early rainfall history and Copernicus CEMS GloFAS operational discharge forecasts. GloFAS is modelled river discharge, not a local physical river-gauge measurement.",
   },
   {
     q: "What should I trust during an emergency?",
@@ -96,6 +101,10 @@ export default function HowToUsePage() {
             <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-500 dark:text-slate-400 sm:text-lg">
               Start with the simple view. Add technical detail only when you need it.
             </p>
+          </div>
+
+          <div id="riverine-watch-v1" className="mb-14 scroll-mt-24 sm:mb-20">
+            <RiverineWatchEvidence />
           </div>
 
           <div className="mb-14 space-y-4 sm:mb-20 sm:space-y-6">
