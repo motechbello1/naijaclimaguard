@@ -34,6 +34,27 @@ function currentRiskAnswer(locale: AppLocale, score: number, level: string, offi
   return `${prefix[locale]}\n\n${body[locale]}`;
 }
 
+function riverineWatchAnswer(locale: AppLocale, topic: "platform" | "model") {
+  const model: Record<AppLocale, string> = {
+    en: "Riverine Watch v1 is NaijaClimaGuard's separate 14-day riverine flood-onset shadow model for Lokoja and Makurdi. It uses the 30 complete NASA GPM IMERG Early rainfall days before the issue date plus matching Copernicus CEMS GloFAS operational river-discharge forecasts at +24, +48 and +72 hours. It returns NORMAL, MONITOR or WATCH, with a frozen WATCH threshold of 0.70. In retrospective testing it detected 4 of 5 eligible historical flood-onset events, an 80% event-detection rate. That is not 80% accuracy, not a national result, and not yet prospective public-warning validation. The general public live risk score remains the separate derived-v2 engine. Official warnings and visible flooding always take priority.",
+    pcm: "Riverine Watch v1 na separate 14-day river-flood onset shadow model for Lokoja and Makurdi. E use 30 complete NASA IMERG Early rainfall days before issue date plus matching GloFAS operational river-discharge forecast for +24, +48 and +72 hours. E return NORMAL, MONITOR or WATCH, and WATCH threshold na 0.70. For retrospective test, e detect 4 out of 5 eligible historical flood-onset events, meaning 80% event detection. No call am 80% accuracy, e no be national result, and e never be prospective public-warning validation. General public live score still use separate derived-v2 engine. Official warning and flood wey you see for ground get priority.",
+    ha: "Riverine Watch v1 wani shadow model ne daban na kwanaki 14 domin gano yiwuwar fara ambaliyar kogi a Lokoja da Makurdi. Yana amfani da cikakkun kwanaki 30 na NASA GPM IMERG Early kafin ranar fitar da model da kuma GloFAS operational river-discharge forecasts na +24, +48 da +72 hours. Yana bada NORMAL, MONITOR ko WATCH, tare da WATCH threshold 0.70. A gwajin tarihi ya gano 4 daga cikin 5 eligible flood-onset events, wato 80% event detection. Wannan ba 80% accuracy ba ne, ba sakamakon kasa baki daya ba ne, kuma ba prospective public-warning validation ba ne tukuna. Public live score har yanzu derived-v2 ne daban. Gargadin hukuma da ambaliyar da ake gani sun fi muhimmanci.",
+    yo: "Riverine Watch v1 jẹ́ shadow model ọ̀tọ̀ fún ọjọ́ 14 láti tọ́pa ààmì ìbẹ̀rẹ̀ ìkún omi odò ní Lokoja àti Makurdi. Ó lo ọjọ́ 30 tí ó pé ti NASA GPM IMERG Early ṣáájú ọjọ́ model àti GloFAS operational river-discharge forecasts fún +24, +48 àti +72 hours. Ó ń dá NORMAL, MONITOR tàbí WATCH padà, pẹ̀lú WATCH threshold 0.70. Nínú retrospective testing, ó rí 4 nínú 5 eligible historical flood-onset events, ìyẹn 80% event detection. Èyí kì í ṣe 80% accuracy, kì í ṣe national result, kò sì tíì jẹ́ prospective public-warning validation. Public live score ṣi jẹ́ derived-v2 tó yàtọ̀. Ìkìlọ̀ ìjọba àti ìkún omi tí a rí níbi gidi ló ga jù.",
+    ig: "Riverine Watch v1 bụ shadow model dị iche maka ụbọchị 14 iji chọpụta ihe ngosi flood onset n'osimiri na Lokoja na Makurdi. Ọ na-eji ụbọchị 30 zuru ezu nke NASA GPM IMERG Early rainfall tupu issue date yana GloFAS operational river-discharge forecasts nke +24, +48 na +72 hours. Ọ na-enye NORMAL, MONITOR ma ọ bụ WATCH, na WATCH threshold bụ 0.70. Na retrospective testing, ọ chọpụtara 4 n'ime 5 eligible historical flood-onset events, ya bụ 80% event detection. Nke a abụghị 80% accuracy, ọ bụghị national result, ma ọ bụghịkwa prospective public-warning validation ugbu a. Public live score ka bụ derived-v2 engine dị iche. Official warnings na flood ị na-ahụ n'ebe ahụ ka mkpa.",
+  };
+
+  if (topic === "model") return model[locale];
+
+  const platformLead: Record<AppLocale, string> = {
+    en: "NaijaClimaGuard is a Nigeria-focused flood-risk and early-action platform. It combines the derived-v2 public live risk engine, saved-location monitoring, official-advisory safety overlays, alerts, Action OS guidance, reporting and auditable evidence. ",
+    pcm: "NaijaClimaGuard na Nigeria flood-risk and early-action platform. E combine derived-v2 public live risk, saved-location monitoring, official warning overlay, alerts, Action OS guidance, reports and evidence. ",
+    ha: "NaijaClimaGuard dandali ne na Najeriya domin bayanin hadarin ambaliya da daukar mataki da wuri. Yana hada derived-v2 public live risk, saved-location monitoring, gargadin hukuma, alerts, Action OS guidance, reports da auditable evidence. ",
+    yo: "NaijaClimaGuard jẹ́ pẹpẹ Nàìjíríà fún ewu ìkún omi àti ìgbésẹ̀ kíákíá. Ó darapọ̀ derived-v2 public live risk, saved-location monitoring, ìkìlọ̀ ìjọba, alerts, Action OS guidance, reports àti auditable evidence. ",
+    ig: "NaijaClimaGuard bụ platform Nigeria maka flood risk na early action. Ọ jikọtara derived-v2 public live risk, saved-location monitoring, official advisory overlays, alerts, Action OS guidance, reports na auditable evidence. ",
+  };
+  return `${platformLead[locale]}${model[locale]}`;
+}
+
 function sourceClassFor(topic: AssistantTopic) {
   if (topic === "history") return "curated historical context";
   if (["platform", "report", "alerts", "model", "limitations"].includes(topic)) return "platform knowledge";
@@ -55,6 +76,15 @@ export async function POST(req: Request) {
   if (!message) return NextResponse.json({ error: "Ask a question first." }, { status: 400 });
 
   const topic = classifyAssistantQuestion(message);
+
+  if (topic === "platform" || topic === "model") {
+    return NextResponse.json({
+      answer: riverineWatchAnswer(locale, topic),
+      sourceClass: "platform knowledge",
+      topic,
+      suggestions: getAssistantSuggestions(locale, topic),
+    });
+  }
 
   if (topic === "current") {
     const latitude = Number(body.latitude);
