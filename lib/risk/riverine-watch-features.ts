@@ -13,7 +13,10 @@ export interface GlofasOperationalTriplet {
 
 export interface RiverineWatchSourcePayload {
   location: RiverineWatchLocation;
+  /** Exact GloFAS model issue date used for q24/q48/q72. */
   issue_date: string;
+  /** Date the platform is attempting to issue the shadow watch. Defaults to issue_date. */
+  operational_date?: string;
   nasa_imerg_early: NasaImergDailyPoint[];
   glofas_control_forecast: GlofasOperationalTriplet;
   last_watch_date?: string | null;
@@ -34,15 +37,9 @@ function safeRatio(numerator: number, denominator: number) {
 }
 
 /**
- * Build exactly the source-level feature family used by Model v5 / Riverine Watch v1.
- *
- * Contract:
- * - NASA IMERG Early daily rainfall must contain at least 30 complete calendar days
- *   strictly before issue_date for the requested location.
- * - GloFAS values are the operational control forecast discharge at +24/+48/+72 h
- *   for issue_date.
- * - No Open-Meteo or other substitute source is accepted here because the model was
- *   not trained on those inputs.
+ * Build exactly the source-level feature family used by Riverine Watch v1.
+ * NASA rainfall is aligned to the selected GloFAS issue date, never to a later
+ * operational run date, so delayed source retrieval cannot leak future rainfall.
  */
 export function buildRiverineWatchFeatures(
   payload: RiverineWatchSourcePayload
@@ -78,7 +75,6 @@ export function buildRiverineWatchFeatures(
   const rain7 = sum(last(7));
   const rain14 = sum(last(14));
   const rain30 = sum(last(30));
-  // Mirrors pandas: rain.shift(3).rolling(3).sum() on the final complete rainfall day.
   const previous3 = sum(completeDays.slice(completeDays.length - 6, completeDays.length - 3));
   const wet7 = last(7).filter((v) => v >= 1).length;
   const wet30 = completeDays.filter((v) => v >= 1).length;
