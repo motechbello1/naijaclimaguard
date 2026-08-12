@@ -1,0 +1,26 @@
+{
+  "model_id": "riverine-watch-v1",
+  "scope": [
+    "Lokoja",
+    "Makurdi"
+  ],
+  "horizon_days": 14,
+  "watch_threshold": 0.7,
+  "retrospective_outer_years": [
+    2022,
+    2023,
+    2024
+  ],
+  "strict_onset_events": 5,
+  "detected_events": 4,
+  "event_detection_rate": 0.8,
+  "deduplicated_alert_episodes": 15,
+  "true_alert_episodes": 4,
+  "false_alert_episodes": 11,
+  "alert_episode_precision": 0.26666666666666666,
+  "false_alert_episodes_per_location_year": 1.8333333333333333,
+  "pooled_issue_row_pr_auc": 0.1763367025320199,
+  "pooled_issue_row_roc_auc": 0.8371472784191798,
+  "evidence_class": "retrospective development evidence; not prospective validation",
+  "deployment_status": "shadow_pilot_only"
+}
