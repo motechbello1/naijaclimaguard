@@ -1,0 +1,37 @@
+{
+  "status": "benchmark_candidate_not_frozen",
+  "protocol": "validation/FLOOD_ONSET_BENCHMARK_REPAIR_PROTOCOL.md",
+  "branch": "model-v5-onset-benchmark-repair",
+  "historical_model_v5_decision": "freeze_blocked_immutable",
+  "historical_model_v6_decision": "freeze_blocked_immutable",
+  "interpretation": "Any repaired-benchmark score is diagnostic/post-hoc and cannot retroactively create a preregistered Model v5 or Model v6 pass.",
+  "window": {
+    "start": "2021-05-26",
+    "end": "2024-12-31"
+  },
+  "pilot_locations": [
+    "Hadejia",
+    "Lokoja",
+    "Makurdi",
+    "Onitsha",
+    "Yenagoa"
+  ],
+  "candidate_event_rows": 21,
+  "strict_72h_eligible_events": 8,
+  "strict_72h_eligible_2022_2024_events": 7,
+  "documentation_only_events": 13,
+  "conservative_bounded_event_rule": "Use onset_lower as the event anchor; the later bound must never make detection easier.",
+  "new_2021_source_level_adjudication": {
+    "makurdi-2021-08-17": "onset_exact at 2021-08-16",
+    "yenagoa-2021-09-05": "documentation_only"
+  },
+  "blocking_items_before_freeze": [
+    "Complete systematic location-by-year event discovery for all five pilot locations across 2021-05-26 through 2024-12-31, not only events already present in the frozen registry.",
+    "Verify and populate source publication dates where currently blank.",
+    "Resolve duplicates against any newly discovered events before freezing the benchmark.",
+    "Recover the exact frozen 6472-row Model v5 issue-time feature dataset (or a byte-identical preserved artifact) before relabeling and strict scoring. Do not rebuild a scientifically different feature dataset and call it confirmatory evidence."
+  ],
+  "scoring_authorized": false,
+  "reason_scoring_not_yet_authorized": "The protocol requires systematic event discovery before freeze, and the frozen feature dataset is not committed on the operational branch.",
+  "next_executable_step": "Recover the preserved frozen issue-time dataset artifact, complete benchmark discovery/publication-date verification, set this manifest to frozen only after those checks, then run relabel_model_v5_repaired_onset.py followed by model_v5_confirmatory_strict.py with prior-only 2022-2024 selection."
+}
