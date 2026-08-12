@@ -73,10 +73,10 @@ export default function RiverineWatchEvidence({
 
         {!compact && (
           <Link
-            href="/how-to-use#riverine-watch-v1"
+            href="/model-evidence"
             className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-radar/20 bg-white/70 px-4 py-3 text-sm font-semibold text-radar transition-colors hover:bg-radar/10 dark:bg-midnight-light/70"
           >
-            <ShieldCheck className="h-4 w-4" /> How the model works
+            <ShieldCheck className="h-4 w-4" /> Open evidence pack
           </Link>
         )}
       </div>
