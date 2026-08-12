@@ -228,3 +228,27 @@ model AgencyCommandCase {
   @@index([status, updatedAt])
   @@index([priority, updatedAt])
 }
+
+/// Public institutional-pilot application. This intentionally stores only the
+/// minimum contact and scoping information required to review a pilot request.
+model InstitutionalLead {
+  id               String   @id @default(cuid())
+  name             String
+  email            String
+  organization     String
+  organizationType String
+  role             String?
+  locations        String?
+  objective        String
+  integrationNeeds String?
+  consent          Boolean  @default(false)
+  stage            String   @default("NEW")
+  source           String   @default("institutional-pilot")
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([email])
+  @@index([createdAt])
+  @@index([stage, createdAt])
+}
