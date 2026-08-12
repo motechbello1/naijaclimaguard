@@ -1,37 +1,39 @@
 {
-  "status": "benchmark_candidate_not_frozen",
+  "status": "benchmark_collection_frozen_for_diagnostic_rescore",
   "protocol": "validation/FLOOD_ONSET_BENCHMARK_REPAIR_PROTOCOL.md",
   "branch": "model-v5-onset-benchmark-repair",
   "historical_model_v5_decision": "freeze_blocked_immutable",
   "historical_model_v6_decision": "freeze_blocked_immutable",
   "interpretation": "Any repaired-benchmark score is diagnostic/post-hoc and cannot retroactively create a preregistered Model v5 or Model v6 pass.",
-  "window": {
-    "start": "2021-05-26",
-    "end": "2024-12-31"
-  },
-  "pilot_locations": [
-    "Hadejia",
-    "Lokoja",
-    "Makurdi",
-    "Onitsha",
-    "Yenagoa"
-  ],
+  "window": {"start": "2021-05-26", "end": "2024-12-31"},
+  "pilot_locations": ["Hadejia", "Lokoja", "Makurdi", "Onitsha", "Yenagoa"],
+  "systematic_location_year_search_cells": 20,
+  "systematic_search_log": "validation/flood_onset_benchmark_search_log_2021_2024.csv",
   "candidate_event_rows": 21,
   "strict_72h_eligible_events": 8,
   "strict_72h_eligible_2022_2024_events": 7,
   "documentation_only_events": 13,
+  "source_publication_dates_complete": true,
+  "duplicate_episode_review_complete": true,
   "conservative_bounded_event_rule": "Use onset_lower as the event anchor; the later bound must never make detection easier.",
   "new_2021_source_level_adjudication": {
     "makurdi-2021-08-17": "onset_exact at 2021-08-16",
     "yenagoa-2021-09-05": "documentation_only"
   },
-  "blocking_items_before_freeze": [
-    "Complete systematic location-by-year event discovery for all five pilot locations across 2021-05-26 through 2024-12-31, not only events already present in the frozen registry.",
-    "Verify and populate source publication dates where currently blank.",
-    "Resolve duplicates against any newly discovered events before freezing the benchmark.",
-    "Recover the exact frozen 6472-row Model v5 issue-time feature dataset (or a byte-identical preserved artifact) before relabeling and strict scoring. Do not rebuild a scientifically different feature dataset and call it confirmatory evidence."
-  ],
-  "scoring_authorized": false,
-  "reason_scoring_not_yet_authorized": "The protocol requires systematic event discovery before freeze, and the frozen feature dataset is not committed on the operational branch.",
-  "next_executable_step": "Recover the preserved frozen issue-time dataset artifact, complete benchmark discovery/publication-date verification, set this manifest to frozen only after those checks, then run relabel_model_v5_repaired_onset.py followed by model_v5_confirmatory_strict.py with prior-only 2022-2024 selection."
+  "frozen_feature_dataset_recovery": {
+    "workflow_run_id": 31537164939,
+    "workflow_name": "Model v6 Preserve Frozen Result",
+    "artifact_id": 9119229025,
+    "artifact_name": "model-v6-frozen-result-31537164939",
+    "artifact_sha256": "5fa6b7149ca977f6d8517403c8a9ac00cae95ec6845cc1b21eaaf6dec22f5164",
+    "dataset_member": "model_v6_issue_dataset.csv",
+    "dataset_sha256": "2d7ab7ba51e0004224a149ccfb22ba924ad0f72bd95fc0e0aa79413a125d0c14",
+    "rows": 6472,
+    "issue_dates": 1307,
+    "original_positive_issue_rows": 63,
+    "why_acceptable": "The successful preservation workflow explicitly rebuilt the identical synchronized dataset from preserved NASA artifacts and the committed durable GloFAS month packs. No source retrieval or scientific feature change was performed for this repair."
+  },
+  "scoring_authorized": "diagnostic_post_hoc_only",
+  "scoring_rule": "Relabel the recovered synchronized issue-time feature dataset against this frozen repaired onset benchmark, then apply the unchanged strict prior-only 2022-2024 candidate and threshold selection logic.",
+  "production_or_historical_freeze_promotion_authorized": false
 }
