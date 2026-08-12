@@ -52,7 +52,7 @@ const plans = [
 const faqs = [
   {
     q: "How accurate is the flood prediction?",
-    a: "Riverine Watch v1 detected 4 of 5 eligible historical flood-onset events in retrospective testing for Lokoja and Makurdi, an 80% event-detection rate. That is not the same as 80% accuracy, it is not a national result, and it is not yet prospective public-warning validation. The public live score remains the separate derived-v2 decision-support engine.",
+    a: "The public live score is currently the disclosed derived-v2 decision-support engine. Separately, Riverine Watch v1 detected 4 of 5 eligible historical flood-onset events in retrospective testing for Lokoja and Makurdi, an 80% event-detection rate. That is not the same as 80% accuracy, it is not a national result, and it is not yet prospective public-warning validation.",
   },
   {
     q: "What does Riverine Watch v1 do?",
@@ -60,7 +60,7 @@ const faqs = [
   },
   {
     q: "What data sources do you use?",
-    a: "The current public derived-v2 risk path uses connected live weather inputs and keeps official advisories as a separate safety overlay when available. Riverine Watch v1 separately uses NASA GPM IMERG Early rainfall history and Copernicus CEMS GloFAS operational discharge forecasts. GloFAS is modelled river discharge, not a local physical river-gauge measurement.",
+    a: "The current public derived-v2 risk path uses connected live weather inputs and keeps official advisories as a separate safety overlay when available. Riverine Watch v1 separately uses NASA GPM IMERG Early rainfall history and Copernicus CEMS GloFAS operational discharge forecasts. GloFAS is modelled discharge, not a local physical river-gauge measurement.",
   },
   {
     q: "What should I trust during an emergency?",
