@@ -5,12 +5,13 @@
  *  · Chart: Open-Meteo daily precipitation (10 days past + 4 forecast).
  *  · Risk score: the canonical public derived-v2 endpoint only.
  *  · If the risk endpoint is unavailable, no alternate score is substituted.
- *  · Validation v2 XGBoost is intentionally not presented as the live model
- *    until the independent benchmark is complete.
+ *  · Riverine Watch v1 is a separate 14-day shadow model for Lokoja + Makurdi;
+ *    its evidence is shown here without replacing the canonical live score.
  *  · Scenario dropdown: clearly labeled simulation.
  */
 
 import AppShell from "@/components/shared/AppShell";
+import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
 import { useState, useEffect, useCallback } from "react";
 import { AlertTriangle, Droplets, Waves, CloudRain, Wifi, WifiOff, FlaskConical } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -131,6 +132,8 @@ export default function PredictPage() {
           </div>
         </div>
 
+        <RiverineWatchEvidence compact />
+
         {scenario && (
           <div className="rounded-xl border-2 border-amber/50 bg-amber/5 dark:bg-amber/10 p-4 flex items-center gap-3 animate-slide-up">
             <FlaskConical className="h-5 w-5 text-amber shrink-0" />
@@ -145,9 +148,9 @@ export default function PredictPage() {
         {riskScore !== null && (
           <div className="glass-card rounded-xl p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-400">Current risk index — Lokoja, Kogi State</p>
+              <p className="text-xs text-slate-400">Current public risk index — Lokoja, Kogi State</p>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                From the canonical derived-v2 live API; this is not the Validation v2 XGBoost model
+                From the canonical derived-v2 live API. Riverine Watch v1 is a separate shadow model and does not rewrite this score.
               </p>
             </div>
             <div className="text-right">
