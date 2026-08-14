@@ -56,7 +56,7 @@ jobs:
 
       - name: Issue or record source-delay status
         run: |
-          python validation/riverine_watch_v1_prospective.py \
+          python validation/riverine_watch_v1_prospective_safe.py \
             --operational-date "$(date -u +%F)" \
             --root validation/prospective/riverine_watch_v1 \
             --ledger validation/prospective/riverine_watch_v1_ledger.jsonl
