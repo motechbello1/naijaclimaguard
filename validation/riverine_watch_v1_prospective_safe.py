@@ -35,9 +35,25 @@ def _selected_glofas_issue(work_dir: Path) -> str | None:
     return None
 
 
+def _install_resilient_nasa_fetch() -> None:
+    original = prospective.run_bounded
+    resilient = Path(__file__).resolve().parent / "fetch_nasa_imerg_early_resilient.py"
+
+    def run_bounded(cmd: list[str], timeout_seconds: int) -> dict:
+        rewritten = list(cmd)
+        for i, part in enumerate(rewritten):
+            if str(part).endswith("fetch_nasa_imerg_early_current.py"):
+                rewritten[i] = str(resilient)
+                break
+        return original(rewritten, timeout_seconds)
+
+    prospective.run_bounded = run_bounded
+
+
 def main() -> None:
     root = Path(_arg_value("--root", "validation/prospective/riverine_watch_v1"))
     before = set((root / "work").glob("*")) if (root / "work").exists() else set()
+    _install_resilient_nasa_fetch()
     try:
         prospective.main()
         return
