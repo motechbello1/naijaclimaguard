@@ -1,26 +1,33 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "./LanguageProvider";
+import { APP_LANGUAGES } from "@/lib/i18n/config";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
 
 type Locale = Parameters<typeof translatePlatformText>[0];
-
 type TranslatableAttr = "placeholder" | "title" | "aria-label";
 
 const originalText = new WeakMap<Text, string>();
 const originalAttrs = new WeakMap<HTMLElement, Partial<Record<TranslatableAttr, string>>>();
+const allLocales = APP_LANGUAGES.map((item) => item.code) as Locale[];
 
 function shouldSkip(element: HTMLElement | null) {
   if (!element) return true;
-  return Boolean(element.closest("[data-ncg-no-translate='true'],script,style,code,pre"));
+  return Boolean(element.closest("[data-ncg-no-translate='true'],script,style,code,pre,[contenteditable='true']"));
 }
 
 function expectedFor(locale: Locale, source: string) {
   return locale === "en" ? source : translatePlatformText(locale, source);
 }
 
-function updateOriginalIfReactChanged(node: Text, locale: Locale) {
+function isKnownRendering(source: string, current: string) {
+  if (current === source) return true;
+  return allLocales.some((locale) => expectedFor(locale, source) === current);
+}
+
+function updateOriginalIfReactChanged(node: Text) {
   const current = (node.textContent || "").trim();
   const stored = originalText.get(node);
   if (!current) return;
@@ -28,21 +35,18 @@ function updateOriginalIfReactChanged(node: Text, locale: Locale) {
     originalText.set(node, current);
     return;
   }
-  const renderedFromStored = expectedFor(locale, stored);
-  if (current !== stored && current !== renderedFromStored) {
-    originalText.set(node, current);
-  }
+  // A previous locale's translation is not new React source text.
+  if (!isKnownRendering(stored, current)) originalText.set(node, current);
 }
 
 function translateTextNode(node: Text, locale: Locale) {
   const parent = node.parentElement;
   if (shouldSkip(parent)) return;
-
   const raw = node.textContent || "";
   const trimmed = raw.trim();
   if (!trimmed) return;
 
-  updateOriginalIfReactChanged(node, locale);
+  updateOriginalIfReactChanged(node);
   const source = originalText.get(node) || trimmed;
   const next = expectedFor(locale, source);
   if (trimmed === next) return;
@@ -54,27 +58,20 @@ function translateTextNode(node: Text, locale: Locale) {
 
 function translateAttributes(element: HTMLElement, locale: Locale) {
   if (shouldSkip(element)) return;
-
   const stored = originalAttrs.get(element) || {};
   const attrs: TranslatableAttr[] = ["placeholder", "title", "aria-label"];
 
   for (const attr of attrs) {
     const current = element.getAttribute(attr);
     if (!current) continue;
-
     const prior = stored[attr];
-    if (!prior) {
-      stored[attr] = current;
-    } else {
-      const renderedFromPrior = expectedFor(locale, prior);
-      if (current !== prior && current !== renderedFromPrior) stored[attr] = current;
-    }
+    if (!prior) stored[attr] = current;
+    else if (!isKnownRendering(prior, current)) stored[attr] = current;
 
     const source = stored[attr] || current;
     const next = expectedFor(locale, source);
     if (current !== next) element.setAttribute(attr, next);
   }
-
   originalAttrs.set(element, stored);
 }
 
@@ -90,13 +87,25 @@ function translateTree(root: ParentNode, locale: Locale) {
 }
 
 export default function PlatformTranslationBridge() {
-  const { locale } = useLanguage();
+  const { locale, hydrated } = useLanguage();
+  const pathname = usePathname();
 
   useEffect(() => {
-    const apply = () => translateTree(document.body, locale);
-    apply();
+    if (!hydrated) return;
+    let frame = 0;
+    let applying = false;
+
+    const apply = (root: ParentNode = document.body) => {
+      if (applying) return;
+      applying = true;
+      try { translateTree(root, locale); }
+      finally { applying = false; }
+    };
+
+    frame = window.requestAnimationFrame(() => apply());
 
     const observer = new MutationObserver((mutations) => {
+      if (applying) return;
       for (const mutation of mutations) {
         if (mutation.type === "characterData" && mutation.target.nodeType === Node.TEXT_NODE) {
           translateTextNode(mutation.target as Text, locale);
@@ -109,8 +118,11 @@ export default function PlatformTranslationBridge() {
     });
 
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-    return () => observer.disconnect();
-  }, [locale]);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [locale, pathname, hydrated]);
 
   return null;
 }
