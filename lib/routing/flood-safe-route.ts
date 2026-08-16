@@ -1,5 +1,12 @@
 export type RoutePoint = { latitude: number; longitude: number };
-export type RouteHazard = RoutePoint & { id: string; area: string; waterLevel: string; createdAt: Date };
+export type RouteHazard = RoutePoint & {
+  id: string;
+  area: string;
+  createdAt: Date;
+  waterLevel?: string;
+  radiusMeters?: number;
+  sourceKind?: "VERIFIED_CITIZEN" | "CORROBORATED_NEWS";
+};
 
 type OsrmRoute = {
   distance: number;
@@ -13,8 +20,9 @@ export type SaferRouteCandidate = {
   distanceKm: number;
   durationMinutes: number;
   hazardIntersections: number;
-  nearestVerifiedHazardMeters: number | null;
+  nearestHazardMeters: number | null;
   hazardAreas: string[];
+  hazardKinds: string[];
   roadNames: string[];
   navigationUrl: string;
   geometry: [number, number][];
@@ -24,16 +32,15 @@ const R = 6_371_000;
 const rad = (value: number) => value * Math.PI / 180;
 
 export function distanceMeters(a: RoutePoint, b: RoutePoint) {
-  const dLat = rad(b.latitude - a.latitude);
-  const dLon = rad(b.longitude - a.longitude);
-  const lat1 = rad(a.latitude);
-  const lat2 = rad(b.latitude);
+  const dLat = rad(b.latitude - a.latitude), dLon = rad(b.longitude - a.longitude);
+  const lat1 = rad(a.latitude), lat2 = rad(b.latitude);
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-function hazardRadius(waterLevel: string) {
-  switch (waterLevel) {
+function hazardRadius(hazard: RouteHazard) {
+  if (Number.isFinite(hazard.radiusMeters) && Number(hazard.radiusMeters) > 0) return Number(hazard.radiusMeters);
+  switch (hazard.waterLevel) {
     case "ABOVE_HEAD": return 900;
     case "WAIST": return 650;
     case "KNEE": return 400;
@@ -43,8 +50,6 @@ function hazardRadius(waterLevel: string) {
 
 function distanceToRoute(hazard: RouteHazard, coordinates: [number, number][]) {
   let nearest = Number.POSITIVE_INFINITY;
-  // OSRM routes can contain thousands of points. Sampling every few points is
-  // enough for a conservative first-pass proximity check while keeping latency low.
   const step = Math.max(1, Math.floor(coordinates.length / 800));
   for (let i = 0; i < coordinates.length; i += step) {
     const [lon, lat] = coordinates[i];
@@ -59,11 +64,7 @@ export async function geocodeNigeriaPlace(query: string): Promise<{ point: Route
   const q = query.trim();
   if (!q) return null;
   const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ng&addressdetails=1&q=${encodeURIComponent(`${q}, Nigeria`)}`;
-  const response = await fetch(url, {
-    cache: "no-store",
-    headers: { "User-Agent": "NaijaClimaGuard/1.0 flood-safe-route" },
-    signal: AbortSignal.timeout(8000),
-  });
+  const response = await fetch(url, { cache: "no-store", headers: { "User-Agent": "NaijaClimaGuard/1.0 flood-safe-route" }, signal: AbortSignal.timeout(8000) });
   if (!response.ok) throw new Error("place search unavailable");
   const rows = await response.json();
   if (!Array.isArray(rows) || !rows[0]) return null;
@@ -80,19 +81,14 @@ function navigationUrl(origin: RoutePoint, destination: RoutePoint, coordinates:
     const point = coordinates[idx];
     if (point) waypoints.push(`${point[1]},${point[0]}`);
   }
-  const params = new URLSearchParams({
-    api: "1",
-    origin: `${origin.latitude},${origin.longitude}`,
-    destination: `${destination.latitude},${destination.longitude}`,
-    travelmode: "driving",
-  });
+  const params = new URLSearchParams({ api: "1", origin: `${origin.latitude},${origin.longitude}`, destination: `${destination.latitude},${destination.longitude}`, travelmode: "driving" });
   if (waypoints.length) params.set("waypoints", waypoints.join("|"));
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
 export async function findSaferRoutes(origin: RoutePoint, destination: RoutePoint, hazards: RouteHazard[]) {
-  const coordinates = `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`;
-  const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?alternatives=true&steps=true&overview=full&geometries=geojson`;
+  const endpoints = `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`;
+  const url = `https://router.project-osrm.org/route/v1/driving/${endpoints}?alternatives=true&steps=true&overview=full&geometries=geojson`;
   const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(12000) });
   if (!response.ok) throw new Error("routing provider unavailable");
   const payload = await response.json();
@@ -102,7 +98,7 @@ export async function findSaferRoutes(origin: RoutePoint, destination: RoutePoin
   const candidates: SaferRouteCandidate[] = routes.map((route, index) => {
     const coordinates = route.geometry?.coordinates ?? [];
     const relevant = hazards.map((hazard) => ({ hazard, meters: distanceToRoute(hazard, coordinates) }));
-    const intersections = relevant.filter(({ hazard, meters }) => meters <= hazardRadius(hazard.waterLevel));
+    const intersections = relevant.filter(({ hazard, meters }) => meters <= hazardRadius(hazard));
     const nearest = relevant.length ? Math.min(...relevant.map(({ meters }) => meters)) : null;
     const roadNames = (route.legs ?? []).flatMap((leg) => leg.steps ?? []).map((step) => String(step.name || "").trim())
       .filter((name, i, all) => name && all.indexOf(name) === i).slice(0, 10);
@@ -111,14 +107,14 @@ export async function findSaferRoutes(origin: RoutePoint, destination: RoutePoin
       distanceKm: Math.round(route.distance / 100) / 10,
       durationMinutes: Math.round(route.duration / 60),
       hazardIntersections: intersections.length,
-      nearestVerifiedHazardMeters: nearest === null ? null : Math.round(nearest),
+      nearestHazardMeters: nearest === null ? null : Math.round(nearest),
       hazardAreas: intersections.map(({ hazard }) => hazard.area).filter((value, i, all) => all.indexOf(value) === i),
+      hazardKinds: intersections.map(({ hazard }) => hazard.sourceKind || "VERIFIED_CITIZEN").filter((value, i, all) => all.indexOf(value) === i),
       roadNames,
       navigationUrl: navigationUrl(origin, destination, coordinates),
       geometry: coordinates,
     };
   });
-
   candidates.sort((a, b) => a.hazardIntersections - b.hazardIntersections || a.durationMinutes - b.durationMinutes || a.distanceKm - b.distanceKm);
   return candidates;
 }
