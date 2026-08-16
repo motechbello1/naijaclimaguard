@@ -6,9 +6,9 @@ import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   BarChart3, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck,
-  FileCheck2, Home, LayoutDashboard, LogOut, Map, MapPin, Megaphone,
+  Compass, FileCheck2, Home, LayoutDashboard, LogOut, Map, MapPin, Megaphone,
   Menu, Presentation, Radar, Settings2, ShieldAlert, Telescope,
-  Waves, X, Zap,
+  WalletCards, Waves, X, Zap,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
@@ -60,7 +60,9 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
 };
 
 const PRODUCT_LINKS = [
+  { href: "/tools", label: "All tools", icon: Compass },
   { href: "/impact", label: "Economic Impact", icon: CircleDollarSign },
+  { href: "/revenue", label: "Revenue Engine", icon: WalletCards },
   { href: "/pitch", label: "Pitch Mode", icon: Presentation },
 ];
 
@@ -175,9 +177,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       </nav>
 
       {moreOpen && <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true" aria-label={tr("More navigation")}><button className="absolute inset-0 bg-[#03120d]/60 backdrop-blur-[3px]" onClick={() => setMoreOpen(false)} aria-label={tr("Close menu")} /><section className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-[32px] bg-[#f7f7f2] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 text-[#0d1f19] shadow-2xl dark:bg-[#0b1814] dark:text-white"><div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-300 dark:bg-white/15" /><div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[.16em] text-emerald-700 dark:text-[#d9ff57]">{tr("Your NaijaClimaGuard")}</p><p className="mt-1 text-2xl font-black tracking-tight">{tr("Everything else")}</p></div><button onClick={() => setMoreOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/70 dark:bg-white/8" aria-label={tr("Close")}><X className="h-4 w-4" /></button></div>
-        <div className="mt-5 grid grid-cols-2 gap-2">{nav.map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} className="rounded-[18px] border border-black/7 bg-white p-4 shadow-[0_6px_24px_rgba(25,45,36,.05)] dark:border-white/8 dark:bg-white/[.04]"><Icon className="h-5 w-5 text-emerald-700 dark:text-[#d9ff57]" /><p className="mt-4 text-sm font-bold">{t(item.key)}</p></Link>; })}</div>
+        <Link href="/tools" className="mt-5 flex items-center justify-between rounded-[20px] bg-[#071713] px-5 py-4 text-white"><div><p className="text-sm font-black">{tr("Find any tool")}</p><p className="mt-1 text-[11px] text-white/55">{tr("Search every feature in one place")}</p></div><Compass className="h-5 w-5 text-[#d9ff57]" /></Link>
+        <div className="mt-4 grid grid-cols-2 gap-2">{nav.map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} className="rounded-[18px] border border-black/7 bg-white p-4 shadow-[0_6px_24px_rgba(25,45,36,.05)] dark:border-white/8 dark:bg-white/[.04]"><Icon className="h-5 w-5 text-emerald-700 dark:text-[#d9ff57]" /><p className="mt-4 text-sm font-bold">{t(item.key)}</p></Link>; })}</div>
         <div className="mt-5 rounded-[22px] border border-black/7 bg-white p-4 dark:border-white/8 dark:bg-white/[.04]"><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-emerald-700 dark:text-[#d9ff57]" /><p className="text-sm font-black">{tr("Preferences")}</p></div><div className="mt-4 grid gap-3"><NationalAreaControl /><LanguageSelector /><ExperienceRoleControl /><ExplanationModeControl /><ReadAloudControl /><div className="flex items-center justify-between rounded-[14px] bg-[#f3f4ee] p-3 dark:bg-black/20"><span className="text-xs font-semibold">{tr("Appearance")}</span><ThemeToggle /></div></div></div>
-        <div className="mt-4 grid grid-cols-2 gap-2">{PRODUCT_LINKS.map((item) => <Link key={item.href} href={item.href} className="rounded-[18px] bg-[#071713] p-4 text-white"><item.icon className="h-5 w-5 text-[#d9ff57]" /><p className="mt-3 text-sm font-bold">{tr(item.label)}</p></Link>)}</div>
+        <div className="mt-4 grid grid-cols-2 gap-2">{PRODUCT_LINKS.filter((item) => item.href !== "/tools").map((item) => <Link key={item.href} href={item.href} className="rounded-[18px] bg-[#071713] p-4 text-white"><item.icon className="h-5 w-5 text-[#d9ff57]" /><p className="mt-3 text-sm font-bold">{tr(item.label)}</p></Link>)}</div>
         <button onClick={handleLogout} className="mt-4 flex w-full items-center justify-center gap-2 rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200"><LogOut className="h-4 w-4" /> {t("signOut")}</button>
       </section></div>}
     </div>
