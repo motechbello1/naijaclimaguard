@@ -1,0 +1,43 @@
+{
+  "status": "economic_exposure_baseline_v1",
+  "generated_at": "2026-08-16T09:41:05.148264+00:00",
+  "population": {
+    "source": "WorldPop Nigeria population v3.0",
+    "source_url": "https://data.worldpop.org/repo/wopr/NGA/population/v3.0/NGA_population_v3_0_README.pdf",
+    "archive_used": "https://data.worldpop.org/repo/wopr/NGA/population/v3.0/NGA_population_v3_0_admin.zip",
+    "archive_files": [
+      "NGA_population_v3_0_admin/",
+      "NGA_population_v3_0_admin/lga_pop_total_scaled.csv",
+      "NGA_population_v3_0_admin/national_pop_total_scaled.csv",
+      "NGA_population_v3_0_admin/states_pop_total_scaled.csv"
+    ],
+    "source_state_column": "statename",
+    "source_population_column": "population",
+    "reference_year": 2025,
+    "registered_jurisdictions": 37,
+    "population_total_from_state_table": 237527790,
+    "extra_worldpop_labels_not_used": [],
+    "boundary": "Population exposure is not flood exposure until intersected with a hazard/inundation footprint."
+  },
+  "2022_direct_damage_usd": {
+    "low": 3790000000.0,
+    "median": 6680000000.0,
+    "high": 9120000000.0,
+    "source": "World Bank Nigeria flood diagnostic",
+    "source_url": "https://documents1.worldbank.org/curated/en/099060223162027206/pdf/BOSIB0e7bb7cb702c0b6d40e7d4dc5834be.pdf",
+    "boundary": "National historical damage reference. It is not allocated to states by population and is not a NaijaClimaGuard performance result."
+  },
+  "avoided_loss_sensitivity": [
+    {"avoidable_loss_share": 0.005, "avoidable_loss_percent": 0.5, "protected_value_usd_at_2022_median_damage": 33400000.0, "interpretation": "Sensitivity scenario only. Not a realized NaijaClimaGuard saving or forecast of future damage."},
+    {"avoidable_loss_share": 0.01, "avoidable_loss_percent": 1.0, "protected_value_usd_at_2022_median_damage": 66800000.0, "interpretation": "Sensitivity scenario only. Not a realized NaijaClimaGuard saving or forecast of future damage."},
+    {"avoidable_loss_share": 0.02, "avoidable_loss_percent": 2.0, "protected_value_usd_at_2022_median_damage": 133600000.0, "interpretation": "Sensitivity scenario only. Not a realized NaijaClimaGuard saving or forecast of future damage."},
+    {"avoidable_loss_share": 0.05, "avoidable_loss_percent": 5.0, "protected_value_usd_at_2022_median_damage": 334000000.0, "interpretation": "Sensitivity scenario only. Not a realized NaijaClimaGuard saving or forecast of future damage."}
+  ],
+  "next_exposure_layers": [
+    "WorldPop 100m gridded population intersected with flood footprint",
+    "Google Open Buildings v3 / OSM building footprint exposure",
+    "ESA WorldCover 2021 cropland/built-up exposure",
+    "OpenStreetMap roads, hospitals and schools",
+    "sector-specific replacement/loss functions calibrated from Nigerian post-disaster evidence"
+  ]
+}
