@@ -33,13 +33,13 @@ const checks = [
   {
     file: "components/shared/AppShell.tsx",
     rules: [
-      ['Mobile drawer is closed by default', 'const [mobileOpen, setMobileOpen] = useState(false)'],
-      ['Desktop sidebar is desktop-only', 'hidden lg:flex flex-col'],
-      ['Mobile drawer is hidden on desktop', 'fixed inset-0 z-[120] lg:hidden'],
-      ['Navigation closes after route change', 'setMobileOpen(false);'],
-      ['Mobile utility controls are hidden from header', 'ml-auto hidden items-center gap-2 lg:flex'],
-      ['Mobile menu icon is compact', '<Menu className="h-4 w-4" />'],
-      ['Mobile logo receives compact sizing', '<Logo mobile />'],
+      ['Mobile drawer is closed by default', 'const [moreOpen, setMoreOpen] = useState(false)'],
+      ['Desktop sidebar is desktop-only', 'lg:flex lg:flex-col'],
+      ['Mobile drawer is hidden on desktop', 'fixed inset-0 z-[90] lg:hidden'],
+      ['Navigation closes after route change', 'useEffect(() => setMoreOpen(false), [pathname])'],
+      ['Desktop utility controls stay out of the compact header', 'hidden xl:block'],
+      ['Mobile menu icon is compact', '<Menu className="h-[18px] w-[18px]" />'],
+      ['Mobile brand icon receives compact sizing', '<Waves className="h-4 w-4" />'],
     ],
   },
   {

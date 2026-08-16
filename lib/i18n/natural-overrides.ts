@@ -75,6 +75,18 @@ const pcm: Dict = {
   "No urgent action right now": "No urgent action now",
   "Needs attention": "E need attention",
   "Watch closely": "Watch am well",
+  "Investor + TRL 6": "Investor + TRL 6",
+  "Product": "Product",
+  "Economic impact": "Money & loss impact",
+  "Pitch mode": "Investor pitch",
+  "Pitch from the product": "Pitch from inside the product",
+  "Founder story and live product": "Founder story and live product",
+  "The pitch film stays inside the product experience.": "The pitch film go stay inside the product experience.",
+  "Open pitch mode": "Open investor pitch",
+  "Frozen record": "Evidence wey don lock",
+  "Open derived-v2 product": "Open derived-v2 product",
+  "TRL 6 field path": "TRL 6 field path",
+  "Open Investor + TRL 6 room": "Open Investor + TRL 6 room",
 };
 
 const ha: Dict = {
@@ -109,6 +121,18 @@ const ha: Dict = {
   "Places that matter to you": "Wuraren da suke da muhimmanci a gare ka",
   "Open a place to see what is happening and what you should do.": "Buɗe wuri domin ganin abin da ke faruwa da abin da ya kamata ka yi.",
   "Add place": "Ƙara wuri",
+  "Investor + TRL 6": "Mai saka jari + TRL 6",
+  "Product": "Samfuri",
+  "Economic impact": "Tasirin tattalin arziki",
+  "Pitch mode": "Yanayin gabatarwa",
+  "Pitch from the product": "Gabatar daga cikin samfurin",
+  "Founder story and live product": "Labarin wanda ya kafa da samfurin kai tsaye",
+  "The pitch film stays inside the product experience.": "Bidiyon gabatarwa yana cikin kwarewar samfurin.",
+  "Open pitch mode": "Buɗe yanayin gabatarwa",
+  "Frozen record": "Rubutacciyar shaida da aka kulle",
+  "Open derived-v2 product": "Buɗe samfurin derived-v2",
+  "TRL 6 field path": "Hanyar filin TRL 6",
+  "Open Investor + TRL 6 room": "Buɗe dakin Mai saka jari + TRL 6",
 };
 
 const yo: Dict = {
@@ -143,6 +167,18 @@ const yo: Dict = {
   "Places that matter to you": "Àwọn ibi tó ṣe pàtàkì sí ọ",
   "Open a place to see what is happening and what you should do.": "Ṣí ibi kan láti rí ohun tó ń ṣẹlẹ̀ àti ohun tí o yẹ kí o ṣe.",
   "Add place": "Fi ibi kún",
+  "Investor + TRL 6": "Olùdókòwò + TRL 6",
+  "Product": "Ọjà",
+  "Economic impact": "Ìpa ọrọ̀-ajé",
+  "Pitch mode": "Ìpo ìfihàn",
+  "Pitch from the product": "Ṣe ìfihàn láti inú ọjà",
+  "Founder story and live product": "Ìtàn olùdásílẹ̀ àti ọjà tó ń ṣiṣẹ́",
+  "The pitch film stays inside the product experience.": "Fíìmù ìfihàn wà nínú ìrírí ọjà.",
+  "Open pitch mode": "Ṣí ìpo ìfihàn",
+  "Frozen record": "Ẹ̀rí tí a ti pa mọ́",
+  "Open derived-v2 product": "Ṣí ọjà derived-v2",
+  "TRL 6 field path": "Ọ̀nà pápá TRL 6",
+  "Open Investor + TRL 6 room": "Ṣí yàrá Olùdókòwò + TRL 6",
 };
 
 const ig: Dict = {
@@ -177,6 +213,18 @@ const ig: Dict = {
   "Places that matter to you": "Ebe dị gị mkpa",
   "Open a place to see what is happening and what you should do.": "Mepee ebe ka ịhụ ihe na-eme na ihe ị ga-eme.",
   "Add place": "Tinye ebe",
+  "Investor + TRL 6": "Investor + TRL 6",
+  "Product": "Ngwaahịa",
+  "Economic impact": "Mmetụta akụ na ụba",
+  "Pitch mode": "Ụdị ngosi",
+  "Pitch from the product": "Gosi site n'ime product",
+  "Founder story and live product": "Akụkọ founder na live product",
+  "The pitch film stays inside the product experience.": "Pitch film na-anọ n'ime product experience.",
+  "Open pitch mode": "Mepee pitch mode",
+  "Frozen record": "Evidence e mechiri",
+  "Open derived-v2 product": "Mepee derived-v2 product",
+  "TRL 6 field path": "Ụzọ field TRL 6",
+  "Open Investor + TRL 6 room": "Mepee Investor + TRL 6 room",
 };
 
 const OVERRIDES: Record<AppLocale, Dict> = { en: {}, pcm, ha, yo, ig };

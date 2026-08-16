@@ -63,6 +63,8 @@ const PRODUCT_LINKS = [
   { href: "/tools", label: "All tools", icon: Compass },
   { href: "/impact", label: "Economic Impact", icon: CircleDollarSign },
   { href: "/revenue", label: "Revenue Engine", icon: WalletCards },
+  { href: "/investor-readiness", label: "Investor + TRL 6", icon: ShieldAlert },
+  { href: "/model-evidence", label: "Model Evidence", icon: FileCheck2 },
   { href: "/pitch", label: "Pitch Mode", icon: Presentation },
 ];
 

@@ -1,0 +1,16 @@
+name: TRL6 Achievement Claim Gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-claim-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep the TRL6 achieved claim locked until every field gate is verified
+        run: node scripts/check-trl6-claim-gate.mjs

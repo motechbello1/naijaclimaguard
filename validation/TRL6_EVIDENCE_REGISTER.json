@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "updated_on": "2026-08-16",
+  "product": "NaijaClimaGuard",
+  "current_claim_status": "TRL6_DEMONSTRATION_READY",
+  "software_readiness": "VERIFIED",
+  "field_achievement_status": "EVIDENCE_GATED",
+  "promotion_rule": "The build is ready for a TRL6 relevant-environment demonstration. TRL6 achieved may be claimed only when every required gate is VERIFIED and each evidence reference is independently reviewable.",
+  "gates": [
+    {
+      "id": "software_deployment",
+      "requirement": "Integrated working software is deployed with accounts, public risk checks, dashboard workflows, action guidance, evidence history and failure states.",
+      "status": "VERIFIED",
+      "evidence_reference": "Vercel preview plus authenticated browser journey; repository product contracts"
+    },
+    {
+      "id": "relevant_environment_pilot",
+      "requirement": "The complete decision loop is exercised in a relevant operational environment with an institutional design partner.",
+      "status": "REQUIRED",
+      "evidence_reference": null
+    },
+    {
+      "id": "representative_users",
+      "requirement": "Representative household, farm, business or agency operators complete critical journeys without developer assistance.",
+      "status": "REQUIRED",
+      "evidence_reference": null
+    },
+    {
+      "id": "prospective_shadow_evidence",
+      "requirement": "Forecast issues and outcomes are preserved prospectively with false-alert burden, lead time and missed-event analysis.",
+      "status": "IN_PROGRESS",
+      "evidence_reference": "validation/prospective"
+    },
+    {
+      "id": "authorised_source_integration",
+      "requirement": "At least one authorised operational source is connected with provenance, freshness, outage and fallback evidence.",
+      "status": "REQUIRED",
+      "evidence_reference": null
+    },
+    {
+      "id": "last_mile_delivery",
+      "requirement": "A warning or action task is delivered to a verified recipient and records channel, language, receipt and acknowledgement.",
+      "status": "REQUIRED",
+      "evidence_reference": null
+    },
+    {
+      "id": "language_safety_review",
+      "requirement": "Safety-critical Pidgin, Hausa, Yoruba and Igbo templates pass independent human linguistic review.",
+      "status": "REQUIRED",
+      "evidence_reference": null
+    },
+    {
+      "id": "action_outcome_ledger",
+      "requirement": "At least one permissioned pilot record joins evidence, exposure, owner, action, delivery receipt and verified outcome.",
+      "status": "REQUIRED",
+      "evidence_reference": null
+    },
+    {
+      "id": "failure_and_safety_drill",
+      "requirement": "Operators demonstrate source outage, missed delivery, official-warning precedence and escalation behavior.",
+      "status": "REQUIRED",
+      "evidence_reference": null
+    },
+    {
+      "id": "independent_readiness_review",
+      "requirement": "An independent reviewer signs the evidence register and confirms the relevant-environment demonstration boundary.",
+      "status": "REQUIRED",
+      "evidence_reference": null
+    }
+  ]
+}

@@ -13,7 +13,7 @@ export default function PitchPage() {
       <div className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#071713]/88 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <a href="/" className="flex items-center gap-2 text-sm font-bold text-white/75 transition hover:text-white"><ArrowLeft className="h-4 w-4" /> Exit pitch</a>
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-xs font-black uppercase tracking-[.18em]"><Radio className="h-3.5 w-3.5 text-[#d9ff57]" /> Live product pitch</div>
+          <div className="flex items-center gap-3"><Link href="/investor-readiness" className="hidden text-xs font-black text-[#d9ff57] sm:inline">Investor + TRL 6 proof</Link><div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-xs font-black uppercase tracking-[.18em]"><Radio className="h-3.5 w-3.5 text-[#d9ff57]" /> Live product pitch</div></div>
         </div>
       </div>
 

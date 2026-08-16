@@ -52,12 +52,12 @@ export default function LandingPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10"><Waves className="h-4 w-4" /></div>
             <span className="font-display text-base font-black tracking-tight sm:text-lg">NaijaClimaGuard</span>
           </Link>
-
           <div className="hidden items-center gap-6 xl:flex">
             <a href="#my-area" className="text-sm text-white/70 hover:text-white">Check my area</a>
             <Link href="/impact" className="text-sm text-white/70 hover:text-white">Economic Impact</Link>
             <Link href="/action-center" className="text-sm text-white/70 hover:text-white">Action OS</Link>
             <Link href="/evidence" className="text-sm text-white/70 hover:text-white">Evidence</Link>
+            <Link href="/investor-readiness" className="text-sm text-white/70 hover:text-white">Investor Proof</Link>
             <Link href="/api-docs" className="text-sm text-white/70 hover:text-white">API</Link>
             <Link href="/pitch" className="text-sm text-white/70 hover:text-white">Pitch Mode</Link>
           </div>
@@ -138,7 +138,7 @@ export default function LandingPage() {
 
       <section className="bg-[#071713] py-20 text-white sm:py-28">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[.9fr_1.1fr] lg:items-center lg:px-8">
-          <div><span className="rounded-full bg-[#d9ff57] px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-[#071713]">Investor story</span><h2 className="mt-5 font-display text-4xl font-black leading-tight sm:text-6xl">Pitch directly from the product.</h2><p className="mt-5 max-w-xl text-white/65">The final film will explain the problem, technology, economic value, national impact, revenue model and evidence without leaving the website.</p><Link href="/pitch" className="mt-7 inline-flex items-center gap-2 font-black text-[#d9ff57]">Enter Pitch Mode <ArrowRight className="h-4 w-4" /></Link></div>
+          <div><span className="rounded-full bg-[#d9ff57] px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-[#071713]">Investor story</span><h2 className="mt-5 font-display text-4xl font-black leading-tight sm:text-6xl">Pitch directly from the product.</h2><p className="mt-5 max-w-xl text-white/65">The final film explains the problem, technology, economic value, national impact, revenue model and evidence without leaving the website.</p><div className="mt-7 flex flex-wrap gap-5"><Link href="/pitch" className="inline-flex items-center gap-2 font-black text-[#d9ff57]">Enter Pitch Mode <ArrowRight className="h-4 w-4" /></Link><Link href="/investor-readiness" className="inline-flex items-center gap-2 font-black text-white">Open Investor + TRL 6 Proof <ArrowRight className="h-4 w-4" /></Link></div></div>
           <div className="relative aspect-video overflow-hidden rounded-[2rem] border border-white/15 bg-[#102820] shadow-2xl"><div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(217,255,87,.18),transparent_40%),linear-gradient(135deg,#13382e,#071713)]" /><div className="absolute inset-0 flex flex-col items-center justify-center text-center"><div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#d9ff57] text-[#071713]"><Play className="ml-1 h-7 w-7 fill-current" /></div><p className="mt-5 text-lg font-black">NaijaClimaGuard: The Investor Film</p><p className="mt-1 text-sm text-white/45">Video placeholder</p></div></div>
         </div>
       </section>
@@ -149,7 +149,7 @@ export default function LandingPage() {
 
       <section className="py-20 text-center"><div className="mx-auto max-w-3xl px-4"><h2 className="font-display text-4xl font-black sm:text-6xl">Know earlier. Act smarter. Protect what matters.</h2><p className="mt-5 text-slate-600 dark:text-slate-400">Create an account to save places, receive personalized context and use the full decision platform.</p><div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row"><Link href="/register" className="rounded-full bg-[#071713] px-7 py-3.5 font-black text-white dark:bg-radar dark:text-slate-950">Create account</Link><Link href="/login" className="rounded-full border border-slate-300 px-7 py-3.5 font-black dark:border-slate-700">Log in</Link></div></div></section>
 
-      <footer className="bg-[#071713] py-10 text-white"><div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8"><div><p className="font-black">NaijaClimaGuard</p><p className="mt-1 text-xs text-white/45">Climate intelligence → economic action.</p></div><div className="flex flex-wrap gap-5 text-sm text-white/55"><Link href="/login">Log in</Link><Link href="/register">Register</Link><Link href="/dashboard">Dashboard</Link><Link href="/action-center">Action OS</Link><Link href="/evidence">Evidence</Link><Link href="/api-docs">API</Link></div></div></footer>
+      <footer className="bg-[#071713] py-10 text-white"><div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8"><div><p className="font-black">NaijaClimaGuard</p><p className="mt-1 text-xs text-white/45">Climate intelligence → economic action.</p></div><div className="flex flex-wrap gap-5 text-sm text-white/55"><Link href="/login">Log in</Link><Link href="/register">Register</Link><Link href="/dashboard">Dashboard</Link><Link href="/action-center">Action OS</Link><Link href="/evidence">Evidence</Link><Link href="/investor-readiness">Investor Proof</Link><Link href="/api-docs">API</Link></div></div></footer>
     </main>
   );
 }

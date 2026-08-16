@@ -2,7 +2,18 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Headphones, Square } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "./LanguageProvider";
+
+const AUTO_READ_KEY = "naijaclimaguard:auto-read";
+
+const SPEECH_LANG: Record<string, string> = {
+  en: "en-NG",
+  pcm: "en-NG",
+  ha: "ha-NG",
+  yo: "yo-NG",
+  ig: "ig-NG",
+};
 
 type SpeechContextValue = {
   supported: boolean;
@@ -12,12 +23,33 @@ type SpeechContextValue = {
   activeTarget: string | null;
   error: string | null;
   provider: string | null;
+  autoRead: boolean;
+  setAutoRead: (value: boolean) => void;
   speak: (text: string, targetId?: string) => Promise<void>;
   speakTarget: (targetId: string) => Promise<void>;
   stop: () => void;
 };
 
 const SpeechContext = createContext<SpeechContextValue | null>(null);
+
+function visiblePageSummary() {
+  const main = document.querySelector("main");
+  if (!main) return "";
+
+  const preferred = Array.from(main.querySelectorAll<HTMLElement>("[data-read-aloud]"))
+    .filter((element) => element.offsetParent !== null)
+    .map((element) => element.innerText.trim())
+    .filter(Boolean);
+  if (preferred.length) return preferred.slice(0, 6).join(". ").slice(0, 2200);
+
+  return Array.from(main.querySelectorAll<HTMLElement>("h1, h2, h3, p, li"))
+    .filter((element) => element.offsetParent !== null)
+    .map((element) => element.innerText.trim())
+    .filter((text) => text.length > 3)
+    .slice(0, 8)
+    .join(". ")
+    .slice(0, 2200);
+}
 
 function cleanReadableText(root: HTMLElement) {
   const clone = root.cloneNode(true) as HTMLElement;
@@ -79,6 +111,7 @@ const playErrorByLocale: Record<string, string> = {
 };
 
 export function SpeechProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const { locale } = useLanguage();
   const [supported, setSupported] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -87,12 +120,15 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [activeTarget, setActiveTarget] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [autoRead, setAutoReadState] = useState(false);
   const requestRef = useRef<AbortController | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const runRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    setAutoReadState(window.localStorage.getItem(AUTO_READ_KEY) === "true");
     let cancelled = false;
     const check = async () => {
       setChecking(true);
@@ -235,6 +271,26 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     await speak(cleanReadableText(target), targetId);
   };
 
+  const setAutoRead = (value: boolean) => {
+    setAutoReadState(value);
+    window.localStorage.setItem(AUTO_READ_KEY, String(value));
+    if (!value) stop();
+  };
+
+  useEffect(() => {
+    if (!autoRead || !supported) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      const summary = visiblePageSummary();
+      if (summary) void speak(summary, "page-summary");
+    }, 700);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+    // The neural speech callback intentionally follows the active route and language.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, locale, autoRead, supported]);
+
   useEffect(() => () => {
     runRef.current += 1;
     clearCurrent();
@@ -249,10 +305,12 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     activeTarget,
     error,
     provider,
+    autoRead,
+    setAutoRead,
     speak,
     speakTarget,
     stop,
-  }), [supported, checking, speaking, loading, activeTarget, error, provider, locale]);
+  }), [supported, checking, speaking, loading, activeTarget, error, provider, autoRead, locale]);
 
   return <SpeechContext.Provider value={value}>{children}</SpeechContext.Provider>;
 }
@@ -264,7 +322,7 @@ export function useSpeech() {
 }
 
 export function ReadAloudControl({ compact = false }: { compact?: boolean }) {
-  const { supported, checking, speaking, loading, stop } = useSpeech();
+  const { supported, checking, speaking, loading, autoRead, setAutoRead, stop } = useSpeech();
   const { locale } = useLanguage();
 
   if (checking) return null;
@@ -280,6 +338,11 @@ export function ReadAloudControl({ compact = false }: { compact?: boolean }) {
     : locale === "ig" ? "Jiri bọtịnụ ekweisi n'akụkụ ebe ịchọrọ ịnụ."
     : "Use the headphone button beside the part you want to hear.";
   const unavailable = unavailableByLocale[locale] || unavailableByLocale.en;
+  const autoLabel = locale === "pcm" ? "Read page by itself"
+    : locale === "ha" ? "Karanta shafi kai tsaye"
+    : locale === "yo" ? "Kà ojúewé laifọwọyi"
+    : locale === "ig" ? "Gụọ ibe na-akpaghị aka"
+    : "Auto-read pages";
 
   if (compact) {
     if (!supported) return null;
@@ -298,6 +361,12 @@ export function ReadAloudControl({ compact = false }: { compact?: boolean }) {
         {(speaking || loading) && <button type="button" onClick={stop} className="ml-auto rounded-full border border-slate-200 px-2 py-1 text-[10px] dark:border-white/10">Stop</button>}
       </div>
       <p className="mt-1.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">{supported ? hint : unavailable}</p>
+      {supported && (
+        <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 border-t border-slate-200 pt-3 text-[11px] text-slate-500 dark:border-white/10 dark:text-slate-400">
+          <span>{autoLabel}</span>
+          <input type="checkbox" checked={autoRead} onChange={(event) => setAutoRead(event.target.checked)} className="accent-emerald-500" />
+        </label>
+      )}
     </div>
   );
 }
