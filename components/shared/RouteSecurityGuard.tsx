@@ -23,8 +23,15 @@ const PROTECTED_PREFIXES = [
   "/emergency-pack",
 ];
 
+const EXPERIENCE_STORAGE_KEY = "naijaclimaguard.action-role";
+
 function isProtected(pathname: string) {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function resetUnauthenticatedExperience() {
+  window.localStorage.removeItem(EXPERIENCE_STORAGE_KEY);
+  document.documentElement.dataset.experienceRole = "household";
 }
 
 export default function RouteSecurityGuard() {
@@ -32,8 +39,9 @@ export default function RouteSecurityGuard() {
   const { status } = useSession();
 
   useEffect(() => {
-    if (!isProtected(pathname)) return;
-    if (status === "unauthenticated") {
+    if (status !== "unauthenticated") return;
+    resetUnauthenticatedExperience();
+    if (isProtected(pathname)) {
       window.location.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
     }
   }, [pathname, status]);
@@ -44,8 +52,12 @@ export default function RouteSecurityGuard() {
       try {
         const response = await fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" });
         const session = response.ok ? await response.json() : null;
-        if (!session?.user) window.location.replace("/login");
+        if (!session?.user) {
+          resetUnauthenticatedExperience();
+          window.location.replace("/login");
+        }
       } catch {
+        resetUnauthenticatedExperience();
         window.location.replace("/login");
       }
     };
