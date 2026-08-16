@@ -25,21 +25,15 @@ function clamp(value: number) { return Math.max(0, Math.min(1, value)); }
 function round1(value: number) { return Math.round(value * 10) / 10; }
 
 function latestValidRunBefore(event: Date, requestedLeadHours: number) {
-  // We require the run to have had six hours to finish computing/distributing.
   const latestAllowed = new Date(event.getTime() - (requestedLeadHours + MODEL_PUBLICATION_DELAY_HOURS) * 3600_000);
   const run = new Date(Date.UTC(latestAllowed.getUTCFullYear(), latestAllowed.getUTCMonth(), latestAllowed.getUTCDate(), 0, 0, 0, 0));
   const eligible = VALID_RUN_HOURS.filter((hour) => hour <= latestAllowed.getUTCHours());
   if (eligible.length) run.setUTCHours(eligible[eligible.length - 1]);
-  else {
-    run.setUTCDate(run.getUTCDate() - 1);
-    run.setUTCHours(18);
-  }
+  else { run.setUTCDate(run.getUTCDate() - 1); run.setUTCHours(18); }
   return run;
 }
 
-function runParam(date: Date) {
-  return `${date.toISOString().slice(0, 13)}:00`;
-}
+function runParam(date: Date) { return `${date.toISOString().slice(0, 13)}:00`; }
 
 function valueAt(times: string[], values: number[], targetMs: number) {
   let bestIndex = -1;
@@ -57,16 +51,15 @@ function maxWindow(times: string[], values: number[], startMs: number, endMs: nu
   for (let t = startMs; t <= endMs; t += 3600_000) selected.push(Math.max(0, valueAt(times, values, t) ?? 0));
   let best = 0;
   for (let i = 0; i < selected.length; i += 1) {
-    const sum = selected.slice(i, i + width).reduce((total, value) => total + value, 0);
-    best = Math.max(best, sum);
+    best = Math.max(best, selected.slice(i, i + width).reduce((total, value) => total + value, 0));
   }
   return best;
 }
 
-async function fetchRun(latitude: number, longitude: number, run: Date) {
+async function fetchRunBatch(points: ReturnType<typeof expandNigeriaSentinels>, run: Date) {
   const params = new URLSearchParams({
-    latitude: String(latitude),
-    longitude: String(longitude),
+    latitude: points.map((point) => point.latitude).join(","),
+    longitude: points.map((point) => point.longitude).join(","),
     models: "ecmwf_ifs",
     run: runParam(run),
     hourly: "precipitation,cape",
@@ -75,16 +68,15 @@ async function fetchRun(latitude: number, longitude: number, run: Date) {
   });
   const response = await fetch(`https://single-runs-api.open-meteo.com/v1/forecast?${params.toString()}`, {
     cache: "force-cache",
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(20000),
   });
   if (!response.ok) throw new Error(`forecast archive returned ${response.status}`);
-  return response.json();
+  const payload = await response.json();
+  return Array.isArray(payload) ? payload : [payload];
 }
 
 function scoreForecast(times: string[], precipitation: number[], cape: number[], event: Date) {
   const eventMs = event.getTime();
-  // Flood onset is not exactly the publication time, so inspect a compact
-  // six-hour envelope centred around the first public report.
   const start = eventMs - 3 * 3600_000;
   const end = eventMs + 3 * 3600_000;
   const p1 = maxWindow(times, precipitation, start, end, 1);
@@ -94,8 +86,6 @@ function scoreForecast(times: string[], precipitation: number[], cape: number[],
   let capeMax = 0;
   for (let t = start; t <= end; t += 3600_000) capeMax = Math.max(capeMax, Math.max(0, valueAt(times, cape, t) ?? 0));
 
-  // This is a transparent forecast-signal screen, not a calibrated flood probability.
-  // Heavy short bursts dominate, with CAPE adding context for convective potential.
   const rainSignal = Math.max(clamp(p1 / 15), clamp(p3 / 30), clamp(p6 / 50), clamp(p12 / 80));
   const convection = clamp(capeMax / 2000);
   const score = Math.round((0.85 * rainSignal + 0.15 * convection) * 100);
@@ -109,22 +99,23 @@ export async function auditForecastLeadTimes(state: string, eventAt: string, lea
   const points = expandNigeriaSentinels(9).filter((point) => point.state === state);
   if (!points.length) throw new Error(`no rainfall screening grid exists for ${state}`);
 
-  const results: ForecastLeadAudit[] = [];
-  for (const requestedLeadHours of leads) {
+  const results = await Promise.all(leads.map(async (requestedLeadHours): Promise<ForecastLeadAudit> => {
     const run = latestValidRunBefore(event, requestedLeadHours);
     const effectiveLeadHours = Math.round((event.getTime() - (run.getTime() + MODEL_PUBLICATION_DELAY_HOURS * 3600_000)) / 3600_000);
     try {
-      const scored = await Promise.all(points.map(async (point) => {
-        const payload = await fetchRun(point.latitude, point.longitude, run);
+      const payloads = await fetchRunBatch(points, run);
+      const scored = points.map((point, index) => {
+        const payload = payloads[index];
         const times: string[] = payload?.hourly?.time ?? [];
         const precipitation: number[] = payload?.hourly?.precipitation ?? [];
         const cape: number[] = payload?.hourly?.cape ?? [];
-        if (!times.length || !precipitation.length) throw new Error("forecast run has no rainfall series");
+        if (!times.length || !precipitation.length) return null;
         return { point, signal: scoreForecast(times, precipitation, cape, event) };
-      }));
+      }).filter(Boolean) as Array<{ point: ReturnType<typeof expandNigeriaSentinels>[number]; signal: ReturnType<typeof scoreForecast> }>;
+      if (!scored.length) throw new Error("forecast run has no rainfall series");
       scored.sort((a, b) => b.signal.score - a.signal.score);
       const highest = scored[0];
-      results.push({
+      return {
         requestedLeadHours,
         run: runParam(run),
         effectiveLeadHours,
@@ -139,9 +130,9 @@ export async function auditForecastLeadTimes(state: string, eventAt: string, lea
         capeMaxJkg: Math.round(highest.signal.capeMax),
         signalScore: highest.signal.score,
         signalLevel: highest.signal.level,
-      });
+      };
     } catch (error) {
-      results.push({
+      return {
         requestedLeadHours,
         run: runParam(run),
         effectiveLeadHours,
@@ -149,8 +140,9 @@ export async function auditForecastLeadTimes(state: string, eventAt: string, lea
         state,
         city: points[0].anchorCity,
         error: error instanceof Error ? error.message : "forecast run unavailable",
-      });
+      };
     }
-  }
-  return results;
+  }));
+
+  return results.sort((a, b) => a.requestedLeadHours - b.requestedLeadHours);
 }
