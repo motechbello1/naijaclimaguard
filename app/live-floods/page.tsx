@@ -1,6 +1,7 @@
 "use client";
 
 import AppShell from "@/components/shared/AppShell";
+import NationalNowcast from "@/components/live/NationalNowcast";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, Clock3, ExternalLink, Newspaper, RefreshCw, Search, ShieldAlert, Waves } from "lucide-react";
 
@@ -111,6 +112,8 @@ export default function LiveFloodsPage() {
         <section className="rounded-2xl border border-amber/20 bg-amber/5 p-4 sm:p-5">
           <div className="flex gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber" /><div><h2 className="text-sm font-bold">News is a confirmation sensor, not the first warning</h2><p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">If Vanguard, Guardian, Daily Trust or another outlet reports that cars are already floating, the incident layer should record that immediately. The earlier-warning job belongs to rainfall nowcasting, antecedent wetness, official alerts and geolocated citizen reports. We keep those evidence types separate so a headline is never mistaken for a model forecast.</p></div></div>
         </section>
+
+        <NationalNowcast />
 
         {data?.stateSummary?.length ? (
           <section>
