@@ -96,7 +96,10 @@ function DashboardContent() {
   return (
     <AppShell>
       <div className="space-y-6" key={locale}>
-        <section className="ncg-water-panel rounded-[2.25rem] px-6 py-7 sm:px-9 sm:py-10" data-read-aloud>
+        <div className="simple-only">
+          <p className="text-[11px] font-black uppercase tracking-[.2em] text-emerald-700 dark:text-[#d9ff57]">{area.name} · Nigeria</p>
+        </div>
+        <section className="standard-up ncg-water-panel rounded-[2.25rem] px-6 py-7 sm:px-9 sm:py-10" data-read-aloud>
           <div className="relative z-10 grid gap-7 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-700 dark:text-[#d9ff57]">{area.zone} · {tr("National workspace")}</p>
@@ -106,8 +109,8 @@ function DashboardContent() {
             <div className="relative z-10 inline-flex w-fit items-center rounded-full border border-[#0d1f19]/10 bg-white/80 px-4 py-2 text-xs font-black shadow-sm dark:border-white/10 dark:bg-white/8">36 states + FCT</div>
           </div>
         </section>
-        <ActionOSBanner />
-        <RiverineWatchEvidence compact />
+        <div className="standard-up"><ActionOSBanner /></div>
+        <div className="standard-up"><RiverineWatchEvidence compact /></div>
         <AdaptiveDashboard userName={session.user?.name} paymentStatus={paymentStatus} locations={locations} risks={risks} limit={limit} plan={plan} showAdd={showAdd} setShowAdd={setShowAdd} newLoc={newLoc} setNewLoc={setNewLoc} addErr={addErr} addLocation={addLocation} deleteLocation={deleteLocation} fetchRisk={fetchRisk} />
       </div>
     </AppShell>
