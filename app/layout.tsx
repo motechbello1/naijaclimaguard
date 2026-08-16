@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Providers } from "./providers";
 import ServiceWorkerRegister from "@/components/shared/ServiceWorkerRegister";
 import "./globals.css";
-import "./motion.css";
 
 export const metadata: Metadata = {
   title: "NaijaClimaGuard — Nigeria Flood Risk Intelligence",
