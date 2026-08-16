@@ -1,270 +1,152 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ArrowRight, Zap, Shield, Activity, Satellite, Brain, Bell, Check, Code, Copy, Sprout, Landmark, Building2, Clock3, MapPin } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  Heart,
+  Landmark,
+  LogIn,
+  MapPin,
+  Play,
+  Radio,
+  Shield,
+  Sprout,
+  UserPlus,
+} from "lucide-react";
 import ThemeToggle from "@/components/shared/ThemeToggle";
-import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
-import { PRICING, API_EXAMPLE } from "@/lib/data";
+import { BrandLockup } from "@/components/shared/BrandLogo";
+import {
+  NIGERIA_ADMIN_AREAS,
+  NIGERIA_STATE_COUNT,
+  RIVERINE_WATCH_V1_PILOT,
+} from "@/lib/nigeria-geography";
+
+const HERO_IMAGE =
+  "https://images.unsplash.com/photo-1741110539426-fce3268c3c0d?auto=format&fit=crop&fm=jpg&q=82&w=2400";
+
+const journeys = [
+  { icon: Heart, title: "My family", text: "Save the places and people you care about and receive plain-language risk context and actions." },
+  { icon: Sprout, title: "My farm", text: "Track changing rainfall and flood conditions around farms and turn warnings into preparation steps." },
+  { icon: Building2, title: "My business", text: "Understand exposed assets, likely disruption and the value of acting before loss happens." },
+  { icon: Landmark, title: "My community", text: "Give communities and decision-makers a shared view of risk, action and evidence." },
+];
 
 export default function LandingPage() {
-  const [apiTab, setApiTab] = useState<"request" | "response">("request");
-  const [copied, setCopied] = useState(false);
+  const [selectedState, setSelectedState] = useState("Kogi");
+  const [saved, setSaved] = useState(false);
+
+  const selected = useMemo(
+    () => NIGERIA_ADMIN_AREAS.find((item) => item.name === selectedState) || NIGERIA_ADMIN_AREAS[0],
+    [selectedState]
+  );
+  const pilot = RIVERINE_WATCH_V1_PILOT.find((item) => item.state === selected.name);
 
   return (
-    <main className="min-h-screen">
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-slate-200 dark:border-midnight-border bg-white/80 dark:bg-midnight/80 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-radar/10 border border-radar/20">
-              <Shield className="h-4 w-4 text-radar" />
-            </div>
-            <span className="font-display text-lg font-bold">NaijaClima<span className="text-radar">Guard</span></span>
-          </Link>
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#validation" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Model Evidence</a>
-            <a href="#api" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">API</a>
-            <a href="#pricing" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Pricing</a>
-            <Link href="/how-to-use" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">How to Use</Link>
-            <Link href="/about" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">About</Link>
+    <main className="min-h-screen bg-[#f7f7f2] text-slate-950 dark:bg-midnight dark:text-slate-100">
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-black/8 bg-[#f7f7f2]/[.96] text-[#071713] backdrop-blur-xl dark:border-white/10 dark:bg-[#071713]/[.96] dark:text-white">
+        <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
+          <BrandLockup href="/" />
+          <div className="hidden items-center gap-6 xl:flex">
+            <a href="#my-area" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Check my area</a>
+            <Link href="/impact" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Economic Impact</Link>
+            <Link href="/action-center" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Action OS</Link>
+            <Link href="/evidence" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Evidence</Link>
+            <Link href="/investor-readiness" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Investor Proof</Link>
+            <Link href="/api-docs" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">API</Link>
+            <Link href="/pitch" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Pitch Mode</Link>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link href="/login" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Sign In</Link>
-            <Link href="/register" className="rounded-lg bg-radar px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:brightness-110 active:scale-[0.98]" style={{ boxShadow: "0 1px 4px rgba(16, 185, 129, 0.15)" }}>
-              Get Started Free
-            </Link>
+            <Link href="/login" className="inline-flex items-center gap-2 rounded-full border border-black/15 px-3 py-2 text-xs font-bold dark:border-white/25 sm:px-4 sm:text-sm"><LogIn className="h-4 w-4" /> <span className="hidden sm:inline">Log in</span></Link>
+            <Link href="/register" className="inline-flex items-center gap-2 rounded-full bg-[#d9ff57] px-3 py-2 text-xs font-black text-[#071713] sm:px-4 sm:text-sm"><UserPlus className="h-4 w-4" /> <span className="hidden sm:inline">Create account</span><span className="sm:hidden">Join</span></Link>
           </div>
         </div>
       </nav>
 
-      <section className="relative min-h-[90vh] flex items-center justify-center pt-16 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-radar/[0.04] dark:bg-radar/[0.03] bg-emerald-100/40 blur-[140px]" />
-          <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-cyan/[0.03] dark:bg-cyan/[0.03] bg-sky-100/30 blur-[100px]" />
+      <section className="relative min-h-[96vh] overflow-hidden bg-[#071713] text-white">
+        <div className="absolute inset-0">
+          <img src={HERO_IMAGE} alt="People gathered by homes during a flood" className="h-full w-full object-cover object-center" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#06130f]/95 via-[#06130f]/65 to-[#06130f]/25" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#06130f] via-transparent to-[#06130f]/25" />
         </div>
-        <div className="relative z-10 mx-auto max-w-7xl px-4 text-center animate-fade-in">
-          <div className="inline-flex items-center gap-2 rounded-full border border-radar/20 bg-radar/5 px-4 py-1.5 mb-8">
-            <Zap className="h-3.5 w-3.5 text-radar" />
-            <span className="text-xs font-medium text-radar">Nigeria-focused flood-risk decision support</span>
-          </div>
-          <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight">
-            <span>Understand flood risk</span><br />
-            <span className="text-radar">before decisions are made.</span>
-          </h1>
-          <p className="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-slate-500 dark:text-slate-400 leading-relaxed">
-            NaijaClimaGuard combines a live public risk engine with Riverine Watch v1, a separate 14-day shadow model that uses NASA rainfall history and operational GloFAS river forecasts to identify elevated flood-onset conditions in Lokoja and Makurdi.
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/register" className="group flex items-center gap-2 rounded-lg bg-radar px-7 py-3.5 text-base font-semibold text-white transition-all duration-200 ease-out hover:brightness-110 active:scale-[0.98]" style={{ boxShadow: "0 2px 8px rgba(16, 185, 129, 0.18)" }}>
-              Start Free <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-            </Link>
-            <Link href="#validation" className="rounded-lg border border-slate-200 dark:border-midnight-border px-7 py-3.5 text-base font-medium hover:border-radar/40 transition-all duration-200">
-              See Model Evidence
-            </Link>
-          </div>
-        </div>
-      </section>
 
-      <section className="border-y border-slate-200 dark:border-midnight-border bg-slate-50/50 dark:bg-midnight-light/50">
-        <div className="mx-auto max-w-7xl px-4 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { icon: Activity, value: "80%", unit: "4/5 events", label: "Historical Event Detection" },
-              { icon: Clock3, value: "14", unit: "days", label: "Riverine Watch Horizon" },
-              { icon: MapPin, value: "2", unit: "pilot locations", label: "Lokoja + Makurdi" },
-              { icon: Shield, value: "Live", unit: "derived-v2", label: "Current Public Risk Engine" },
-            ].map((m) => (
-              <div key={m.label} className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-radar/10 border border-radar/20">
-                  <m.icon className="h-5 w-5 text-radar" />
-                </div>
-                <div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-xl font-display font-bold">{m.value}</span>
-                    <span className="text-xs text-slate-400">{m.unit}</span>
-                  </div>
-                  <p className="text-xs text-slate-400">{m.label}</p>
-                </div>
+        <div className="relative z-10 mx-auto flex min-h-[96vh] max-w-7xl items-end px-4 pb-14 pt-28 sm:px-6 sm:pb-20 lg:px-8">
+          <div className="grid w-full gap-10 lg:grid-cols-[1.15fr_.85fr] lg:items-end">
+            <div className="max-w-4xl animate-slide-up">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/20 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] backdrop-blur-md">
+                <Radio className="h-3.5 w-3.5 text-[#d9ff57]" /> National climate-risk action platform
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="validation" className="py-24 scroll-mt-16">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 rounded-full border border-radar/20 bg-radar/5 px-4 py-1.5 mb-5">
-              <Brain className="h-3.5 w-3.5 text-radar" />
-              <span className="text-xs font-medium text-radar">Frozen model evidence</span>
-            </div>
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold">Riverine Watch v1</h2>
-            <p className="mt-4 max-w-3xl mx-auto text-slate-500 dark:text-slate-400 text-lg">
-              Our current riverine pilot model is no longer an undefined “model under validation.” Its function, scope and retrospective result are stated explicitly below.
-            </p>
-          </div>
-
-          <div className="max-w-5xl mx-auto">
-            <RiverineWatchEvidence />
-          </div>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-3 max-w-5xl mx-auto">
-            <div className="glass-card rounded-xl p-5">
-              <Satellite className="h-5 w-5 text-radar" />
-              <h3 className="mt-3 font-display font-bold">Rainfall history</h3>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Uses the 30 complete NASA GPM IMERG Early rainfall days strictly before the model issue date.</p>
-            </div>
-            <div className="glass-card rounded-xl p-5">
-              <Activity className="h-5 w-5 text-radar" />
-              <h3 className="mt-3 font-display font-bold">River trajectory</h3>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Uses matching Copernicus CEMS GloFAS operational control-forecast discharge at +24, +48 and +72 hours.</p>
-            </div>
-            <div className="glass-card rounded-xl p-5">
-              <Bell className="h-5 w-5 text-radar" />
-              <h3 className="mt-3 font-display font-bold">Decision output</h3>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Returns NORMAL, MONITOR or WATCH for a 14-day flood-onset horizon. WATCH begins at the frozen 0.70 threshold.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24 bg-slate-50 dark:bg-midnight-light/30">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="text-center mb-16">
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold">How it works</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8 stagger">
-            {[
-              { icon: Satellite, step: "01", title: "Monitor", heading: "Current Public Risk", desc: "The current general risk API remains the disclosed derived-v2 decision-support engine. It monitors connected live weather inputs and keeps official advisories as a separate safety overlay." },
-              { icon: Brain, step: "02", title: "Watch", heading: "Riverine Watch v1", desc: "For Lokoja and Makurdi, the shadow model combines prior NASA rainfall with GloFAS river-discharge forecasts to look for elevated flood-onset conditions within the next 14 days." },
-              { icon: Bell, step: "03", title: "Act", heading: "Decision Support", desc: "The dashboard, Action OS, alerts, reports and evidence tools turn risk information into clear actions while preserving official-warning precedence and source provenance." },
-            ].map((s) => (
-              <div key={s.step} className="glass-card rounded-2xl p-8 hover:border-radar/30 transition-all duration-200">
-                <span className="font-mono text-xs text-slate-400">{s.step}</span>
-                <div className="mt-4 flex h-14 w-14 items-center justify-center rounded-xl bg-radar/10 border border-radar/20">
-                  <s.icon className="h-7 w-7 text-radar" />
-                </div>
-                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-radar">{s.title}</p>
-                <h3 className="mt-2 font-display text-xl font-bold">{s.heading}</h3>
-                <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{s.desc}</p>
+              <h1 className="max-w-4xl font-display text-5xl font-black leading-[0.94] tracking-[-0.045em] sm:text-6xl md:text-7xl lg:text-[6.1rem]">Is the place you love ready for the next flood?</h1>
+              <p className="mt-7 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">NaijaClimaGuard connects flood intelligence to people, places, economic exposure and practical action across Nigeria.</p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <a href="#my-area" className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#d9ff57] px-6 py-3.5 font-black text-[#071713]">Check my state <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></a>
+                <Link href="/pitch" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 bg-white/10 px-6 py-3.5 font-bold backdrop-blur-md"><Play className="h-4 w-4 fill-current" /> Investor story</Link>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="text-center mb-16">
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold">Built for decision-makers</h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            {[
-              { icon: Shield, title: "Insurance & Reinsurance", desc: "Explore location-specific flood-risk signals for climate-risk assessment workflows." },
-              { icon: Sprout, title: "Agribusiness & Farming", desc: "Monitor changing rainfall and flood-risk conditions around crop and field locations." },
-              { icon: Landmark, title: "Government & Emergency Agencies", desc: "Augment early-warning workflows with location-specific, auditable risk signals, action tools and integration-ready APIs." },
-              { icon: Building2, title: "Infrastructure & Lending", desc: "Support physical climate-risk screening for assets, projects, and lending decisions." },
-            ].map((uc) => (
-              <div key={uc.title} className="glass-card rounded-2xl p-8 hover:border-radar/20 transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-radar/10 border border-radar/20">
-                    <uc.icon className="h-6 w-6 text-radar" />
-                  </div>
-                  <div>
-                    <h3 className="font-display text-lg font-bold">{uc.title}</h3>
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{uc.desc}</p>
-                  </div>
-                </div>
+              <div className="mt-7 flex flex-wrap gap-2 text-xs font-semibold text-white/65">
+                <span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">{NIGERIA_STATE_COUNT} states</span>
+                <span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Federal Capital Territory</span>
+                <span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">6 geopolitical zones</span>
               </div>
-            ))}
+            </div>
+
+            <div className="rounded-[2rem] border border-white/15 bg-black/30 p-5 backdrop-blur-xl sm:p-6">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#d9ff57]">Start with your own place</p>
+              <label className="mt-5 block text-xs font-semibold text-white/60">State or FCT</label>
+              <select value={selectedState} onChange={(e) => { setSelectedState(e.target.value); setSaved(false); }} className="mt-2 w-full rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-base font-bold text-white outline-none">
+                {NIGERIA_ADMIN_AREAS.map((item) => <option key={item.name} value={item.name} className="text-slate-950">{item.name} — {item.capital}</option>)}
+              </select>
+              <div className="mt-5 flex items-start justify-between gap-4 rounded-2xl bg-white/10 p-4">
+                <div><p className="text-sm text-white/55">Selected area</p><p className="mt-1 text-2xl font-black">{selected.name}</p><p className="mt-1 text-xs text-white/55">Capital: {selected.capital} · {selected.zone}</p></div>
+                <MapPin className="mt-1 h-5 w-5" />
+              </div>
+              <div className="mt-4 rounded-2xl border border-white/15 p-4 text-sm leading-6 text-white/70">
+                {pilot ? <><strong className="text-white">Riverine Watch v1 pilot available at {pilot.location}.</strong> National platform coverage and pilot-model evidence are shown separately.</> : <>This state is part of the national platform experience. <strong className="text-white">Riverine Watch v1 is not yet validated here</strong>, so the interface will not pretend it is.</>}
+              </div>
+              <button onClick={() => setSaved(!saved)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-white/20 px-4 py-3 text-sm font-black hover:bg-white/10">{saved ? <CheckCircle2 className="h-4 w-4 text-[#d9ff57]" /> : <Heart className="h-4 w-4" />}{saved ? `${selected.name} saved` : `Save ${selected.name}`}</button>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Link href="/login" className="rounded-full bg-white px-4 py-3 text-center text-sm font-black text-[#071713]">Log in</Link>
+                <Link href="/register" className="rounded-full bg-[#d9ff57] px-4 py-3 text-center text-sm font-black text-[#071713]">Register</Link>
+              </div>
+            </div>
           </div>
         </div>
+        <div className="absolute bottom-4 right-5 z-20 text-[10px] text-white/45">Flood photograph: Iqro Rinaldi / Unsplash</div>
       </section>
 
-      <section id="api" className="py-24 bg-slate-50 dark:bg-midnight-light/30">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section id="my-area" className="py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr]">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-radar/20 bg-radar/5 px-4 py-1.5 mb-6">
-                <Code className="h-3.5 w-3.5 text-radar" />
-                <span className="text-xs font-medium text-radar">Developer-First</span>
-              </div>
-              <h2 className="font-display text-3xl sm:text-4xl font-bold">One API call.<br /><span className="text-radar">Auditable risk context.</span></h2>
-              <p className="mt-4 text-slate-500 dark:text-slate-400 text-lg">The current REST endpoint returns a location-specific derived-v2 risk score, contributing factors, recent rainfall intensity, source attribution, official-warning safety context and model metadata.</p>
+              <span className="text-xs font-black uppercase tracking-[0.2em] text-emerald-700 dark:text-radar">Nigeria-wide experience</span>
+              <h2 className="mt-4 font-display text-4xl font-black leading-tight tracking-tight sm:text-5xl">One product. Different lives to protect.</h2>
+              <p className="mt-5 text-slate-600 dark:text-slate-400">The product should feel useful whether you are protecting a household, farm, business, road network or entire state.</p>
+              <div className="mt-7 rounded-[1.5rem] bg-[#071713] p-5 text-white"><p className="text-3xl font-black">36 + FCT</p><p className="mt-2 text-sm text-white/60">Every Nigerian first-level administrative area is represented in the product geography registry.</p></div>
             </div>
-            <div className="rounded-2xl border border-slate-200 dark:border-midnight-border bg-white dark:bg-midnight overflow-hidden shadow-xl dark:shadow-none">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-midnight-border px-4">
-                <div className="flex">
-                  {(["request", "response"] as const).map((t) => (
-                    <button key={t} onClick={() => setApiTab(t)} className={`px-4 py-3 text-xs font-mono font-medium border-b-2 transition-colors ${apiTab === t ? "text-radar border-radar" : "text-slate-400 border-transparent"}`}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
-                  ))}
-                </div>
-                <button onClick={() => { navigator.clipboard.writeText(apiTab === "request" ? API_EXAMPLE.request : API_EXAMPLE.response); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-radar transition-colors">
-                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </div>
-              <pre className="p-6 overflow-x-auto text-sm font-mono leading-relaxed text-slate-600 dark:text-slate-400">
-                <code>{apiTab === "request" ? API_EXAMPLE.request : API_EXAMPLE.response}</code>
-              </pre>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {journeys.map((item) => <div key={item.title} className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#d9ff57] text-[#071713]"><item.icon className="h-5 w-5" /></div><h3 className="mt-7 text-2xl font-black">{item.title}</h3><p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-400">{item.text}</p></div>)}
             </div>
           </div>
         </div>
       </section>
 
-      <section id="pricing" className="py-24">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="text-center mb-16">
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold">Simple, transparent pricing</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {PRICING.map((tier) => (
-              <div key={tier.name} className={`relative rounded-2xl p-8 flex flex-col ${tier.highlighted ? "glass-card border-2 !border-radar/40 shadow-2xl shadow-radar/10" : "glass-card"}`}>
-                {tier.highlighted && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-radar text-white text-xs font-bold px-3 py-1 rounded-full">Most Popular</div>}
-                <h3 className="font-display text-lg font-bold">{tier.name}</h3>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{tier.description}</p>
-                <div className="mt-6 flex items-baseline gap-1">
-                  <span className="font-display text-4xl font-bold">{tier.price}</span>
-                  {tier.period && <span className="text-sm text-slate-400">{tier.period}</span>}
-                </div>
-                <ul className="mt-8 space-y-3 flex-1">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3"><Check className="h-4 w-4 shrink-0 text-radar mt-0.5" /><span className="text-sm">{f}</span></li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => {
-                    if (tier.name === "Explorer") {
-                      window.location.href = "/register";
-                    } else if (tier.name === "Professional") {
-                      window.location.href = "/login?next=%2Fprofile%3Fupgrade%3Dprofessional";
-                    } else {
-                      window.location.href = "/contact";
-                    }
-                  }}
-                  className={`mt-8 block w-full rounded-lg py-3 text-center text-sm font-semibold transition-all duration-200 cursor-pointer active:scale-[0.98] ${tier.highlighted ? "bg-radar text-white hover:brightness-110" : "border border-slate-200 dark:border-midnight-border hover:border-radar/40"}`}
-                  style={tier.highlighted ? { boxShadow: "0 2px 8px rgba(16, 185, 129, 0.18)" } : {}}
-                >
-                  {tier.cta}
-                </button>
-              </div>
-            ))}
-          </div>
+      <section className="bg-[#071713] py-20 text-white sm:py-28">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[.9fr_1.1fr] lg:items-center lg:px-8">
+          <div><span className="rounded-full bg-[#d9ff57] px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-[#071713]">Investor story</span><h2 className="mt-5 font-display text-4xl font-black leading-tight sm:text-6xl">Pitch directly from the product.</h2><p className="mt-5 max-w-xl text-white/65">The final film explains the problem, technology, economic value, national impact, revenue model and evidence without leaving the website.</p><div className="mt-7 flex flex-wrap gap-5"><Link href="/pitch" className="inline-flex items-center gap-2 font-black text-[#d9ff57]">Enter Pitch Mode <ArrowRight className="h-4 w-4" /></Link><Link href="/investor-readiness" className="inline-flex items-center gap-2 font-black text-white">Open Investor + TRL 6 Proof <ArrowRight className="h-4 w-4" /></Link></div></div>
+          <div className="relative aspect-video overflow-hidden rounded-[2rem] border border-white/15 bg-[#102820] shadow-2xl"><div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(217,255,87,.18),transparent_40%),linear-gradient(135deg,#13382e,#071713)]" /><div className="absolute inset-0 flex flex-col items-center justify-center text-center"><div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#d9ff57] text-[#071713]"><Play className="ml-1 h-7 w-7 fill-current" /></div><p className="mt-5 text-lg font-black">NaijaClimaGuard: The Investor Film</p><p className="mt-1 text-sm text-white/45">Video placeholder</p></div></div>
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 dark:border-midnight-border py-12">
-        <div className="mx-auto max-w-7xl px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-400">© {new Date().getFullYear()} NaijaClimaGuard · Built by Bello Muhammad Mustapha</p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link href="/about" className="text-xs text-slate-400 hover:text-radar transition-colors">About</Link>
-            <Link href="/how-to-use" className="text-xs text-slate-400 hover:text-radar transition-colors">How to Use</Link>
-            <Link href="/contact" className="text-xs text-slate-400 hover:text-radar transition-colors">Contact Sales</Link>
-            <span className="text-xs text-slate-400">Public risk: derived-v2 · Riverine Watch v1 shadow: NASA IMERG + GloFAS · Lokoja + Makurdi</span>
-          </div>
-        </div>
-      </footer>
+      <section className="py-20 sm:py-28"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><div className="rounded-[2.5rem] bg-[#d9ff57] p-8 text-[#071713] sm:p-12"><div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end"><div><p className="text-xs font-black uppercase tracking-[0.2em]">From forecast to economic action</p><h2 className="mt-4 max-w-3xl font-display text-4xl font-black leading-tight sm:text-6xl">Risk is useful only when it changes a decision.</h2><p className="mt-5 max-w-2xl text-[#163129]/75">Economic exposure, intervention cost, avoidable loss and action value live beside the forecast, not in a separate pitch deck.</p></div><Link href="/impact" className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#071713] px-6 py-3.5 font-black text-white">Open Economic Impact <ArrowRight className="h-4 w-4" /></Link></div></div></div></section>
+
+      <section className="border-y border-slate-200 bg-white py-16 dark:border-slate-800 dark:bg-slate-950"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><div className="grid gap-8 lg:grid-cols-2"><div><div className="inline-flex items-center gap-2 text-sm font-black text-emerald-700 dark:text-radar"><Shield className="h-4 w-4" /> Coverage is stated honestly</div><h2 className="mt-4 font-display text-4xl font-black">National platform. Pilot model evidence where it is actually validated.</h2></div><div className="space-y-3 text-sm leading-6 text-slate-600 dark:text-slate-400"><p><strong className="text-slate-900 dark:text-white">Platform geography:</strong> all 36 states and the FCT.</p><p><strong className="text-slate-900 dark:text-white">Riverine Watch v1:</strong> Lokoja, Kogi and Makurdi, Benue pilot locations only.</p><p><strong className="text-slate-900 dark:text-white">Rule:</strong> unsupported areas never inherit a model probability from a pilot location.</p></div></div></div></section>
+
+      <section className="py-20 text-center"><div className="mx-auto max-w-3xl px-4"><h2 className="font-display text-4xl font-black sm:text-6xl">Know earlier. Act smarter. Protect what matters.</h2><p className="mt-5 text-slate-600 dark:text-slate-400">Create an account to save places, receive personalized context and use the full decision platform.</p><div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row"><Link href="/register" className="rounded-full bg-[#071713] px-7 py-3.5 font-black text-white dark:bg-radar dark:text-slate-950">Create account</Link><Link href="/login" className="rounded-full border border-slate-300 px-7 py-3.5 font-black dark:border-slate-700">Log in</Link></div></div></section>
+
+      <footer className="bg-[#071713] py-10 text-white"><div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8"><div><p className="font-black">NaijaClimaGuard</p><p className="mt-1 text-xs text-white/45">Climate intelligence → economic action.</p></div><div className="flex flex-wrap gap-5 text-sm text-white/55"><Link href="/login">Log in</Link><Link href="/register">Register</Link><Link href="/dashboard">Dashboard</Link><Link href="/action-center">Action OS</Link><Link href="/evidence">Evidence</Link><Link href="/investor-readiness">Investor Proof</Link><Link href="/api-docs">API</Link></div></div></footer>
     </main>
   );
 }

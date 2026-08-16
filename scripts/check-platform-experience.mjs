@@ -26,6 +26,7 @@ const checks = [
     file: "lib/i18n/translate-platform.ts",
     rules: [
       ['Technical phrase pack is wired globally', 'TECHNICAL_COPY'],
+      ['Revenue page translation pack is wired globally', 'REVENUE_COPY'],
       ['Dynamic live-text translation exists', 'translateDynamic'],
       ['Synced status is handled dynamically', 'source.match(/^Synced'],
     ],
@@ -33,13 +34,13 @@ const checks = [
   {
     file: "components/shared/AppShell.tsx",
     rules: [
-      ['Mobile drawer is closed by default', 'const [mobileOpen, setMobileOpen] = useState(false)'],
-      ['Desktop sidebar is desktop-only', 'hidden lg:flex flex-col'],
-      ['Mobile drawer is hidden on desktop', 'fixed inset-0 z-[120] lg:hidden'],
-      ['Navigation closes after route change', 'setMobileOpen(false);'],
-      ['Mobile utility controls are hidden from header', 'ml-auto hidden items-center gap-2 lg:flex'],
-      ['Mobile menu icon is compact', '<Menu className="h-4 w-4" />'],
-      ['Mobile logo receives compact sizing', '<Logo mobile />'],
+      ['Mobile drawer is closed by default', 'const [moreOpen, setMoreOpen] = useState(false)'],
+      ['Desktop sidebar is desktop-only', 'lg:flex lg:flex-col'],
+      ['Mobile drawer is hidden on desktop', 'fixed inset-0 z-[90] lg:hidden'],
+      ['Navigation closes after route change', 'useEffect(() => setMoreOpen(false), [pathname])'],
+      ['Desktop utility controls stay out of the compact header', 'hidden xl:block'],
+      ['Mobile menu icon is compact', '<Menu className="h-[18px] w-[18px]" />'],
+      ['Mobile brand icon receives compact sizing', '<Waves className="h-4 w-4" />'],
     ],
   },
   {
@@ -58,6 +59,23 @@ const checks = [
       ['Yoruba speech locale is configured', 'yo: "yo-NG"'],
       ['Igbo speech locale is configured', 'ig: "ig-NG"'],
       ['Page navigation can trigger auto-read', '[pathname, locale, autoRead, supported]'],
+      ['Idle headphone button starts page speech', 'onClick={togglePageSpeech}'],
+      ['Neural speech failure falls back to device speech', 'device-speech-fallback'],
+    ],
+  },
+  {
+    file: "components/shared/LanguageSelector.tsx",
+    rules: [
+      ['Language selector has explicit light and dark text contrast', 'text-slate-900 outline-none dark:text-white'],
+      ['Native select options keep a readable surface', 'bg-white text-slate-950'],
+    ],
+  },
+  {
+    file: "app/validation/page.tsx",
+    rules: [
+      ['Validation page exposes alert precision beside event detection', '26.7%'],
+      ['Validation page exposes false-alert burden', '1.83'],
+      ['Validation page links to the frozen evidence pack', 'Open the evidence pack'],
     ],
   },
   {
@@ -109,6 +127,14 @@ for (const group of checks) {
       console.log(`PASS: ${label}`);
     }
   }
+}
+
+const globalCss = read("app/globals.css").trimStart();
+if (!globalCss.startsWith('@import url("https://fonts.googleapis.com')) {
+  failed += 1;
+  console.error("FAIL: stylesheet import must precede Tailwind at-rules (app/globals.css)");
+} else {
+  console.log("PASS: stylesheet import precedes Tailwind at-rules");
 }
 
 const withdrawn = ["0.9928", "99.28", "48 hours before government", "2022 Nigerian megaflood"];

@@ -42,6 +42,9 @@ model User {
   agencyCommandCases     AgencyCommandCase[]          @relation("AgencyCommandCreator")
   deliveryPreference     DeliveryPreference?
   phoneVerificationCodes PhoneVerificationChallenge[]
+  commercialOrders       CommercialOrder[]
+  apiCreditWallet        ApiCreditWallet?
+  organizationWorkspaces OrganizationWorkspace[]      @relation("OrganizationOwner")
 }
 
 model Location {
@@ -130,8 +133,6 @@ model DeliveryPreference {
   @@index([phoneE164])
 }
 
-/// Short-lived OTP challenge for verifying a delivery phone number. Only the
-/// salted/peppered code hash is stored; plaintext verification codes are never persisted.
 model PhoneVerificationChallenge {
   id         String    @id @default(cuid())
   userId     String
@@ -229,8 +230,6 @@ model AgencyCommandCase {
   @@index([priority, updatedAt])
 }
 
-/// Public institutional-pilot application. This intentionally stores only the
-/// minimum contact and scoping information required to review a pilot request.
 model InstitutionalLead {
   id               String   @id @default(cuid())
   name             String
@@ -253,23 +252,49 @@ model InstitutionalLead {
   @@index([stage, createdAt])
 }
 
-/// Durable archive of flood reports/warnings discovered from external media.
-/// This is evidence of what was publicly reported, not proof of a road-level flood.
-model ExternalFloodReport {
-  id           String   @id
-  title        String
-  url          String   @unique
-  source       String
-  publishedAt  DateTime
-  discoveredAt DateTime @default(now())
-  lastSeenAt   DateTime @updatedAt
-  state        String?
-  areas        Json?
-  status       String
-  severity     Int      @default(0)
-  channel      String   @default("news")
-  metadata     Json?
+model CommercialOrder {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productCode    String
+  amountKobo     Int
+  currency       String   @default("NGN")
+  status         String   @default("PENDING")
+  reference      String?  @unique
+  creditsGranted Int      @default(0)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  paidAt         DateTime?
 
-  @@index([publishedAt])
-  @@index([state, publishedAt])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+model ApiCreditWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0)
+  purchased Int      @default(0)
+  used      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrganizationWorkspace {
+  id               String   @id @default(cuid())
+  ownerUserId      String
+  owner            User     @relation("OrganizationOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  name             String
+  organizationType String   @default("business")
+  plan             String   @default("BUSINESS_STARTER")
+  status           String   @default("ACTIVE")
+  seatLimit        Int      @default(5)
+  locationLimit    Int      @default(25)
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([ownerUserId, createdAt])
 }

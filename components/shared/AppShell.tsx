@@ -1,29 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
-  Shield, LayoutDashboard, Map, Zap, BarChart3,
-  LogOut, ChevronDown, ChevronLeft, ChevronRight, User, Radar, Home, Megaphone, Telescope, FileCheck2, ShieldAlert,
-  Menu, X, Settings2, ClipboardCheck, Newspaper, Navigation,
+  BarChart3, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck,
+  Compass, FileCheck2, Home, LayoutDashboard, LogOut, Map, MapPin, Megaphone,
+  Menu, Presentation, Radar, Settings2, ShieldAlert, Telescope,
+  BadgeDollarSign, WalletCards, X, Zap,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
 import { ExplanationModeControl, ExplanationModeProvider, PageExplanation } from "./ExplanationMode";
 import { ExperienceProfileProvider, ExperienceRoleControl, useExperienceProfile } from "./ExperienceProfile";
+import { NationalAreaControl, useNationalArea } from "./NationalArea";
 import { useLanguage } from "./LanguageProvider";
 import LanguageSelector from "./LanguageSelector";
 import { ReadAloudControl } from "./SpeechProvider";
+import { translatePlatformText } from "@/lib/i18n/translate-platform";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { BrandLockup, BrandMark } from "./BrandLogo";
 
 const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: any }>> = {
   HOUSEHOLD: [
     { href: "/my-area", key: "myArea", icon: Home },
     { href: "/dashboard", key: "mySafety", icon: LayoutDashboard },
-    { href: "/live-floods", key: "liveData", icon: Newspaper },
-    { href: "/safe-route", key: "locationAnalysis", icon: Navigation },
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "myAlerts", icon: Zap },
     { href: "/evidence", key: "myHistory", icon: FileCheck2 },
@@ -31,8 +33,6 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
   FARMER: [
     { href: "/dashboard", key: "myFarmRisk", icon: LayoutDashboard },
-    { href: "/live-floods", key: "liveData", icon: Newspaper },
-    { href: "/safe-route", key: "locationAnalysis", icon: Navigation },
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "farmAlerts", icon: Zap },
     { href: "/outlook", key: "rainOutlook", icon: Telescope },
@@ -41,8 +41,6 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
   BUSINESS: [
     { href: "/dashboard", key: "riskOverview", icon: LayoutDashboard },
-    { href: "/live-floods", key: "liveData", icon: Newspaper },
-    { href: "/safe-route", key: "locationAnalysis", icon: Navigation },
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "alertsActions", icon: Zap },
     { href: "/intelligence", key: "riskIntelligence", icon: Radar },
@@ -50,8 +48,6 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
   AGENCY: [
     { href: "/dashboard", key: "operations", icon: LayoutDashboard },
-    { href: "/live-floods", key: "liveData", icon: Newspaper },
-    { href: "/safe-route", key: "locationAnalysis", icon: Navigation },
     { href: "/command", key: "commandQueue", icon: ShieldAlert },
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/intelligence", key: "intelligence", icon: Radar },
@@ -64,131 +60,129 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
 };
 
-function Logo({ compact = false, mobile = false }: { compact?: boolean; mobile?: boolean }) {
-  return (
-    <Link href="/" className="flex min-w-0 items-center gap-2 overflow-hidden transition-transform duration-300 ease-out hover:scale-[1.015] active:scale-[0.985]">
-      <div className={`${mobile ? "h-7 w-7 rounded-lg" : "h-8 w-8 rounded-lg"} flex shrink-0 items-center justify-center border border-radar/20 bg-radar/10 shadow-[0_8px_24px_rgba(16,185,129,0.08)]`}><Shield className={`${mobile ? "h-3.5 w-3.5" : "h-4 w-4"} text-radar`} /></div>
-      {!compact && <span className={`${mobile ? "text-xs" : "text-sm"} truncate whitespace-nowrap font-display font-bold tracking-[-0.015em]`}>NaijaClima<span className="text-radar">Guard</span></span>}
-    </Link>
-  );
+const PRODUCT_LINKS = [
+  { href: "/tools", label: "All tools", icon: Compass },
+  { href: "/impact", label: "Economic Impact", icon: CircleDollarSign },
+  { href: "/revenue", label: "Revenue Engine", icon: WalletCards },
+  { href: "/investor-readiness", label: "Investor + TRL 6", icon: ShieldAlert },
+  { href: "/model-evidence", label: "Model Evidence", icon: FileCheck2 },
+  { href: "/pitch", label: "Pitch Mode", icon: Presentation },
+];
+
+const MOBILE_LINKS = [
+  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/my-area", label: "My area", icon: MapPin },
+  { href: "/action-center", label: "Act", icon: ClipboardCheck },
+  { href: "/action", label: "Alerts", icon: Zap },
+];
+
+function Brand({ compact = false }: { compact?: boolean }) {
+  return <BrandLockup href="/dashboard" compact={compact} className="group text-[#0d1f19] dark:text-white" />;
 }
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [showPreferences, setShowPreferences] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const router = useRouter();
+  const { data: session } = useSession();
   const { role } = useExperienceProfile();
-  const { t } = useLanguage();
+  const { area } = useNationalArea();
+  const { t, locale } = useLanguage();
+  const tr = (source: string) => translatePlatformText(locale, source);
   const nav = NAV_BY_ROLE[role] || NAV_BY_ROLE.HOUSEHOLD;
+  const userPlan = (session?.user as any)?.plan || "FREE";
+  const userName = session?.user?.name || session?.user?.email || "User";
+  const initial = userName.trim().charAt(0).toUpperCase() || "U";
+  const revenueAdmin = Boolean((session?.user as any)?.revenueAdmin);
+  const productLinks = revenueAdmin
+    ? [...PRODUCT_LINKS, { href: "/admin", label: "Founder Command", icon: BadgeDollarSign }]
+    : PRODUCT_LINKS;
+
+  useEffect(() => setMoreOpen(false), [pathname]);
+  useEffect(() => {
+    document.body.style.overflow = moreOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [moreOpen]);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      window.localStorage.removeItem("naijaclimaguard.action-role");
-      window.location.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
-    }
-  }, [status, pathname]);
-
-  useEffect(() => {
-    const handlePopState = async () => {
-      try {
-        const response = await fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" });
-        const activeSession = response.ok ? await response.json() : null;
-        if (!activeSession?.user) window.location.replace("/login");
-      } catch {
-        window.location.replace("/login");
-      }
-    };
+    const handlePopState = () => { if (!session) router.replace("/login"); };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    setMobileOpen(false);
-    setShowPreferences(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [mobileOpen]);
+  }, [session, router]);
 
   const handleLogout = async () => {
-    setMobileOpen(false);
-    window.localStorage.removeItem("naijaclimaguard.action-role");
-    window.sessionStorage.clear();
     await signOut({ redirect: false });
-    window.location.replace("/login?loggedOut=1");
+    router.replace("/login");
   };
 
-  if (status === "loading") {
+  const navLink = (item: { href: string; key: MessageKey; icon: any }) => {
+    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+    const label = t(item.key);
+    const Icon = item.icon;
     return (
-      <div className="flex h-[100dvh] items-center justify-center bg-cloud dark:bg-midnight">
-        <div className="flex flex-col items-center gap-4 animate-fade-in">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-radar/20 bg-radar/10 shadow-[0_18px_60px_rgba(16,185,129,0.12)]"><Shield className="h-5 w-5 text-radar" /></div>
-          <div className="h-1 w-28 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"><div className="apple-loading-bar h-full w-1/2 rounded-full bg-radar" /></div>
-        </div>
-      </div>
+      <Link key={item.href} href={item.href} title={collapsed ? label : undefined} className={`group relative flex min-h-11 items-center gap-3 rounded-[14px] px-3 text-sm font-semibold transition-all ${active ? "bg-[#071713] text-white dark:bg-white/[.11]" : "text-[#315045] hover:bg-black/[.045] hover:text-[#071713] dark:text-white/70 dark:hover:bg-white/[.06] dark:hover:text-white"}`}>
+        {active && <span className="absolute inset-y-3 left-0 w-[3px] rounded-full bg-[#d9ff57]" />}
+        <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-[#d9ff57]" : "text-emerald-800/65 group-hover:text-emerald-900 dark:text-white/55 dark:group-hover:text-white/80"}`} />
+        {!collapsed && <span className="truncate">{label}</span>}
+      </Link>
     );
-  }
-
-  if (!session) return null;
-
-  const userPlan = (session.user as any)?.plan || "FREE";
-  const userName = session.user?.name || session.user?.email || "User";
-
-  const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
-    <nav className="space-y-1">
-      {nav.map((item) => {
-        const active = pathname === item.href;
-        const label = t(item.key);
-        return (
-          <Link key={item.href} href={item.href} onClick={() => mobile && setMobileOpen(false)} className={`group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-[transform,background-color,border-color,color,box-shadow] duration-300 ease-out active:scale-[0.985] ${active ? "border border-radar/20 bg-radar/10 text-radar shadow-[0_8px_24px_rgba(16,185,129,0.06)]" : "border border-transparent text-slate-600 hover:-translate-y-[1px] hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white"}`} title={!mobile && collapsed ? label : undefined}>
-            <item.icon className="h-[18px] w-[18px] shrink-0 transition-transform duration-300 ease-out group-hover:scale-105" />
-            {(mobile || !collapsed) && <span className="min-w-0 truncate">{label}</span>}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  };
 
   return (
-    <div className="flex h-[100dvh] min-w-0 overflow-hidden bg-cloud dark:bg-midnight">
-      <aside className={`hidden lg:flex flex-col border-r border-slate-200/80 dark:border-midnight-border bg-white/92 dark:bg-midnight-light/92 backdrop-blur-2xl shrink-0 overflow-hidden transition-all duration-[420ms] ease-silk ${collapsed ? "w-[68px]" : "w-[240px]"}`}>
-        <div className="flex h-16 items-center justify-between px-4 border-b border-slate-100/80 dark:border-midnight-border"><Logo compact={collapsed} /><button onClick={() => setCollapsed(!collapsed)} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-all duration-300 hover:bg-slate-100 hover:text-slate-700 active:scale-95 dark:hover:bg-slate-800 dark:hover:text-white" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}>{collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}</button></div>
-        <div className="flex-1 overflow-y-auto px-3 py-4"><NavLinks /></div>
-        <div className="space-y-1 border-t border-slate-100/80 px-3 py-4 dark:border-midnight-border"><Link href="/profile" className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-300 active:scale-[0.985] ${pathname === "/profile" ? "border border-radar/20 bg-radar/10 text-radar" : "border border-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/50"}`}><User className="h-[18px] w-[18px] shrink-0" />{!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{userName}</p><p className="text-[10px] uppercase text-slate-400">{userPlan}</p></div>}</Link><button onClick={handleLogout} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-crimson transition-all duration-300 hover:bg-crimson/5 active:scale-[0.985]"><LogOut className="h-[18px] w-[18px] shrink-0" />{!collapsed && <span>{t("signOut")}</span>}</button></div>
+    <div className="ncg-app flex min-h-[100dvh] min-w-0 bg-[#f3f4ee] text-[#0d1f19] dark:bg-[#07110e] dark:text-slate-100" key={locale}>
+      <aside className={`fixed inset-y-3 left-3 z-40 hidden overflow-hidden rounded-[28px] border border-black/8 bg-[#eef1e9] text-[#0d1f19] shadow-[0_24px_70px_rgba(5,25,20,.16)] transition-[width] duration-300 dark:border-white/10 dark:bg-[#071713] dark:text-white lg:flex lg:flex-col ${collapsed ? "w-[78px]" : "w-[272px]"}`}>
+        <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-emerald-300/28 blur-3xl dark:bg-[#1f5f49]/30" />
+        <div className="relative flex h-[74px] items-center justify-between px-4"><Brand compact={collapsed} /><button onClick={() => setCollapsed((v) => !v)} className="flex h-8 w-8 items-center justify-center rounded-full border border-black/8 bg-white/75 text-emerald-900/65 hover:text-[#071713] dark:border-white/10 dark:bg-white/[.05] dark:text-white/55 dark:hover:text-white" aria-label={collapsed ? tr("Expand navigation") : tr("Collapse navigation")}>{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button></div>
+
+        {!collapsed && <div className="relative mx-3 rounded-[18px] border border-black/7 bg-white/72 p-4 dark:border-white/10 dark:bg-white/[.055]"><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.18em] text-emerald-800 dark:text-[#d9ff57]"><MapPin className="h-3.5 w-3.5" /> {tr("Working area")}</div><p className="mt-2 text-lg font-black tracking-tight">{area.name}</p><p className="mt-1 text-xs leading-5 text-slate-500 dark:text-white/55">{tr("National platform")} · 36 states + FCT</p></div>}
+
+        <div className="relative flex-1 overflow-y-auto px-3 py-4">
+          {!collapsed && <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[.18em] text-emerald-950/38 dark:text-white/35">{tr("Workspace")}</p>}
+          <nav className="space-y-1">{nav.map(navLink)}</nav>
+          {!collapsed && <p className="px-3 pb-2 pt-6 text-[10px] font-black uppercase tracking-[.18em] text-emerald-950/38 dark:text-white/35">{tr("Explore")}</p>}
+          <nav className="space-y-1">{productLinks.map((item) => { const active = pathname === item.href || (item.href === "/admin" && pathname.startsWith("/revenue/command")); const Icon = item.icon; return <Link key={item.href} href={item.href} className={`group flex min-h-11 items-center gap-3 rounded-[14px] px-3 text-sm font-semibold ${active ? "bg-[#071713] text-white dark:bg-white/[.11]" : "text-[#315045] hover:bg-black/[.045] hover:text-[#071713] dark:text-white/70 dark:hover:bg-white/[.06] dark:hover:text-white"}`}><Icon className={`h-[18px] w-[18px] ${active ? "text-[#d9ff57]" : "text-emerald-800/65 dark:text-white/55"}`} />{!collapsed && <span>{tr(item.label)}</span>}</Link>; })}</nav>
+        </div>
+
+        <div className="relative m-3 rounded-[20px] border border-black/7 bg-white/72 p-2 dark:border-white/10 dark:bg-[#0b211a]">
+          <Link href="/profile" className="flex items-center gap-3 rounded-[14px] p-2.5 hover:bg-black/[.035] dark:hover:bg-white/[.05]"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#071713] text-sm font-black text-[#d9ff57] dark:bg-[#d9ff57] dark:text-[#071713]">{initial}</div>{!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{userName}</p><p className="mt-0.5 text-[10px] font-bold uppercase tracking-[.14em] text-slate-400 dark:text-white/45">{userPlan}</p></div>}</Link>
+          {!collapsed && <button onClick={handleLogout} className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-xs font-semibold text-rose-700/75 hover:bg-rose-100 hover:text-rose-800 dark:text-rose-200/80 dark:hover:bg-rose-300/10 dark:hover:text-rose-100"><LogOut className="h-4 w-4" /> {t("signOut")}</button>}
+        </div>
       </aside>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-[120] lg:hidden animate-fade-in" role="dialog" aria-modal="true" aria-label="Navigation">
-          <button className="absolute inset-0 bg-slate-950/45 backdrop-blur-[4px]" onClick={() => setMobileOpen(false)} aria-label="Close navigation" />
-          <aside className="apple-drawer absolute inset-y-0 left-0 flex w-[min(86vw,320px)] flex-col overflow-hidden border-r border-slate-200/80 bg-white/96 shadow-2xl backdrop-blur-2xl dark:border-midnight-border dark:bg-midnight/96">
-            <div className="flex min-h-14 items-center justify-between border-b border-slate-100 px-3 dark:border-midnight-border"><Logo mobile /><button onClick={() => setMobileOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-all duration-300 hover:bg-slate-100 active:scale-95 dark:hover:bg-slate-800" aria-label="Close navigation"><X className="h-4 w-4" /></button></div>
-            <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3">
-              <NavLinks mobile />
-              <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 dark:border-midnight-border">
-                <button type="button" onClick={() => setShowPreferences((value) => !value)} className="flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm font-semibold transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"><span className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-radar" /> Preferences</span><ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${showPreferences ? "rotate-180" : ""}`} /></button>
-                {showPreferences && <div className="space-y-3 border-t border-slate-200 p-3 animate-slide-down dark:border-midnight-border"><ExperienceRoleControl /><ExplanationModeControl /><LanguageSelector /><ReadAloudControl /><div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 dark:border-midnight-border"><span className="text-xs font-semibold text-slate-500">Appearance</span><ThemeToggle /></div></div>}
-              </div>
+      <div className={`min-w-0 flex-1 transition-[padding] duration-300 ${collapsed ? "lg:pl-[102px]" : "lg:pl-[296px]"}`}>
+        <header className="sticky top-0 z-30 border-b border-[#0d1f19]/7 bg-[#f3f4ee]/[.94] backdrop-blur-xl dark:border-white/8 dark:bg-[#07110e]/[.94]">
+          <div className="mx-auto flex h-[68px] max-w-[1680px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3 lg:hidden" data-ncg-no-translate="true"><BrandMark className="h-9 w-9 shrink-0 dark:hidden" /><BrandMark inverse className="hidden h-9 w-9 shrink-0 dark:block" /><div className="min-w-0"><p className="truncate text-[15px] font-black tracking-[-.03em]">NaijaClimaGuard</p><p className="truncate text-[10px] font-semibold text-slate-500 dark:text-white/48">{area.name}</p></div></div>
+            <div className="hidden lg:block"><SatelliteStatus /></div>
+            <div className="ml-auto flex items-center gap-2">
+              <div className="hidden xl:block"><NationalAreaControl compact /></div>
+              <div className="hidden xl:block"><LanguageSelector compact /></div>
+              <div className="hidden 2xl:block"><ExplanationModeControl /></div>
+              <div className="hidden 2xl:block"><ExperienceRoleControl /></div>
+              <ThemeToggle />
+              <Link href="/profile" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#071713] text-xs font-black text-[#d9ff57] lg:hidden" aria-label={tr("Profile")}>{initial}</Link>
             </div>
-            <div className="space-y-1 border-t border-slate-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-midnight-border"><Link onClick={() => setMobileOpen(false)} href="/profile" className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50"><User className="h-4 w-4" /><div className="min-w-0"><p className="truncate font-semibold">{userName}</p><p className="text-[10px] uppercase text-slate-400">{userPlan}</p></div></Link><button onClick={handleLogout} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-crimson transition-all duration-300 hover:bg-crimson/5 active:scale-[0.985]"><LogOut className="h-4 w-4" />{t("signOut")}</button></div>
-          </aside>
-        </div>
-      )}
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-12 shrink-0 items-center border-b border-slate-200/70 bg-white/82 px-2.5 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/72 dark:border-midnight-border dark:bg-midnight/82 sm:h-14 sm:px-4 lg:h-16 lg:px-6">
-          <div className="flex min-w-0 items-center gap-2 lg:hidden"><button onClick={() => setMobileOpen(true)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-700 transition-all duration-300 hover:bg-slate-100 active:scale-95 dark:text-slate-200 dark:hover:bg-slate-800" aria-label="Open navigation"><Menu className="h-4 w-4" /></button><Logo mobile /></div>
-          <div className="hidden min-w-0 lg:block"><SatelliteStatus /></div>
-          <div className="ml-auto hidden items-center gap-2 lg:flex"><ExperienceRoleControl /><ExplanationModeControl /><LanguageSelector /><ReadAloudControl /><ThemeToggle /></div>
+          </div>
         </header>
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3 pb-[max(5rem,env(safe-area-inset-bottom))] sm:p-5 sm:pb-6 lg:p-8">
-          <PageExplanation pathname={pathname} />
-          <div key={pathname} className="app-shell-page">{children}</div>
+
+        <main className="min-w-0 overflow-x-hidden px-4 pb-[calc(7.25rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 lg:px-8 lg:pb-10 lg:pt-8">
+          <div className="mx-auto w-full max-w-[1680px]"><PageExplanation pathname={pathname} />{children}</div>
         </main>
       </div>
+
+      <nav className="fixed inset-x-3 bottom-[max(.65rem,env(safe-area-inset-bottom))] z-50 flex rounded-[22px] border border-black/8 bg-[#eef1e9] p-1.5 text-[#0d1f19] shadow-[0_18px_50px_rgba(3,20,15,.22)] dark:border-white/10 dark:bg-[#071713] dark:text-white lg:hidden" aria-label="Primary navigation">
+        {MOBILE_LINKS.map((item) => { const active = pathname === item.href || pathname.startsWith(`${item.href}/`); const Icon = item.icon; return <Link key={item.href} href={item.href} className={`flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[16px] px-1 text-[10px] font-black transition ${active ? "bg-[#071713] text-[#d9ff57] dark:bg-[#d9ff57] dark:text-[#071713]" : "text-emerald-950/75 dark:text-white/90"}`}><Icon className="h-[18px] w-[18px] shrink-0" /><span className="max-w-full truncate">{tr(item.label)}</span></Link>; })}
+        <button onClick={() => setMoreOpen(true)} className={`flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[16px] px-1 text-[10px] font-black ${moreOpen ? "bg-black/5 text-[#071713] dark:bg-white/10 dark:text-white" : "text-emerald-950/75 dark:text-white/90"}`}><Menu className="h-[18px] w-[18px]" /><span className="max-w-full truncate">{tr("More")}</span></button>
+      </nav>
+
+      {moreOpen && <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true" aria-label={tr("More navigation")}><button className="absolute inset-0 bg-[#03120d]/60 backdrop-blur-[3px]" onClick={() => setMoreOpen(false)} aria-label={tr("Close menu")} /><section className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-[32px] bg-[#f7f7f2] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 text-[#0d1f19] shadow-2xl dark:bg-[#0b1814] dark:text-white"><div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-300 dark:bg-white/15" /><div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[.16em] text-emerald-700 dark:text-[#d9ff57]">{tr("Your NaijaClimaGuard")}</p><p className="mt-1 text-2xl font-black tracking-tight">{tr("Everything else")}</p></div><button onClick={() => setMoreOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/70 dark:bg-white/8" aria-label={tr("Close")}><X className="h-4 w-4" /></button></div>
+        <Link href="/tools" className="mt-5 flex items-center justify-between rounded-[20px] bg-[#071713] px-5 py-4 text-white"><div><p className="text-sm font-black">{tr("Find any tool")}</p><p className="mt-1 text-[11px] text-white/55">{tr("Search every feature in one place")}</p></div><Compass className="h-5 w-5 text-[#d9ff57]" /></Link>
+        <div className="mt-4 grid grid-cols-2 gap-2">{nav.map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} className="rounded-[18px] border border-black/7 bg-white p-4 shadow-[0_6px_24px_rgba(25,45,36,.05)] dark:border-white/8 dark:bg-white/[.04]"><Icon className="h-5 w-5 text-emerald-700 dark:text-[#d9ff57]" /><p className="mt-4 text-sm font-bold">{t(item.key)}</p></Link>; })}</div>
+        <div className="mt-5 rounded-[22px] border border-black/7 bg-white p-4 dark:border-white/8 dark:bg-white/[.04]"><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-emerald-700 dark:text-[#d9ff57]" /><p className="text-sm font-black">{tr("Preferences")}</p></div><div className="mt-4 grid gap-3"><NationalAreaControl /><LanguageSelector /><ExperienceRoleControl /><ExplanationModeControl /><ReadAloudControl /><div className="flex items-center justify-between rounded-[14px] bg-[#f3f4ee] p-3 dark:bg-black/20"><span className="text-xs font-semibold">{tr("Appearance")}</span><ThemeToggle /></div></div></div>
+        <div className="mt-4 grid grid-cols-2 gap-2">{productLinks.filter((item) => item.href !== "/tools").map((item) => <Link key={item.href} href={item.href} className="rounded-[18px] bg-[#071713] p-4 text-white"><item.icon className="h-5 w-5 text-[#d9ff57]" /><p className="mt-3 text-sm font-bold">{tr(item.label)}</p></Link>)}</div>
+        <button onClick={handleLogout} className="mt-4 flex w-full items-center justify-center gap-2 rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200"><LogOut className="h-4 w-4" /> {t("signOut")}</button>
+      </section></div>}
     </div>
   );
 }

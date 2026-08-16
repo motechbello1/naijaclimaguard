@@ -16,6 +16,11 @@ const requiredFiles = [
   "lib/i18n/config.ts",
   "prisma/schema.prisma",
   "app/how-to-use/page.tsx",
+  "app/investor-readiness/page.tsx",
+  "app/model-evidence/page.tsx",
+  "components/shared/PublicExperienceNav.tsx",
+  "lib/i18n/product-proof.ts",
+  "validation/TRL6_EVIDENCE_REGISTER.json",
 ];
 
 let failed = 0;
@@ -70,6 +75,11 @@ assertContains("prisma/schema.prisma", "codeHash   String", "OTP plaintext is no
 assertContains("prisma/schema.prisma", 'platformLanguage  String   @default("ENGLISH")', "Platform language persists independently");
 assertContains("prisma/schema.prisma", 'preferredLanguage String   @default("ENGLISH")', "Alert language persists independently");
 assertContains("lib/i18n/config.ts", '"en" | "pcm" | "ha" | "yo" | "ig"', "Five first-wave platform languages remain configured");
+assertContains("lib/i18n/product-proof.ts", "PRODUCT_PROOF_COPY", "Investor and evidence rooms ship route-level language packs");
+assertContains("app/investor-readiness/page.tsx", "PublicExperienceNav", "Investor proof is integrated into the Experience product shell");
+assertContains("app/investor-readiness/page.tsx", "TRL 6 readiness room", "Investor proof contains the TRL 6 readiness room");
+assertContains("app/model-evidence/page.tsx", "PublicExperienceNav", "Model evidence uses the shared Experience navigation");
+assertContains("validation/TRL6_EVIDENCE_REGISTER.json", '"current_claim_status": "TRL6_DEMONSTRATION_READY"', "Software is marked ready for the relevant-environment demonstration");
 
 // Mobile/accessibility invariants.
 assertContains("components/shared/AppShell.tsx", "useState(false)", "Mobile navigation starts closed");

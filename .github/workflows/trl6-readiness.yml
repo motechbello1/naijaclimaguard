@@ -9,8 +9,10 @@ on:
       - "lib/**"
       - "prisma/**"
       - "scripts/check-trl6-readiness.mjs"
+      - "scripts/check-trl6-claim-gate.mjs"
       - "validation/**"
       - ".github/workflows/trl6-readiness.yml"
+      - ".github/workflows/trl6-claim-gate.yml"
   workflow_dispatch:
 
 permissions:

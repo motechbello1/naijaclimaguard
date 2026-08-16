@@ -4,7 +4,7 @@ import AppShell from "@/components/shared/AppShell";
 import { useExperienceProfile, type ExperienceRole } from "@/components/shared/ExperienceProfile";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlarmClock, ArrowLeft, Check, CheckCircle2, ClipboardCheck, Flag, Play, RotateCcw, ShieldAlert, TimerReset, TriangleAlert } from "lucide-react";
+import { AlarmClock, ArrowLeft, Check, CheckCircle2, ClipboardCheck, Flag, Play, RotateCcw, TimerReset, TriangleAlert } from "lucide-react";
 
 type DrillPlan = { scenario: string; steps: string[]; debrief: string[] };
 

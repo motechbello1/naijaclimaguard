@@ -1,95 +1,61 @@
-"use client";
-
+import Link from "next/link";
+import { ArrowRight, CheckCircle2, Database, ShieldCheck, Target, TriangleAlert } from "lucide-react";
 import AppShell from "@/components/shared/AppShell";
-import { Target, CheckCircle, TrendingUp, Award } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { LOKOJA_TIMELINE } from "@/lib/data";
 
-const accuracy = [
-  { month: "Jan", predicted: 12, actual: 10 },
-  { month: "Feb", predicted: 8, actual: 7 },
-  { month: "Mar", predicted: 15, actual: 18 },
-  { month: "Apr", predicted: 35, actual: 32 },
-  { month: "May", predicted: 52, actual: 55 },
-  { month: "Jun", predicted: 68, actual: 64 },
-  { month: "Jul", predicted: 75, actual: 78 },
-  { month: "Aug", predicted: 82, actual: 85 },
-  { month: "Sep", predicted: 88, actual: 91 },
-  { month: "Oct", predicted: 92, actual: 95 },
-  { month: "Nov", predicted: 45, actual: 42 },
-  { month: "Dec", predicted: 18, actual: 15 },
+const metrics = [
+  { icon: Target, value: "4 / 5", label: "Eligible onset events detected", note: "Retrospective; Lokoja and Makurdi only" },
+  { icon: CheckCircle2, value: "26.7%", label: "Alert-episode precision", note: "About one in four WATCH episodes matched an event window" },
+  { icon: TriangleAlert, value: "1.83", label: "False alert episodes", note: "Per supported location-year in the frozen replay" },
+  { icon: Database, value: "0.176 / 0.837", label: "PR-AUC / ROC-AUC", note: "Both shown so class imbalance is not hidden" },
 ];
 
 export default function ValidationPage() {
   return (
     <AppShell>
       <div className="space-y-8">
-        <div>
-          <h1 className="font-display text-2xl font-bold">Historical Validation</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Every prediction verified against reality</p>
-        </div>
+        <section className="overflow-hidden rounded-[2rem] bg-[#071713] p-6 text-white sm:p-9" data-read-aloud>
+          <p className="text-xs font-black uppercase tracking-[.2em] text-[#d9ff57]">Frozen evidence · Riverine Watch v1</p>
+          <h1 className="mt-5 max-w-4xl font-display text-4xl font-black leading-tight text-white sm:text-6xl">Historical evidence, without the old headline claims.</h1>
+          <p className="mt-5 max-w-3xl text-sm leading-7 text-white/68 sm:text-base">This record covers a frozen 14-day riverine WATCH candidate tested retrospectively in Lokoja and Makurdi. It is not nationwide accuracy, not prospective validation and not authority to issue autonomous public warnings.</p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link href="/model-evidence" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#d9ff57] px-5 text-sm font-black text-[#071713]">Open the evidence pack <ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/institutional-pilot" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-5 text-sm font-black text-white">Review the field-pilot gate</Link>
+          </div>
+        </section>
 
-        {/* Metrics */}
-        <div className="grid sm:grid-cols-4 gap-4">
-          {[
-            { icon: Target, value: "0.9928", label: "ROC-AUC" },
-            { icon: CheckCircle, value: "96.2%", label: "Accuracy" },
-            { icon: TrendingUp, value: "48hrs", label: "Lead Time" },
-            { icon: Award, value: "TRL-5", label: "Readiness" },
-          ].map((m) => (
-            <div key={m.label} className="glass-card rounded-xl p-5">
-              <m.icon className="h-5 w-5 text-radar mb-3" />
-              <p className="text-2xl font-display font-bold">{m.value}</p>
-              <p className="text-xs text-slate-400 mt-1">{m.label}</p>
-            </div>
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Frozen retrospective metrics">
+          {metrics.map((metric) => (
+            <article key={metric.label} className="glass-card p-5">
+              <metric.icon className="h-5 w-5 text-emerald-700 dark:text-[#d9ff57]" />
+              <p className="mt-6 font-display text-3xl font-black">{metric.value}</p>
+              <h2 className="mt-2 text-sm font-black">{metric.label}</h2>
+              <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{metric.note}</p>
+            </article>
           ))}
-        </div>
+        </section>
 
-        {/* Chart */}
-        <div className="glass-card rounded-xl p-6">
-          <h2 className="font-display text-base font-bold mb-6">Predicted vs Actual — 2022</h2>
-          <div className="h-[380px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={accuracy}>
-                <defs>
-                  <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#F59E0B" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" strokeOpacity={0.3} vertical={false} />
-                <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={{ stroke: "#334155" }} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Area type="monotone" dataKey="predicted" name="Predicted" stroke="#10B981" strokeWidth={2} fill="url(#pg)" dot={{ r: 3, fill: "#10B981" }} />
-                <Area type="monotone" dataKey="actual" name="Actual" stroke="#F59E0B" strokeWidth={2} fill="url(#ag)" dot={{ r: 3, fill: "#F59E0B" }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <section className="grid gap-5 lg:grid-cols-2">
+          <article className="glass-card p-6 sm:p-8" data-read-aloud>
+            <ShieldCheck className="h-6 w-6 text-emerald-700 dark:text-[#d9ff57]" />
+            <h2 className="mt-6 font-display text-3xl font-black">What the replay supports</h2>
+            <ul className="mt-6 space-y-4 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              <li>Four of five eligible historical onset events crossed the frozen WATCH threshold.</li>
+              <li>The model uses a preserved NASA IMERG rainfall and GloFAS operational-discharge bundle.</li>
+              <li>The same preserved inputs produce deterministic results after the issue date.</li>
+            </ul>
+          </article>
+          <article className="glass-card border-amber-300/60 p-6 sm:p-8" data-read-aloud>
+            <TriangleAlert className="h-6 w-6 text-amber-600" />
+            <h2 className="mt-6 font-display text-3xl font-black">What remains blocked</h2>
+            <ul className="mt-6 space-y-4 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              <li>No nationwide accuracy or “99.28% accurate” claim.</li>
+              <li>No “48 hours before government” or guaranteed lead-time claim.</li>
+              <li>No TRL 6 achievement claim before a signed relevant-environment demonstration and independent review.</li>
+            </ul>
+          </article>
+        </section>
 
-        {/* Lokoja timeline */}
-        <div className="glass-card rounded-xl p-6">
-          <h2 className="font-display text-base font-bold mb-4">Lokoja Megaflood Timeline</h2>
-          <div className="space-y-3">
-            {LOKOJA_TIMELINE.map((item, i) => (
-              <div key={i} className="flex gap-4 p-4 rounded-lg bg-slate-50 dark:bg-midnight/50 border border-slate-100 dark:border-midnight-border">
-                <div className="shrink-0 w-24 text-right">
-                  <p className="text-sm font-mono font-bold">{item.date}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{item.event}</p>
-                  <p className="text-xs text-slate-400 mt-1">{item.detail}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <p className="rounded-2xl border border-amber-300/70 bg-amber-50 p-5 text-sm font-bold leading-6 text-amber-950 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">Never use a low score to ignore an official warning or visible local flooding.</p>
       </div>
     </AppShell>
   );

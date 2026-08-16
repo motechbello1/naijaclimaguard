@@ -9,7 +9,9 @@ import LanguagePreferenceSync from "@/components/shared/LanguagePreferenceSync";
 import PlatformTranslationBridge from "@/components/shared/PlatformTranslationBridge";
 import { SpeechProvider } from "@/components/shared/SpeechProvider";
 import GlobalAccessibilityDock from "@/components/shared/GlobalAccessibilityDock";
+import { NationalAreaProvider } from "@/components/shared/NationalArea";
 import FloodAssistant from "@/components/assistant/FloodAssistant";
+import ThemeBrandSync from "@/components/shared/ThemeBrandSync";
 import RouteSecurityGuard from "@/components/shared/RouteSecurityGuard";
 import AppMotionFrame from "@/components/shared/AppMotionFrame";
 
@@ -17,17 +19,20 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider refetchOnWindowFocus refetchInterval={5 * 60}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-        <LanguageProvider>
-          <SpeechProvider>
-            <RouteSecurityGuard />
-            <LanguagePreferenceSync />
-            <PlatformTranslationBridge />
-            <SplashScreen />
-            <AppMotionFrame>{children}</AppMotionFrame>
-            <GlobalAccessibilityDock />
-            <FloodAssistant />
-          </SpeechProvider>
-        </LanguageProvider>
+        <ThemeBrandSync />
+        <NationalAreaProvider>
+          <LanguageProvider>
+            <SpeechProvider>
+              <RouteSecurityGuard />
+              <LanguagePreferenceSync />
+              <PlatformTranslationBridge />
+              <SplashScreen />
+              <AppMotionFrame>{children}</AppMotionFrame>
+              <GlobalAccessibilityDock />
+              <FloodAssistant />
+            </SpeechProvider>
+          </LanguageProvider>
+        </NationalAreaProvider>
       </ThemeProvider>
     </SessionProvider>
   );

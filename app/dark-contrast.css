@@ -1,16 +1,10 @@
 /*
  * Dark-mode contrast guardrail.
- *
- * A few product surfaces were authored with light-theme Tailwind text colors
- * but without a matching dark:text-* utility. On dark cards those classes can
- * become nearly invisible. This layer only upgrades legacy/bare neutral text
- * classes when the element has NOT declared its own dark text color, so
- * intentional inverted buttons and semantic colors remain untouched.
+ * Keeps legacy light-theme text readable on dark surfaces while preserving
+ * semantic and explicitly authored dark-mode colours.
  */
 
-.dark {
-  color-scheme: dark;
-}
+.dark { color-scheme: dark; }
 
 .dark body [class~="text-black"]:not([class*="dark:text-"]),
 .dark body [class~="text-slate-950"]:not([class*="dark:text-"]),
@@ -28,9 +22,7 @@
 .dark body [class~="text-neutral-950"]:not([class*="dark:text-"]),
 .dark body [class~="text-neutral-900"]:not([class*="dark:text-"]),
 .dark body [class~="text-neutral-800"]:not([class*="dark:text-"]),
-.dark body [class~="text-neutral-700"]:not([class*="dark:text-"]) {
-  color: #e2e8f0;
-}
+.dark body [class~="text-neutral-700"]:not([class*="dark:text-"]) { color: #e2e8f0; }
 
 .dark body [class~="text-slate-600"]:not([class*="dark:text-"]),
 .dark body [class~="text-slate-500"]:not([class*="dark:text-"]),
@@ -39,27 +31,27 @@
 .dark body [class~="text-zinc-600"]:not([class*="dark:text-"]),
 .dark body [class~="text-zinc-500"]:not([class*="dark:text-"]),
 .dark body [class~="text-neutral-600"]:not([class*="dark:text-"]),
-.dark body [class~="text-neutral-500"]:not([class*="dark:text-"]) {
-  color: #cbd5e1;
-}
+.dark body [class~="text-neutral-500"]:not([class*="dark:text-"]) { color: #cbd5e1; }
 
-/* Muted copy should still remain readable against midnight surfaces. */
 .dark body [class~="text-slate-400"]:not([class*="dark:text-"]),
 .dark body [class~="text-gray-400"]:not([class*="dark:text-"]),
 .dark body [class~="text-zinc-400"]:not([class*="dark:text-"]),
-.dark body [class~="text-neutral-400"]:not([class*="dark:text-"]) {
-  color: #94a3b8;
+.dark body [class~="text-neutral-400"]:not([class*="dark:text-"]) { color: #94a3b8; }
+
+/*
+ * The experience branch contains expressive Tailwind classes such as
+ * dark:text-white/86 and dark:text-white/42. Those non-standard opacity
+ * suffixes can be omitted by a production Tailwind build, leaving the light
+ * theme text colour active. Give every such element a guaranteed readable
+ * dark-mode foreground. Bracket-arbitrary variants remain untouched.
+ */
+.dark body [class*="dark:text-white/"]:not([class*="dark:text-white/["]) {
+  color: rgba(255, 255, 255, 0.86);
 }
 
-/* Native controls can otherwise inherit a browser-dependent dark foreground. */
 .dark input:not([class*="dark:text-"]),
 .dark select:not([class*="dark:text-"]),
-.dark textarea:not([class*="dark:text-"]) {
-  color: #e2e8f0;
-}
+.dark textarea:not([class*="dark:text-"]) { color: #e2e8f0; }
 
 .dark input::placeholder,
-.dark textarea::placeholder {
-  color: #94a3b8;
-  opacity: 1;
-}
+.dark textarea::placeholder { color: #94a3b8; opacity: 1; }

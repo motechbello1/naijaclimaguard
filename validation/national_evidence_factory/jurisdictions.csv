@@ -1,0 +1,38 @@
+state,capital,zone,kind
+Abia,Umuahia,South East,state
+Adamawa,Yola,North East,state
+Akwa Ibom,Uyo,South South,state
+Anambra,Awka,South East,state
+Bauchi,Bauchi,North East,state
+Bayelsa,Yenagoa,South South,state
+Benue,Makurdi,North Central,state
+Borno,Maiduguri,North East,state
+Cross River,Calabar,South South,state
+Delta,Asaba,South South,state
+Ebonyi,Abakaliki,South East,state
+Edo,Benin City,South South,state
+Ekiti,Ado Ekiti,South West,state
+Enugu,Enugu,South East,state
+Gombe,Gombe,North East,state
+Imo,Owerri,South East,state
+Jigawa,Dutse,North West,state
+Kaduna,Kaduna,North West,state
+Kano,Kano,North West,state
+Katsina,Katsina,North West,state
+Kebbi,Birnin Kebbi,North West,state
+Kogi,Lokoja,North Central,state
+Kwara,Ilorin,North Central,state
+Lagos,Ikeja,South West,state
+Nasarawa,Lafia,North Central,state
+Niger,Minna,North Central,state
+Ogun,Abeokuta,South West,state
+Ondo,Akure,South West,state
+Osun,Osogbo,South West,state
+Oyo,Ibadan,South West,state
+Plateau,Jos,North Central,state
+Rivers,Port Harcourt,South South,state
+Sokoto,Sokoto,North West,state
+Taraba,Jalingo,North East,state
+Yobe,Damaturu,North East,state
+Zamfara,Gusau,North West,state
+Federal Capital Territory,Abuja,North Central,fct

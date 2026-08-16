@@ -22,13 +22,14 @@ const FROM_SERVER: Record<string, AppLocale> = {
 };
 
 export default function LanguagePreferenceSync() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const { locale, setLocale } = useLanguage();
   const hydrated = useRef(false);
   const previousLocale = useRef(locale);
+  const isFounder = (session?.user as { role?: string } | undefined)?.role === "FOUNDER";
 
   useEffect(() => {
-    if (status !== "authenticated" || hydrated.current) return;
+    if (status !== "authenticated" || isFounder || hydrated.current) return;
     hydrated.current = true;
     fetch("/api/profile/delivery", { cache: "no-store" })
       .then((response) => response.ok ? response.json() : null)
@@ -40,10 +41,10 @@ export default function LanguagePreferenceSync() {
         }
       })
       .catch(() => undefined);
-  }, [status, setLocale]);
+  }, [isFounder, status, setLocale]);
 
   useEffect(() => {
-    if (status !== "authenticated" || !hydrated.current) {
+    if (status !== "authenticated" || isFounder || !hydrated.current) {
       previousLocale.current = locale;
       return;
     }
@@ -54,7 +55,7 @@ export default function LanguagePreferenceSync() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ platformLanguage: TO_SERVER[locale] }),
     }).catch(() => undefined);
-  }, [locale, status]);
+  }, [isFounder, locale, status]);
 
   return null;
 }
