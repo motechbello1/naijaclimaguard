@@ -1,8 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap");
 
 :root {
   --ncg-ink: #0d1f19;
@@ -64,8 +64,7 @@ html[data-experience-role="agency"] .role-agency-inline { display: inline; }
 .dark .glass-card { background: rgba(15,34,28,.70); border-color: rgba(255,255,255,.075); box-shadow: 0 16px 45px rgba(0,0,0,.15); }
 .dark .glass-card:hover { border-color: rgba(217,255,87,.14); }
 
-.ncg-app h1,.ncg-app h2,.ncg-app h3 { letter-spacing: -.035em; color: var(--ncg-ink); }
-.dark .ncg-app h1,.dark .ncg-app h2,.dark .ncg-app h3 { color: #f4f7f4; }
+.ncg-app h1,.ncg-app h2,.ncg-app h3 { letter-spacing: -.035em; }
 .ncg-app main > div { isolation: isolate; }
 .ncg-app main { position: relative; }
 .ncg-app main::before {
@@ -140,6 +139,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 }
 
 input,select,textarea { max-width: 100%; transition: border-color .2s ease, box-shadow .2s ease; }
+.ncg-language-select { color-scheme: light; }
+.ncg-language-select option { background: #fff; color: #0f172a; }
 input:focus,select:focus,textarea:focus { box-shadow: 0 0 0 3px rgba(22,135,96,.10); }
 ::selection { background: rgba(217,255,87,.55); color: #071713; }
 

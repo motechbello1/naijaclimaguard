@@ -1,28 +1,16 @@
 "use client";
 
 import AppShell from "@/components/shared/AppShell";
+import AccessibleSeriesChart from "@/components/shared/AccessibleSeriesChart";
 import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
 import { useNationalArea } from "@/components/shared/NationalArea";
 import Link from "next/link";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { AlertTriangle, Droplets, Waves, CloudRain, Wifi, WifiOff, FlaskConical, MapPin, Plus } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { getRiskLevel } from "@/lib/data";
 
 type SavedLocation = { id: string; name: string; state: string; latitude: number; longitude: number };
 interface DayPoint { day: string; precip: number; isForecast: boolean; simulated?: number; }
-
-function CustomTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload as DayPoint;
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-xl dark:border-slate-700 dark:bg-slate-900">
-      <p className="mb-1 text-xs text-slate-400">{d.day}{d.isForecast ? " · forecast" : ""}</p>
-      <p>Precipitation: <strong>{d.precip} mm</strong></p>
-      {typeof d.simulated === "number" && <p className="text-amber">Simulated: <strong>{d.simulated} mm</strong></p>}
-    </div>
-  );
-}
 
 export default function PredictPage() {
   const { area } = useNationalArea();
@@ -167,7 +155,7 @@ export default function PredictPage() {
 
             <div className="rounded-[2rem] border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 sm:p-7">
               <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-lg font-black">Daily precipitation · {selected?.name}</h2><p className="mt-1 text-xs text-slate-500">10 past days + 4 forecast days at the saved coordinate</p></div><span className="text-xs font-mono text-slate-400">{dataState === "live" ? "Open-Meteo · Live" : dataState === "loading" ? "Syncing…" : "Feed offline"}</span></div>
-              {dataState === "error" ? <div className="flex h-[300px] flex-col items-center justify-center gap-3"><AlertTriangle className="h-8 w-8 text-slate-400" /><p className="text-sm text-slate-500">Weather feed unreachable.</p><button onClick={load} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-bold">Retry</button></div> : <div className="h-[300px]"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartSeries}><defs><linearGradient id="precipGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#06B6D4" stopOpacity={0.3} /><stop offset="100%" stopColor="#06B6D4" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#334155" strokeOpacity={0.25} vertical={false} /><XAxis dataKey="day" tick={{ fill: "#94a3b8", fontSize: 11 }} tickLine={false} /><YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} tickLine={false} unit="mm" /><Tooltip content={<CustomTooltip />} /><Area type="monotone" dataKey="precip" stroke="#06B6D4" strokeWidth={2} fill="url(#precipGrad)" dot={false} />{scenario && <Area type="monotone" dataKey="simulated" stroke="#F59E0B" strokeWidth={2} strokeDasharray="6 4" fill="none" dot={false} />}</AreaChart></ResponsiveContainer></div>}
+              {dataState === "error" ? <div className="flex h-[300px] flex-col items-center justify-center gap-3"><AlertTriangle className="h-8 w-8 text-slate-400" /><p className="text-sm text-slate-500">Weather feed unreachable.</p><button onClick={load} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-bold">Retry</button></div> : <AccessibleSeriesChart points={chartSeries.map((point) => ({ label: point.day, primary: point.precip, secondary: point.simulated }))} primaryLabel="Daily precipitation (mm)" secondaryLabel={scenario ? "Illustrative scenario (mm)" : undefined} />}
               <p className="mt-3 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-slate-700">This chart is coordinate-specific. NaijaClimaGuard does not infer a whole-state flood forecast from a state name.</p>
             </div>
           </>

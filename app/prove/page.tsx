@@ -10,12 +10,9 @@
  */
 
 import AppShell from "@/components/shared/AppShell";
+import AccessibleSeriesChart from "@/components/shared/AccessibleSeriesChart";
 import { useState, useEffect } from "react";
 import { Activity, Database, Target, Download, Loader2, History, AlertTriangle } from "lucide-react";
-import {
-  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine,
-} from "recharts";
 
 interface Day { date: string; label: string; rain: number; cumulative: number; }
 
@@ -24,18 +21,6 @@ const EVENTS = [
   { date: "2022-10-01", label: "State response record" },
   { date: "2022-10-06", label: "NiHSA peak discharge" },
 ];
-
-function ReplayTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload as Day;
-  return (
-    <div className="glass-card rounded-lg p-3 text-sm">
-      <p className="text-xs text-slate-400 mb-1">{d.label} 2022</p>
-      <p>Daily rain: <strong>{d.rain} mm</strong></p>
-      <p>Season total: <strong>{d.cumulative} mm</strong></p>
-    </div>
-  );
-}
 
 export default function ProvePage() {
   const [series, setSeries] = useState<Day[]>([]);
@@ -81,8 +66,6 @@ export default function ProvePage() {
     } catch { /* user can retry */ }
     setDownloading(false);
   };
-
-  const eventX = (date: string) => series.find((d) => d.date === date)?.label;
 
   return (
     <AppShell>
@@ -146,33 +129,7 @@ export default function ProvePage() {
               <p className="text-sm">Archive feed unreachable — refresh to retry. No cached stand-in is shown.</p>
             </div>
           )}
-          {replayState === "ready" && (
-            <div className="h-[340px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={series}>
-                  <defs>
-                    <linearGradient id="cumGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#06B6D4" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" strokeOpacity={0.3} vertical={false} />
-                  <XAxis dataKey="label" tick={{ fill: "#94a3b8", fontSize: 10 }} interval={13} axisLine={{ stroke: "#334155" }} tickLine={false} />
-                  <YAxis yAxisId="rain" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} unit="mm" />
-                  <YAxis yAxisId="cum" orientation="right" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} unit="mm" />
-                  <Tooltip content={<ReplayTooltip />} />
-                  {EVENTS.map((e) =>
-                    eventX(e.date) ? (
-                      <ReferenceLine key={e.date} yAxisId="rain" x={eventX(e.date)} stroke="#EF4444" strokeDasharray="5 4"
-                        label={{ value: e.label, angle: -90, position: "insideTopRight", fill: "#EF4444", fontSize: 9 }} />
-                    ) : null
-                  )}
-                  <Area yAxisId="cum" type="monotone" dataKey="cumulative" stroke="#06B6D4" strokeWidth={1.5} fill="url(#cumGrad)" name="Season cumulative" dot={false} />
-                  <Line yAxisId="rain" type="monotone" dataKey="rain" stroke="#10B981" strokeWidth={1.5} dot={false} name="Daily rainfall" />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+          {replayState === "ready" && <AccessibleSeriesChart points={series.map((point) => ({ label: point.label, primary: point.rain, secondary: point.cumulative }))} primaryLabel="Daily rainfall (mm)" secondaryLabel="Season cumulative (mm)" primaryColor="#10b981" secondaryColor="#06b6d4" events={EVENTS.map((event) => ({ index: series.findIndex((point) => point.date === event.date), label: event.label })).filter((event) => event.index >= 0)} />}
 
           <p className="mt-3 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-midnight-border">
             <strong className="text-radar">Green line</strong> = daily rain. <strong className="text-cyan">Blue curve</strong> = accumulated rainfall across the displayed period.

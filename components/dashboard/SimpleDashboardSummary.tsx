@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, BellRing, CheckCircle2, MapPin, ShieldCheck, Sprout, Store, Landmark, ArrowRight } from "lucide-react";
+import { AlertTriangle, BellRing, MapPin, ShieldCheck, Sprout, Store, Landmark, ArrowRight } from "lucide-react";
 import type { ExperienceRole } from "@/components/shared/ExperienceProfile";
 import { useLanguage } from "@/components/shared/LanguageProvider";
 
