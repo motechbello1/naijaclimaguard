@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
-  BarChart3, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign,
-  ClipboardCheck, FileCheck2, Home, LayoutDashboard, LogOut, Map,
-  Megaphone, Menu, Presentation, Radar, Settings2, ShieldAlert,
-  Telescope, User, Waves, X, Zap,
+  BarChart3, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck,
+  FileCheck2, Home, LayoutDashboard, LogOut, Map, MapPin, Megaphone,
+  Menu, Presentation, Radar, Settings2, ShieldAlert, Telescope, User,
+  Waves, X, Zap,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
@@ -63,21 +63,20 @@ const PRODUCT_LINKS = [
   { href: "/pitch", label: "Pitch Mode", icon: Presentation },
 ];
 
-function Logo({ compact = false, mobile = false }: { compact?: boolean; mobile?: boolean }) {
+function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <Link href="/" className="flex min-w-0 items-center gap-2.5 overflow-hidden text-white">
-      <div className={`${mobile ? "h-8 w-8" : "h-9 w-9"} flex shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10`}>
-        <Waves className={`${mobile ? "h-4 w-4" : "h-[18px] w-[18px]"} text-[#d9ff57]`} />
+    <Link href="/dashboard" className="group flex min-w-0 items-center gap-3 text-white" data-ncg-no-translate="true">
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[14px] bg-[#d9ff57] text-[#071713] shadow-[0_10px_28px_rgba(217,255,87,.14)]">
+        <Waves className="h-5 w-5" />
       </div>
-      {!compact && <span className={`${mobile ? "text-xs" : "text-sm"} truncate whitespace-nowrap font-display font-black tracking-tight`}>NaijaClimaGuard</span>}
+      {!compact && <div className="min-w-0"><p className="truncate text-[15px] font-black tracking-[-0.03em]">NaijaClimaGuard</p><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/35">Climate action OS</p></div>}
     </Link>
   );
 }
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [showPreferences, setShowPreferences] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
@@ -85,6 +84,15 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const { area } = useNationalArea();
   const { t } = useLanguage();
   const nav = NAV_BY_ROLE[role] || NAV_BY_ROLE.HOUSEHOLD;
+  const userPlan = (session?.user as any)?.plan || "FREE";
+  const userName = session?.user?.name || session?.user?.email || "User";
+  const initial = userName.trim().charAt(0).toUpperCase() || "U";
+
+  useEffect(() => setMoreOpen(false), [pathname]);
+  useEffect(() => {
+    document.body.style.overflow = moreOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [moreOpen]);
 
   useEffect(() => {
     const handlePopState = () => { if (!session) router.replace("/login"); };
@@ -92,83 +100,84 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [session, router]);
 
-  useEffect(() => {
-    setMobileOpen(false);
-    setShowPreferences(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [mobileOpen]);
-
   const handleLogout = async () => {
     await signOut({ redirect: false });
     router.replace("/login");
-    window.history.pushState(null, "", "/login");
   };
 
-  const userPlan = (session?.user as any)?.plan || "FREE";
-  const userName = session?.user?.name || session?.user?.email || "User";
+  const primaryMobile = useMemo(() => [
+    { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+    { href: "/my-area", label: "My area", icon: MapPin },
+    { href: "/action-center", label: "Act", icon: ClipboardCheck },
+    { href: "/action", label: "Alerts", icon: Zap },
+  ], []);
 
-  const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
-    <nav className="space-y-1">
-      {(mobile || !collapsed) && <p className="px-3 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.2em] text-white/35">Your workspace</p>}
-      {nav.map((item) => {
-        const active = pathname === item.href;
-        const label = t(item.key);
-        return (
-          <Link key={item.href} href={item.href} onClick={() => mobile && setMobileOpen(false)} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${active ? "bg-[#d9ff57] text-[#071713] shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"}`} title={!mobile && collapsed ? label : undefined}>
-            <item.icon className="h-[18px] w-[18px] shrink-0" />
-            {(mobile || !collapsed) && <span className="min-w-0 truncate">{label}</span>}
-          </Link>
-        );
-      })}
-      {(mobile || !collapsed) && <p className="px-3 pb-2 pt-5 text-[10px] font-black uppercase tracking-[0.2em] text-white/35">Product</p>}
-      {PRODUCT_LINKS.map((item) => {
-        const active = pathname === item.href;
-        return <Link key={item.href} href={item.href} onClick={() => mobile && setMobileOpen(false)} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${active ? "bg-[#d9ff57] text-[#071713]" : "text-white/70 hover:bg-white/10 hover:text-white"}`} title={!mobile && collapsed ? item.label : undefined}><item.icon className="h-[18px] w-[18px] shrink-0" />{(mobile || !collapsed) && <span className="truncate">{item.label}</span>}</Link>;
-      })}
-    </nav>
-  );
+  const navLink = (item: { href: string; key: MessageKey; icon: any }) => {
+    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+    const label = t(item.key);
+    const Icon = item.icon;
+    return (
+      <Link key={item.href} href={item.href} title={collapsed ? label : undefined} className={`group relative flex min-h-11 items-center gap-3 rounded-[14px] px-3 text-sm font-semibold transition-all ${active ? "bg-white/[.11] text-white" : "text-white/58 hover:bg-white/[.06] hover:text-white"}`}>
+        {active && <span className="absolute inset-y-3 left-0 w-[3px] rounded-full bg-[#d9ff57]" />}
+        <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-[#d9ff57]" : "text-white/42 group-hover:text-white/70"}`} />
+        {!collapsed && <span className="truncate">{label}</span>}
+      </Link>
+    );
+  };
 
   return (
-    <div className="flex h-[100dvh] min-w-0 overflow-hidden bg-[#f7f7f2] dark:bg-midnight">
-      <aside className={`hidden lg:flex flex-col shrink-0 overflow-hidden bg-[#071713] text-white transition-all duration-[350ms] ${collapsed ? "w-[72px]" : "w-[252px]"}`}>
-        <div className="flex h-16 items-center justify-between border-b border-white/10 px-4"><Logo compact={collapsed} /><button onClick={() => setCollapsed(!collapsed)} className="flex h-8 w-8 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-white" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}>{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button></div>
-        {!collapsed && <div className="mx-3 mt-4 rounded-2xl border border-white/10 bg-white/[0.06] p-3"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d9ff57]">National platform</p><p className="mt-1 text-xs leading-5 text-white/55">36 states + FCT. Working area: <strong className="text-white">{area.name}</strong>. Model evidence is labelled separately by location.</p></div>}
-        <div className="flex-1 overflow-y-auto px-3 py-4"><NavLinks /></div>
-        <div className="space-y-1 border-t border-white/10 px-3 py-4">
-          <Link href="/profile" className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${pathname === "/profile" ? "bg-[#d9ff57] text-[#071713]" : "text-white/70 hover:bg-white/10 hover:text-white"}`}><User className="h-[18px] w-[18px] shrink-0" />{!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{userName}</p><p className={`text-[10px] uppercase ${pathname === "/profile" ? "text-[#071713]/55" : "text-white/35"}`}>{userPlan}</p></div>}</Link>
-          <button onClick={handleLogout} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-rose-300 hover:bg-rose-400/10"><LogOut className="h-[18px] w-[18px] shrink-0" />{!collapsed && <span>{t("signOut")}</span>}</button>
+    <div className="ncg-app flex min-h-[100dvh] min-w-0 bg-[#f3f4ee] text-[#0d1f19] dark:bg-[#07110e] dark:text-slate-100">
+      <aside className={`fixed inset-y-3 left-3 z-40 hidden overflow-hidden rounded-[28px] border border-white/10 bg-[#071713] text-white shadow-[0_24px_70px_rgba(5,25,20,.20)] transition-[width] duration-300 lg:flex lg:flex-col ${collapsed ? "w-[78px]" : "w-[272px]"}`}>
+        <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-[#1f5f49]/30 blur-3xl" />
+        <div className="relative flex h-[74px] items-center justify-between px-4"><Brand compact={collapsed} /><button onClick={() => setCollapsed((v) => !v)} className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[.05] text-white/45 hover:text-white" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}>{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button></div>
+
+        {!collapsed && <div className="relative mx-3 rounded-[18px] border border-white/10 bg-white/[.055] p-4"><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.18em] text-[#d9ff57]"><MapPin className="h-3.5 w-3.5" /> Working area</div><p className="mt-2 text-lg font-black tracking-tight">{area.name}</p><p className="mt-1 text-xs leading-5 text-white/42">National platform · 36 states + FCT</p></div>}
+
+        <div className="relative flex-1 overflow-y-auto px-3 py-4">
+          {!collapsed && <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[.18em] text-white/28">Workspace</p>}
+          <nav className="space-y-1">{nav.map(navLink)}</nav>
+          {!collapsed && <p className="px-3 pb-2 pt-6 text-[10px] font-black uppercase tracking-[.18em] text-white/28">Explore</p>}
+          <nav className="space-y-1">{PRODUCT_LINKS.map((item) => { const active = pathname === item.href; const Icon = item.icon; return <Link key={item.href} href={item.href} className={`group flex min-h-11 items-center gap-3 rounded-[14px] px-3 text-sm font-semibold ${active ? "bg-white/[.11] text-white" : "text-white/58 hover:bg-white/[.06] hover:text-white"}`}><Icon className={`h-[18px] w-[18px] ${active ? "text-[#d9ff57]" : "text-white/42"}`} />{!collapsed && <span>{item.label}</span>}</Link>; })}</nav>
+        </div>
+
+        <div className="relative m-3 rounded-[20px] border border-white/10 bg-[#0b211a] p-2">
+          <Link href="/profile" className="flex items-center gap-3 rounded-[14px] p-2.5 hover:bg-white/[.05]"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#d9ff57] text-sm font-black text-[#071713]">{initial}</div>{!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{userName}</p><p className="mt-0.5 text-[10px] font-bold uppercase tracking-[.14em] text-white/35">{userPlan}</p></div>}</Link>
+          {!collapsed && <button onClick={handleLogout} className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-xs font-semibold text-rose-200/70 hover:bg-rose-300/10 hover:text-rose-100"><LogOut className="h-4 w-4" /> {t("signOut")}</button>}
         </div>
       </aside>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-[120] lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
-          <button className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]" onClick={() => setMobileOpen(false)} aria-label="Close navigation" />
-          <aside className="absolute inset-y-0 left-0 flex w-[min(88vw,330px)] flex-col overflow-hidden bg-[#071713] text-white shadow-2xl">
-            <div className="flex min-h-16 items-center justify-between border-b border-white/10 px-4"><Logo mobile /><button onClick={() => setMobileOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full text-white/60 hover:bg-white/10" aria-label="Close navigation"><X className="h-4 w-4" /></button></div>
-            <div className="mx-3 mt-3 rounded-2xl border border-white/10 bg-white/[0.06] p-3"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d9ff57]">National platform</p><p className="mt-1 text-xs text-white/55">36 states + FCT · {area.name}</p></div>
-            <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3"><NavLinks mobile />
-              <div className="mt-4 overflow-hidden rounded-xl border border-white/10"><button type="button" onClick={() => setShowPreferences((value) => !value)} className="flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm font-semibold"><span className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-[#d9ff57]" /> Preferences</span><ChevronDown className={`h-4 w-4 text-white/45 transition-transform ${showPreferences ? "rotate-180" : ""}`} /></button>{showPreferences && <div className="space-y-3 border-t border-white/10 bg-white/[0.04] p-3 text-slate-900 dark:text-slate-100"><NationalAreaControl /><ExperienceRoleControl /><ExplanationModeControl /><LanguageSelector /><ReadAloudControl /><div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 dark:bg-slate-900"><span className="text-xs font-semibold text-slate-500">Appearance</span><ThemeToggle /></div></div>}</div>
+      <div className={`min-w-0 flex-1 transition-[padding] duration-300 ${collapsed ? "lg:pl-[102px]" : "lg:pl-[296px]"}`}>
+        <header className="sticky top-0 z-30 border-b border-[#0d1f19]/7 bg-[#f3f4ee]/90 backdrop-blur-xl dark:border-white/8 dark:bg-[#07110e]/88">
+          <div className="mx-auto flex h-[68px] max-w-[1680px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3 lg:hidden" data-ncg-no-translate="true"><div className="flex h-9 w-9 items-center justify-center rounded-[13px] bg-[#071713] text-[#d9ff57]"><Waves className="h-4 w-4" /></div><div className="min-w-0"><p className="truncate text-[15px] font-black tracking-[-.03em]">NaijaClimaGuard</p><p className="truncate text-[10px] font-semibold text-slate-500 dark:text-white/38">{area.name}</p></div></div>
+            <div className="hidden lg:block"><SatelliteStatus /></div>
+            <div className="ml-auto flex items-center gap-2">
+              <div className="hidden xl:block"><NationalAreaControl compact /></div>
+              <div className="hidden xl:block"><LanguageSelector compact /></div>
+              <div className="hidden 2xl:block"><ExplanationModeControl /></div>
+              <div className="hidden 2xl:block"><ExperienceRoleControl /></div>
+              <ThemeToggle />
+              <Link href="/profile" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#071713] text-xs font-black text-[#d9ff57] lg:hidden" aria-label="Profile">{initial}</Link>
             </div>
-            <div className="space-y-1 border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"><Link onClick={() => setMobileOpen(false)} href="/profile" className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/75 hover:bg-white/10"><User className="h-4 w-4" /><div className="min-w-0"><p className="truncate font-semibold">{userName}</p><p className="text-[10px] uppercase text-white/35">{userPlan}</p></div></Link><button onClick={handleLogout} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-rose-300 hover:bg-rose-400/10"><LogOut className="h-4 w-4" />{t("signOut")}</button></div>
-          </aside>
-        </div>
-      )}
-
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex min-h-14 shrink-0 items-center border-b border-slate-200/80 bg-[#f7f7f2]/95 px-3 backdrop-blur-xl dark:border-midnight-border dark:bg-midnight/95 sm:px-4 lg:h-16 lg:px-6">
-          <div className="flex min-w-0 items-center gap-2 lg:hidden"><button onClick={() => setMobileOpen(true)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#071713] text-white" aria-label="Open navigation"><Menu className="h-4 w-4" /></button><span className="font-display text-sm font-black text-[#071713] dark:text-white">NaijaClimaGuard</span></div>
-          <div className="hidden min-w-0 lg:block"><SatelliteStatus /></div>
-          <div className="ml-auto hidden items-center gap-2 lg:flex"><NationalAreaControl compact /><Link href="/impact" className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-[#071713] shadow-sm hover:border-emerald-300 dark:border-slate-700 dark:bg-slate-900 dark:text-white">Economic Impact</Link><ExperienceRoleControl /><ExplanationModeControl /><LanguageSelector compact /><ReadAloudControl compact /><ThemeToggle /></div>
+          </div>
         </header>
 
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3 pb-[max(5rem,env(safe-area-inset-bottom))] sm:p-5 sm:pb-6 lg:p-8">
-          <div className="mx-auto w-full max-w-[1600px]"><PageExplanation pathname={pathname} />{children}</div>
+        <main className="min-w-0 overflow-x-hidden px-4 pb-[calc(7.25rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 lg:px-8 lg:pb-10 lg:pt-8">
+          <div className="mx-auto w-full max-w-[1680px]"><PageExplanation pathname={pathname} />{children}</div>
         </main>
       </div>
+
+      <nav className="fixed inset-x-3 bottom-[max(.65rem,env(safe-area-inset-bottom))] z-50 grid grid-cols-5 rounded-[22px] border border-black/8 bg-[#071713]/96 p-1.5 shadow-[0_18px_50px_rgba(3,20,15,.28)] backdrop-blur-xl lg:hidden" aria-label="Primary navigation">
+        {primaryMobile.map((item) => { const active = pathname === item.href || pathname.startsWith(`${item.href}/`); const Icon = item.icon; return <Link key={item.href} href={item.href} className={`flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-[16px] text-[10px] font-bold transition ${active ? "bg-[#d9ff57] text-[#071713]" : "text-white/55"}`}><Icon className="h-[18px] w-[18px]" /><span>{item.label}</span></Link>; })}
+        <button onClick={() => setMoreOpen(true)} className={`flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-[16px] text-[10px] font-bold ${moreOpen ? "bg-white/10 text-white" : "text-white/55"}`}><Menu className="h-[18px] w-[18px]" /><span>More</span></button>
+      </nav>
+
+      {moreOpen && <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true" aria-label="More navigation"><button className="absolute inset-0 bg-[#03120d]/55 backdrop-blur-[3px]" onClick={() => setMoreOpen(false)} aria-label="Close menu" /><section className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-[32px] bg-[#f7f7f2] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 text-[#0d1f19] shadow-2xl dark:bg-[#0b1814] dark:text-white"><div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-300 dark:bg-white/15" /><div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[.16em] text-emerald-700 dark:text-[#d9ff57]">Your NaijaClimaGuard</p><p className="mt-1 text-2xl font-black tracking-tight">Everything else</p></div><button onClick={() => setMoreOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/70 dark:bg-white/8" aria-label="Close"><X className="h-4 w-4" /></button></div>
+        <div className="mt-5 grid grid-cols-2 gap-2">{nav.map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} className="rounded-[18px] border border-black/7 bg-white p-4 shadow-[0_6px_24px_rgba(25,45,36,.05)] dark:border-white/8 dark:bg-white/[.04]"><Icon className="h-5 w-5 text-emerald-700 dark:text-[#d9ff57]" /><p className="mt-4 text-sm font-bold">{t(item.key)}</p></Link>; })}</div>
+        <div className="mt-5 rounded-[22px] border border-black/7 bg-white p-4 dark:border-white/8 dark:bg-white/[.04]"><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-emerald-700 dark:text-[#d9ff57]" /><p className="text-sm font-black">Preferences</p></div><div className="mt-4 grid gap-3"><NationalAreaControl /><LanguageSelector /><ExperienceRoleControl /><ExplanationModeControl /><ReadAloudControl /><div className="flex items-center justify-between rounded-[14px] bg-[#f3f4ee] p-3 dark:bg-black/20"><span className="text-xs font-semibold">Appearance</span><ThemeToggle /></div></div></div>
+        <div className="mt-4 grid grid-cols-2 gap-2">{PRODUCT_LINKS.map((item) => <Link key={item.href} href={item.href} className="rounded-[18px] bg-[#071713] p-4 text-white"><item.icon className="h-5 w-5 text-[#d9ff57]" /><p className="mt-3 text-sm font-bold">{item.label}</p></Link>)}</div>
+        <button onClick={handleLogout} className="mt-4 flex w-full items-center justify-center gap-2 rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200"><LogOut className="h-4 w-4" /> {t("signOut")}</button>
+      </section></div>}
     </div>
   );
 }
