@@ -9,8 +9,9 @@ import { PROFILE_COMMAND_COPY } from "./pages/profile-command";
 import { DASHBOARD_COPY } from "./pages/dashboard";
 import { AUTH_COPY } from "./pages/auth";
 import { TECHNICAL_COPY } from "./pages/technical";
+import { NAVIGATION_GROWTH_COPY } from "./pages/navigation-growth";
 
-const PAGE_PACKS = [REPORT_COPY, EVIDENCE_OUTLOOK_COPY, PROFILE_COMMAND_COPY, DASHBOARD_COPY, AUTH_COPY, TECHNICAL_COPY];
+const PAGE_PACKS = [REPORT_COPY, EVIDENCE_OUTLOOK_COPY, PROFILE_COMMAND_COPY, DASHBOARD_COPY, AUTH_COPY, TECHNICAL_COPY, NAVIGATION_GROWTH_COPY];
 
 const SHELL_COPY: Record<AppLocale, Record<string, string>> = {
   en: {},
