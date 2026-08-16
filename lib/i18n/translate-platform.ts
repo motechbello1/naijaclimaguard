@@ -12,6 +12,82 @@ import { TECHNICAL_COPY } from "./pages/technical";
 
 const PAGE_PACKS = [REPORT_COPY, EVIDENCE_OUTLOOK_COPY, PROFILE_COMMAND_COPY, DASHBOARD_COPY, AUTH_COPY, TECHNICAL_COPY];
 
+const SHELL_COPY: Record<AppLocale, Record<string, string>> = {
+  en: {},
+  pcm: {
+    Home: "Home",
+    "My area": "My area",
+    Act: "Wetin to do",
+    Alerts: "Warnings",
+    More: "More",
+    Preferences: "My settings",
+    Appearance: "How e look",
+    "Working area": "Area wey I dey check",
+    Workspace: "My tools",
+    Explore: "More things",
+    "Everything else": "More things you fit do",
+    "Your NaijaClimaGuard": "Your NaijaClimaGuard",
+    Profile: "My account",
+    "Economic Impact": "Money & loss impact",
+    "Pitch Mode": "Investor pitch",
+    "National platform": "Nigeria-wide platform",
+  },
+  ha: {
+    Home: "Gida",
+    "My area": "Yankina",
+    Act: "Abin da za a yi",
+    Alerts: "Gargadi",
+    More: "Ƙari",
+    Preferences: "Saitunana",
+    Appearance: "Bayyanar manhaja",
+    "Working area": "Yankin da ake dubawa",
+    Workspace: "Kayan aikinka",
+    Explore: "Ƙarin abubuwa",
+    "Everything else": "Sauran abubuwa",
+    "Your NaijaClimaGuard": "NaijaClimaGuard naka",
+    Profile: "Bayanan asusuna",
+    "Economic Impact": "Tasirin tattalin arziki",
+    "Pitch Mode": "Yanayin gabatarwa",
+    "National platform": "Manhajar ƙasa baki ɗaya",
+  },
+  yo: {
+    Home: "Ilé",
+    "My area": "Agbègbè mi",
+    Act: "Ohun tí mo yẹ kí n ṣe",
+    Alerts: "Ìkìlọ̀",
+    More: "Síi",
+    Preferences: "Àwọn àṣàyàn mi",
+    Appearance: "Ìrísí",
+    "Working area": "Agbègbè tí a ń ṣàyẹ̀wò",
+    Workspace: "Àwọn irinṣẹ́ rẹ",
+    Explore: "Wo síi",
+    "Everything else": "Àwọn ohun mìíràn",
+    "Your NaijaClimaGuard": "NaijaClimaGuard rẹ",
+    Profile: "Àkọọlẹ̀ mi",
+    "Economic Impact": "Ìpa ọrọ̀-ajé",
+    "Pitch Mode": "Ìpo ìfihàn",
+    "National platform": "Pẹpẹ gbogbo orílẹ̀-èdè",
+  },
+  ig: {
+    Home: "Ụlọ",
+    "My area": "Mpaghara m",
+    Act: "Ihe m ga-eme",
+    Alerts: "Ọkwa",
+    More: "Ihe ọzọ",
+    Preferences: "Ntọala m",
+    Appearance: "Ọdịdị",
+    "Working area": "Mpaghara a na-enyocha",
+    Workspace: "Ngwaọrụ gị",
+    Explore: "Hụkwuo",
+    "Everything else": "Ihe ndị ọzọ",
+    "Your NaijaClimaGuard": "NaijaClimaGuard gị",
+    Profile: "Akaụntụ m",
+    "Economic Impact": "Mmetụta akụ na ụba",
+    "Pitch Mode": "Ụdị ngosi",
+    "National platform": "Usoro mba niile",
+  },
+};
+
 function translateDynamic(locale: AppLocale, source: string): string | null {
   const synced = source.match(/^Synced\s+(.+)$/i);
   if (synced) {
@@ -48,6 +124,9 @@ function translateDynamic(locale: AppLocale, source: string): string | null {
 
 export function translatePlatformText(locale: AppLocale, source: string): string {
   if (locale === "en") return source;
+
+  const shell = SHELL_COPY[locale]?.[source];
+  if (shell) return shell;
 
   const dynamic = translateDynamic(locale, source);
   if (dynamic) return dynamic;
