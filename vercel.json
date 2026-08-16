@@ -6,5 +6,11 @@
       "product-*": false,
       "ops-*": false
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/flood-intelligence",
+      "schedule": "*/15 * * * *"
+    }
+  ]
 }
