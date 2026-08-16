@@ -3,9 +3,11 @@
 import AppShell from "@/components/shared/AppShell";
 import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
 import { useNationalArea } from "@/components/shared/NationalArea";
+import { useLanguage } from "@/components/shared/LanguageProvider";
 import AdaptiveDashboard, { LocationData, LiveRisk } from "@/components/dashboard/AdaptiveDashboard";
 import ActionOSBanner from "@/components/dashboard/ActionOSBanner";
 import { NIGERIA_ADMIN_AREAS } from "@/lib/nigeria-geography";
+import { translatePlatformText } from "@/lib/i18n/translate-platform";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
@@ -13,6 +15,8 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 function DashboardContent() {
   const { data: session, status } = useSession();
   const { area } = useNationalArea();
+  const { locale } = useLanguage();
+  const tr = (source: string) => translatePlatformText(locale, source);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [locations, setLocations] = useState<LocationData[]>([]);
@@ -64,7 +68,7 @@ function DashboardContent() {
     const validArea = NIGERIA_ADMIN_AREAS.some((item) => item.name === body.state);
 
     if (!body.name || !body.state || !validArea || !Number.isFinite(body.latitude) || !Number.isFinite(body.longitude)) {
-      setAddErr("Add a place name, choose a valid Nigerian state or the FCT, then share your current location or enter valid coordinates.");
+      setAddErr(tr("Add a place name, choose a valid Nigerian state or the FCT, then share your current location or enter valid coordinates."));
       return;
     }
 
@@ -76,7 +80,7 @@ function DashboardContent() {
       setNewLoc({ name: "", state: area.name, latitude: "", longitude: "" });
       setShowAdd(false);
     } else {
-      setAddErr(data.error || "Could not save this place.");
+      setAddErr(data.error || tr("Could not save this place."));
     }
   };
 
@@ -91,14 +95,17 @@ function DashboardContent() {
 
   return (
     <AppShell>
-      <div className="space-y-5">
-        <div className="rounded-[2rem] bg-[#071713] p-6 text-white sm:p-8">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#d9ff57]">{area.zone} · National workspace</p>
-          <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div><h1 className="font-display text-3xl font-black tracking-tight sm:text-5xl">{area.name}</h1><p className="mt-2 max-w-2xl text-sm text-white/60">Your working area organises the experience. Every risk result still belongs to an exact saved coordinate, not an invented state-wide forecast.</p></div>
-            <div className="rounded-full bg-white/10 px-4 py-2 text-xs font-black">36 states + FCT</div>
+      <div className="space-y-6" key={locale}>
+        <section className="ncg-water-panel rounded-[2.25rem] px-6 py-7 sm:px-9 sm:py-10" data-read-aloud>
+          <div className="relative z-10 grid gap-7 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-700 dark:text-[#d9ff57]">{area.zone} · {tr("National workspace")}</p>
+              <h1 className="mt-3 max-w-3xl font-display text-4xl font-black leading-[.96] tracking-[-.055em] sm:text-6xl">{area.name}</h1>
+              <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-600 dark:text-white/62">{tr("Your working area organises the experience. Every risk result still belongs to an exact saved coordinate, not an invented state-wide forecast.")}</p>
+            </div>
+            <div className="relative z-10 inline-flex w-fit items-center rounded-full border border-[#0d1f19]/10 bg-white/80 px-4 py-2 text-xs font-black shadow-sm dark:border-white/10 dark:bg-white/8">36 states + FCT</div>
           </div>
-        </div>
+        </section>
         <ActionOSBanner />
         <RiverineWatchEvidence compact />
         <AdaptiveDashboard userName={session.user?.name} paymentStatus={paymentStatus} locations={locations} risks={risks} limit={limit} plan={plan} showAdd={showAdd} setShowAdd={setShowAdd} newLoc={newLoc} setNewLoc={setNewLoc} addErr={addErr} addLocation={addLocation} deleteLocation={deleteLocation} fetchRisk={fetchRisk} />
