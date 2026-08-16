@@ -6,6 +6,7 @@ import { useNationalArea } from "@/components/shared/NationalArea";
 import { useLanguage } from "@/components/shared/LanguageProvider";
 import AdaptiveDashboard, { LocationData, LiveRisk } from "@/components/dashboard/AdaptiveDashboard";
 import ActionOSBanner from "@/components/dashboard/ActionOSBanner";
+import DashboardCapabilityDock from "@/components/dashboard/DashboardCapabilityDock";
 import { NIGERIA_ADMIN_AREAS } from "@/lib/nigeria-geography";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
 import { useSession } from "next-auth/react";
@@ -95,7 +96,7 @@ function DashboardContent() {
 
   return (
     <AppShell>
-      <div className="space-y-6" key={locale}>
+      <div className="ncg-motion-stack space-y-6" key={locale}>
         <div className="simple-only">
           <p className="text-[11px] font-black uppercase tracking-[.2em] text-emerald-700 dark:text-[#d9ff57]">{area.name} · Nigeria</p>
         </div>
@@ -109,6 +110,7 @@ function DashboardContent() {
             <div className="relative z-10 inline-flex w-fit items-center rounded-full border border-[#0d1f19]/10 bg-white/80 px-4 py-2 text-xs font-black shadow-sm dark:border-white/10 dark:bg-white/8">36 states + FCT</div>
           </div>
         </section>
+        <DashboardCapabilityDock />
         <div className="standard-up"><ActionOSBanner /></div>
         <div className="standard-up"><RiverineWatchEvidence compact /></div>
         <AdaptiveDashboard userName={session.user?.name} paymentStatus={paymentStatus} locations={locations} risks={risks} limit={limit} plan={plan} showAdd={showAdd} setShowAdd={setShowAdd} newLoc={newLoc} setNewLoc={setNewLoc} addErr={addErr} addLocation={addLocation} deleteLocation={deleteLocation} fetchRisk={fetchRisk} />
