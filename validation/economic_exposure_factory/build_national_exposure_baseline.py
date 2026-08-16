@@ -24,7 +24,13 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-WORLDPOP_TABLE_URL = "https://data.worldpop.org/repo/wopr/NGA/population/v3.0/NGA_population_v3_0_table.zip"
+WORLDPOP_ARCHIVE_URLS = [
+    # This is the archive currently listed by WorldPop's v3.0 directory.
+    "https://data.worldpop.org/repo/wopr/NGA/population/v3.0/NGA_population_v3_0_admin.zip",
+    # The release PDF calls the table archive by this name, even though the live
+    # directory may not expose it. Keep as a bounded compatibility fallback.
+    "https://data.worldpop.org/repo/wopr/NGA/population/v3.0/NGA_population_v3_0_table.zip",
+]
 WORLDPOP_README = "https://data.worldpop.org/repo/wopr/NGA/population/v3.0/NGA_population_v3_0_README.pdf"
 WORLD_BANK_DAMAGE_SOURCE = "https://documents1.worldbank.org/curated/en/099060223162027206/pdf/BOSIB0e7bb7cb702c0b6d40e7d4dc5834be.pdf"
 DAMAGE_LOW_USD = 3.79e9
@@ -36,6 +42,7 @@ ALIASES = {
     "fct": "Federal Capital Territory",
     "abuja": "Federal Capital Territory",
     "federal capital territory": "Federal Capital Territory",
+    "federal capital territory abuja": "Federal Capital Territory",
     "akwa-ibom": "Akwa Ibom",
     "cross-river": "Cross River",
     "nasarawa": "Nasarawa",
@@ -48,16 +55,35 @@ def canonical_state(value: object) -> str:
     return ALIASES.get(text.lower(), text)
 
 
-def download_table() -> pd.DataFrame:
-    r = requests.get(WORLDPOP_TABLE_URL, timeout=120, headers={"User-Agent": "NaijaClimaGuard-EconomicExposure/1.0"})
-    r.raise_for_status()
-    with zipfile.ZipFile(io.BytesIO(r.content)) as zf:
-        names = zf.namelist()
-        state_name = next((n for n in names if n.lower().endswith("state_pop_total_scaled.csv")), None)
-        if not state_name:
-            raise RuntimeError(f"WorldPop archive missing state_pop_total_scaled.csv; files={names}")
-        with zf.open(state_name) as fh:
-            return pd.read_csv(fh)
+def download_table() -> tuple[pd.DataFrame, str, list[str]]:
+    errors: list[str] = []
+    for url in WORLDPOP_ARCHIVE_URLS:
+        try:
+            r = requests.get(url, timeout=120, headers={"User-Agent": "NaijaClimaGuard-EconomicExposure/1.0"})
+            if r.status_code == 404:
+                errors.append(f"{url}:404")
+                continue
+            r.raise_for_status()
+            with zipfile.ZipFile(io.BytesIO(r.content)) as zf:
+                names = zf.namelist()
+                state_name = next((n for n in names if n.lower().endswith("state_pop_total_scaled.csv")), None)
+                if state_name:
+                    with zf.open(state_name) as fh:
+                        return pd.read_csv(fh), url, names
+                # Some releases use an admin-state filename. Inspect all small CSVs
+                # and accept one only if it has state/admin1 names and a numeric total.
+                for name in names:
+                    if not name.lower().endswith(".csv"):
+                        continue
+                    with zf.open(name) as fh:
+                        candidate = pd.read_csv(fh)
+                    lowered = " ".join(str(c).lower() for c in candidate.columns)
+                    if any(k in lowered for k in ["state", "admin1", "adm1"]) and len(candidate) >= 30:
+                        return candidate, url, names
+                errors.append(f"{url}: no state table; files={names}")
+        except Exception as exc:
+            errors.append(f"{url}: {exc}")
+    raise RuntimeError("WorldPop v3 state table unavailable from documented/live archives: " + " | ".join(errors))
 
 
 def normalize_worldpop(df: pd.DataFrame) -> pd.DataFrame:
@@ -76,11 +102,14 @@ def normalize_worldpop(df: pd.DataFrame) -> pd.DataFrame:
     if not numeric_candidates:
         raise RuntimeError("Could not identify numeric population total column")
 
-    # The scaled population total is expected to dominate numeric identifier columns.
+    # Population totals dominate code/id fields by aggregate magnitude. Preserve
+    # the chosen source column in the manifest so this inference remains auditable.
     _, pop_col, pop_series = max(numeric_candidates, key=lambda x: x[0])
     out = pd.DataFrame({"state": df[state_col].map(canonical_state), "population_2025": pop_series.round().astype("Int64")})
     out = out[out.state.ne("") & out.population_2025.notna()].copy()
     out = out.groupby("state", as_index=False).population_2025.sum().sort_values("state")
+    out.attrs["source_state_column"] = str(state_col)
+    out.attrs["source_population_column"] = str(pop_col)
     return out
 
 
@@ -92,12 +121,15 @@ def main() -> None:
 
     expected = pd.read_csv(args.jurisdictions)
     expected_states = set(expected.state.astype(str))
-    population = normalize_worldpop(download_table())
+    raw, archive_url, archive_files = download_table()
+    population = normalize_worldpop(raw)
+    state_column = population.attrs.get("source_state_column")
+    population_column = population.attrs.get("source_population_column")
     population_states = set(population.state.astype(str))
     missing = sorted(expected_states - population_states)
     extra = sorted(population_states - expected_states)
     if missing:
-        raise RuntimeError(f"WorldPop state table missing registered jurisdictions: {missing}")
+        raise RuntimeError(f"WorldPop state table missing registered jurisdictions: {missing}; extra={extra}; columns={list(raw.columns)}")
 
     population = expected[["state", "capital", "zone", "kind"]].merge(population, on="state", how="left")
     total_population = int(population.population_2025.sum())
@@ -117,6 +149,10 @@ def main() -> None:
         "population": {
             "source": "WorldPop Nigeria population v3.0",
             "source_url": WORLDPOP_README,
+            "archive_used": archive_url,
+            "archive_files": archive_files,
+            "source_state_column": state_column,
+            "source_population_column": population_column,
             "reference_year": 2025,
             "registered_jurisdictions": len(expected_states),
             "population_total_from_state_table": total_population,
@@ -144,7 +180,7 @@ def main() -> None:
     outdir = Path(args.out_dir); outdir.mkdir(parents=True, exist_ok=True)
     population.to_csv(outdir / "nigeria_state_population_2025.csv", index=False)
     (outdir / "national_economic_baseline.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    print(json.dumps({"jurisdictions": len(population), "population_2025": total_population, "scenarios": scenarios}, indent=2))
+    print(json.dumps({"jurisdictions": len(population), "population_2025": total_population, "archive": archive_url, "scenarios": scenarios}, indent=2))
 
 
 if __name__ == "__main__":
