@@ -11,6 +11,7 @@ import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
 import AdaptiveDashboard, { LocationData, LiveRisk } from "@/components/dashboard/AdaptiveDashboard";
 import ActionOSBanner from "@/components/dashboard/ActionOSBanner";
 import LiveFloodBanner from "@/components/dashboard/LiveFloodBanner";
+import SafeRouteBanner from "@/components/dashboard/SafeRouteBanner";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
@@ -122,6 +123,7 @@ function DashboardContent() {
     <AppShell>
       <div className="space-y-5">
         <LiveFloodBanner />
+        <SafeRouteBanner />
         <ActionOSBanner />
         <RiverineWatchEvidence compact />
         <AdaptiveDashboard
