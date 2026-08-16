@@ -101,14 +101,24 @@ function extractLocations(text: string) {
 
 function classify(title: string): { status: FloodFeedStatus; severity: number } {
   const value = title.toLowerCase();
-  const severe = ["sweeps", "swept", "submerge", "submerged", "submerges", "washed away", "cars floating", "vehicles floating", "trapped", "displaced", "drowned", "collapse", "rescue"]
-    .some((word) => value.includes(word));
-  if (severe) return { status: "REPORTED", severity: 4 };
-  const occurred = ["floods", "flooded", "flooding", "flash flood", "inundated", "overflowed", "flood hits", "flood ravages"]
+  const physicalImpact = [
+    "sweeps", "swept", "submerge", "submerged", "submerges", "washed away", "cars floating",
+    "vehicles floating", "stranded", "trapped", "displaced", "drowned", "collapse", "rescue",
+    "roads flooded", "homes flooded", "flooded homes", "ravage", "ravages", "flood hits", "flood hit",
+  ].some((word) => value.includes(word));
+  if (physicalImpact) return { status: "REPORTED", severity: 4 };
+
+  const forwardLooking = [
+    "warning", "warns", "warned", "forecast", "forecasts", "possible", "expected", "may flood",
+    "risk of flooding", "flood risk", "high risk", "alert", "alerts", "early warning", "preparedness",
+  ].some((word) => value.includes(word));
+  if (forwardLooking) return { status: "WARNING", severity: 2 };
+
+  const occurred = ["floods", "flooded", "flooding", "flash flood", "inundated", "overflowed", "flood ravages"]
     .some((word) => value.includes(word));
   if (occurred) return { status: "REPORTED", severity: 3 };
-  if (["warning", "alert", "evacuate", "expected to flood", "flood risk", "high risk"].some((word) => value.includes(word))) return { status: "WARNING", severity: 2 };
-  if (["rain", "rainfall", "downpour", "storm", "forecast"].some((word) => value.includes(word))) return { status: "WATCH", severity: 1 };
+
+  if (["rain", "rainfall", "downpour", "storm"].some((word) => value.includes(word))) return { status: "WATCH", severity: 1 };
   return { status: "UNVERIFIED", severity: 0 };
 }
 
@@ -168,6 +178,9 @@ export async function fetchLiveFloodFeed(): Promise<LiveFloodFeedResult> {
     { source: "Guardian Nigeria", run: () => fetchGoogleNews('site:guardian.ng (flood OR flooding) Nigeria when:3d') },
     { source: "Daily Trust", run: () => fetchGoogleNews('site:dailytrust.com (flood OR flooding) Nigeria when:3d') },
     { source: "TheCable", run: () => fetchGoogleNews('site:thecable.ng (flood OR flooding) Nigeria when:3d') },
+    { source: "NiMet", run: () => fetchGoogleNews('site:nimet.gov.ng (flood OR flooding OR rainfall) Nigeria when:3d') },
+    { source: "NEMA", run: () => fetchGoogleNews('site:nema.gov.ng (flood OR flooding) Nigeria when:7d') },
+    { source: "NIHSA", run: () => fetchGoogleNews('site:nihsa.gov.ng (flood OR flooding) Nigeria when:7d') },
   ];
   const settled = await Promise.allSettled(sourceJobs.map((job) => job.run()));
   const sourceHealth = settled.map((result, index) => ({ source: sourceJobs[index].source, ok: result.status === "fulfilled" }));
