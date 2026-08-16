@@ -5,24 +5,25 @@ import {
   Sparkles, Target, Users, Waves,
 } from "lucide-react";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import economicBaseline from "@/data/economic/national_economic_baseline_v1.json";
 
 const competitorRows = [
   {
     system: "NiHSA",
-    strength: "National hydrology, Annual Flood Outlook across 36 states + FCT, public flood dashboard, monitoring stations and statutory expertise.",
-    gapWeTarget: "Turn authoritative hydrology into personalised household/farm/business/agency decisions, delivery, acknowledgement, economic exposure and auditable action.",
+    strength: "Statutory hydrology, national monitoring, Annual Flood Outlook, public risk maps, alerts and flood-forecast services across Nigeria.",
+    gapWeTarget: "Integrate authoritative hydrology into customer-specific asset decisions, assigned runbooks, verified action and measured outcomes. NiHSA can be a source and institutional partner, not a feed we pretend to replace.",
     icon: Landmark,
   },
   {
     system: "NEMA",
     strength: "National emergency coordination and the Fusion / Trigger Room direction for anticipatory action.",
-    gapWeTarget: "Give trigger-room operations a measurable signal → owner → channel → action → receipt → outcome loop without impersonating emergency authority.",
+    gapWeTarget: "Give trigger-room operations a configurable and auditable signal → owner → channel → action → receipt → outcome record without impersonating emergency authority.",
     icon: Building2,
   },
   {
     system: "Google Flood Hub",
-    strength: "World-class AI riverine forecasting, inundation intelligence, broad global scale, research datasets and expert/API access.",
-    gapWeTarget: "Win the Nigeria-specific operating layer: local roles, five Nigerian language experiences, voice, low-bandwidth action, institutional evidence, exposure and commercial workflows.",
+    strength: "World-class AI riverine forecasting, inundation intelligence, basin tools, historical data, expert/API access and partnerships that support field delivery.",
+    gapWeTarget: "Own each Nigerian customer's private asset graph, configurable operating procedures, action evidence and economic outcome history. Strong Google forecasts can become an input to that system.",
     icon: Globe2,
   },
 ];
@@ -34,17 +35,33 @@ const proofStack = [
   ["2022 economic reference", "$6.68bn", "World Bank median estimate of direct flood damage. Used as a historical reference, never as claimed NaijaClimaGuard savings."],
 ];
 
-const actionMoat = [
-  { icon: Database, title: "Trust the evidence", text: "Keep official advisories, model signals, source freshness and source failures distinct instead of blending everything into one reassuring score." },
-  { icon: Target, title: "Know what is exposed", text: "Connect a hazard to people, homes, farms, stock, roads, facilities and business dependencies with traceable data." },
-  { icon: Users, title: "Compile the right action", text: "The same flood does not create the same next step for a household, farmer, business continuity team and emergency agency." },
-  { icon: Languages, title: "Reach people as Nigerians", text: "English, Nigerian Pidgin, Hausa, Yoruba and Igbo experiences, with neural voice and low-bandwidth delivery rather than English-only technical dashboards." },
-  { icon: RadioTower, title: "Deliver and acknowledge", text: "Email, SMS, WhatsApp and voice channels are evidence-bearing only when a real provider succeeds; acknowledgement is preserved separately." },
-  { icon: FileCheck2, title: "Prove what happened", text: "Warning issue time, source state, action, delivery, acknowledgement and verified outcome can become one auditable incident trail." },
+const compoundingAssets = [
+  { icon: Database, title: "Multi-source evidence router", text: "Preserve issue time, provenance, source freshness and failure state, then route the strongest authorized signal for each decision instead of depending on one model." },
+  { icon: Target, title: "Nigeria Impact Graph", text: "Build a permissioned graph of customer assets, people, stock, facilities, suppliers, roads and dependencies that a public flood map does not possess." },
+  { icon: Users, title: "Decision Policy Compiler", text: "Convert an organisation's operating procedures into role-specific actions, owners, escalation rules and deadlines that run consistently during an event." },
+  { icon: RadioTower, title: "Delivery and comprehension telemetry", text: "Record whether a warning reached the right person, through which channel and language, whether it was understood and whether it was acknowledged." },
+  { icon: FileCheck2, title: "Action-to-loss Outcome Ledger", text: "Join each signal to the action completed and the verified operational or financial outcome, creating evidence of what protected value rather than only what was predicted." },
+  { icon: Network, title: "Decision-performance data flywheel", text: "Every permissioned pilot can improve local action policies and loss functions. Competitors can copy a screen; they cannot instantly recreate years of integrated action-and-outcome evidence." },
 ];
 
-const sensitivity = [
-  ["0.5%", "$33.4m"], ["1%", "$66.8m"], ["2%", "$133.6m"], ["5%", "$334.0m"],
+const formatUsdMillions = (value: number) => `$${(value / 1_000_000).toFixed(1)}m`;
+
+const sensitivity = economicBaseline.avoided_loss_sensitivity.map((scenario) => [
+  `${scenario.avoidable_loss_percent}%`,
+  formatUsdMillions(scenario.protected_value_usd_at_2022_median_damage),
+]);
+
+const populationBaselineMillions = (
+  economicBaseline.population.population_total_from_state_table / 1_000_000
+).toFixed(1);
+
+const fundingAllocation = [
+  ["Product and engineering", "£60,000", "Ship the Impact Graph, Decision Policy Compiler and Action-to-loss Outcome Ledger as one operating system."],
+  ["Data and infrastructure", "£22,500", "Run the evidence router and national benchmark while preserving permissioned action, acknowledgement and outcome records."],
+  ["Government and partnerships", "£22,500", "Integrate authoritative signals and prove closed-loop workflows beside agencies instead of duplicating their hydrology."],
+  ["Sales and customer acquisition", "£30,000", "Embed repeatable decision workflows inside insurers, agribusinesses, infrastructure operators and financial institutions."],
+  ["Legal and compliance", "£7,500", "Create the data-sharing, privacy, contracts, intellectual-property and procurement foundation required to hold sensitive operational evidence."],
+  ["Contingency", "£7,500", "Protect delivery against verified infrastructure, field and integration costs."],
 ];
 
 export default function InvestorReadinessPage() {
@@ -82,13 +99,23 @@ export default function InvestorReadinessPage() {
             {competitorRows.map(({system,strength,gapWeTarget,icon:Icon},index)=><div key={system} className={`grid gap-5 p-6 sm:p-8 lg:grid-cols-[.22fr_.39fr_.39fr] ${index ? "border-t border-slate-200 dark:border-white/10" : ""}`}><div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-950 text-lime-300"><Icon className="h-5 w-5" /></div><h3 className="pt-2 font-display text-lg font-black">{system}</h3></div><div><p className="text-[10px] font-black uppercase tracking-[.16em] text-slate-400">What they already do well</p><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{strength}</p></div><div><p className="text-[10px] font-black uppercase tracking-[.16em] text-emerald-700 dark:text-lime-300">Where we must win</p><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{gapWeTarget}</p></div></div>)}
           </div>
           <div className="mt-5 rounded-2xl bg-slate-50 p-5 text-sm leading-6 text-slate-600 dark:bg-white/5 dark:text-slate-300"><strong>Superiority rule:</strong> “better than Google” or “more accurate than NiHSA” is not published as a generic slogan. A named advantage appears only after a same-task, same-event, same-geography matched test wins that dimension. The frozen protocol lives in <code>validation/COMPETITOR_MATCHED_BENCHMARK_PROTOCOL.md</code>.</div>
+          <div className="mt-10 grid gap-5 rounded-[2rem] bg-[#061912] p-6 text-white sm:p-8 lg:grid-cols-[.72fr_1.28fr]">
+            <div><p className="text-xs font-black uppercase tracking-[.18em] text-lime-300">Why investors fund this</p><h3 className="mt-4 font-display text-3xl font-black">Own the system of record for flood decisions and outcomes.</h3></div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                ["Inputs", "Forecasts, gauges and advisories can come from the strongest authorized source."],
+                ["Context", "Private customer assets, dependencies and operating procedures make each decision specific."],
+                ["Compounding asset", "Verified action and loss outcomes make the next decision more defensible and harder to copy."],
+              ].map(([label, text]) => <article key={label} className="rounded-2xl border border-white/10 bg-white/[.055] p-4"><p className="text-[10px] font-black uppercase tracking-[.16em] text-white/40">{label}</p><p className="mt-3 text-sm leading-6 text-white/70">{text}</p></article>)}
+            </div>
+          </div>
         </div>
       </section>
 
       <section className="bg-[#eef2df] py-20 text-[#0b251b] sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl"><p className="text-xs font-black uppercase tracking-[.2em] text-emerald-800">The moat</p><h2 className="mt-4 font-display text-4xl font-black tracking-tight sm:text-5xl">One loop competitors have to assemble from several different systems.</h2></div>
-          <div className="mt-12 grid gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-3">{actionMoat.map(({icon:Icon,title,text},index)=><article key={title} className="border-t border-emerald-950/20 pt-5"><div className="flex items-center justify-between"><Icon className="h-5 w-5" /><span className="font-mono text-xs opacity-40">0{index+1}</span></div><h3 className="mt-6 font-display text-xl font-black">{title}</h3><p className="mt-3 text-sm leading-7 text-emerald-950/65">{text}</p></article>)}</div>
+          <div className="max-w-4xl"><p className="text-xs font-black uppercase tracking-[.2em] text-emerald-800">The compounding moat</p><h2 className="mt-4 font-display text-4xl font-black tracking-tight sm:text-5xl">Six assets that become stronger with every verified deployment.</h2><p className="mt-5 max-w-3xl text-base leading-8 text-emerald-950/65">Features are copyable. The defensible company is the permissioned graph, workflow integration and action-to-outcome evidence that accumulates behind those features.</p></div>
+          <div className="mt-12 grid gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-3">{compoundingAssets.map(({icon:Icon,title,text},index)=><article key={title} className="border-t border-emerald-950/20 pt-5"><div className="flex items-center justify-between"><Icon className="h-5 w-5" /><span className="font-mono text-xs opacity-40">0{index+1}</span></div><h3 className="mt-6 font-display text-xl font-black">{title}</h3><p className="mt-3 text-sm leading-7 text-emerald-950/65">{text}</p></article>)}</div>
         </div>
       </section>
 
@@ -109,7 +136,29 @@ export default function InvestorReadinessPage() {
 
       <section className="border-y border-slate-200 bg-slate-50 py-20 dark:border-white/10 dark:bg-white/[.025] sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-start"><div><div className="inline-flex items-center gap-2 rounded-full border border-emerald-800/15 px-4 py-2 text-xs font-black uppercase tracking-[.16em] text-emerald-800 dark:text-lime-300"><CircleDollarSign className="h-4 w-4" /> Economic decision layer</div><h2 className="mt-5 font-display text-4xl font-black tracking-tight sm:text-5xl">The model number is not the business number.</h2><p className="mt-5 text-sm leading-7 text-slate-500 dark:text-slate-300">The World Bank places direct damage from Nigeria&apos;s 2022 floods at US$3.79bn–US$9.12bn, with a median estimate of US$6.68bn. NaijaClimaGuard is building the exposure → expected loss → intervention → measured avoided loss chain so institutions can decide where action creates the most value.</p><div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100"><strong>Boundary:</strong> the values beside this text are sensitivity scenarios against the historical median damage reference. They are not money already saved by the platform.</div></div><div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[.035]"><div className="grid grid-cols-2 bg-[#061912] px-6 py-4 text-[10px] font-black uppercase tracking-[.15em] text-white/55"><span>Assumed avoidable share</span><span>Value protected in a 2022-scale event</span></div>{sensitivity.map(([pct,value])=><div key={pct} className="grid grid-cols-2 border-t border-slate-200 px-6 py-5 dark:border-white/10"><span className="font-display text-2xl font-black">{pct}</span><span className="font-display text-2xl font-black text-emerald-700 dark:text-lime-300">{value}</span></div>)}</div></div>
+          <div className="grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-start"><div><div className="inline-flex items-center gap-2 rounded-full border border-emerald-800/15 px-4 py-2 text-xs font-black uppercase tracking-[.16em] text-emerald-800 dark:text-lime-300"><CircleDollarSign className="h-4 w-4" /> Economic decision layer</div><h2 className="mt-5 font-display text-4xl font-black tracking-tight sm:text-5xl">The model number is not the business number.</h2><p className="mt-5 text-sm leading-7 text-slate-500 dark:text-slate-300">The World Bank places direct damage from Nigeria&apos;s 2022 floods at US$3.79bn–US$9.12bn, with a median estimate of US$6.68bn. The reproducible WorldPop 2025 state table registers {populationBaselineMillions} million people across all 36 states + FCT. NaijaClimaGuard is building the exposure → expected loss → intervention → measured avoided loss chain so institutions can decide where action creates the most value.</p><div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100"><strong>Boundary:</strong> population is not flood exposure until intersected with a hazard footprint. The values beside this text are sensitivity scenarios against the historical median damage reference. They are not money already saved by the platform.</div></div><div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[.035]"><div className="grid grid-cols-2 bg-[#061912] px-6 py-4 text-[10px] font-black uppercase tracking-[.15em] text-white/55"><span>Assumed avoidable share</span><span>Value protected in a 2022-scale event</span></div>{sensitivity.map(([pct,value])=><div key={pct} className="grid grid-cols-2 border-t border-slate-200 px-6 py-5 dark:border-white/10"><span className="font-display text-2xl font-black">{pct}</span><span className="font-display text-2xl font-black text-emerald-700 dark:text-lime-300">{value}</span></div>)}</div></div>
+        </div>
+      </section>
+
+      <section className="py-20 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr]">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-700 dark:text-lime-300">The 12-month raise</p>
+              <h2 className="mt-4 font-display text-5xl font-black tracking-tight sm:text-6xl">£150,000</h2>
+              <p className="mt-5 max-w-xl text-base leading-8 text-slate-500 dark:text-slate-300">Capital is tied to creating proprietary decision infrastructure and the first permissioned action-to-outcome records, while national retrospective proof and prospective monitoring establish the hazard evidence underneath it.</p>
+              <div className="mt-7 rounded-2xl bg-[#eef2df] p-5 text-sm leading-7 text-[#0b251b]"><strong>What this is not:</strong> funding to wait six to twelve months before learning anything. Historical replay produces a broader reproducible number now. Prospective shadow operation then tests whether that performance survives real deployment.</div>
+            </div>
+            <div className="overflow-hidden rounded-[2rem] border border-slate-200 dark:border-white/10">
+              {fundingAllocation.map(([category, amount, outcome], index) => (
+                <article key={category} className={`grid gap-3 p-5 sm:grid-cols-[.65fr_.25fr_1.1fr] sm:items-start sm:p-6 ${index ? "border-t border-slate-200 dark:border-white/10" : ""}`}>
+                  <h3 className="font-display text-base font-black">{category}</h3>
+                  <p className="font-display text-xl font-black text-emerald-700 dark:text-lime-300">{amount}</p>
+                  <p className="text-sm leading-6 text-slate-500 dark:text-slate-300">{outcome}</p>
+                </article>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

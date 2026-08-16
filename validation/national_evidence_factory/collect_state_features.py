@@ -27,12 +27,31 @@ def get(url, params, tries=4):
     raise RuntimeError(f"{url}: {last}")
 
 
-def geocode(capital):
-    data=get(GEOCODE,{"name":capital,"count":10,"language":"en","format":"json"})
-    results=data.get("results") or []
-    ng=[r for r in results if str(r.get("country_code","")).upper()=="NG"]
-    if not ng: raise RuntimeError(f"No Nigerian geocode for {capital}")
-    r=ng[0]; return float(r["latitude"]),float(r["longitude"]),float(r.get("elevation") or 0)
+def geocode(capital, state):
+    """Resolve a reproducible Nigerian anchor with safe name fallbacks.
+
+    Open-Meteo occasionally indexes a Nigerian capital under a hyphenated spelling
+    (for example Ado-Ekiti) or under the state name. Keeping the fallback order
+    explicit prevents one naming mismatch from aborting the national factory.
+    """
+    queries=[]
+    for candidate in (capital, capital.replace(" ", "-"), state):
+        if candidate and candidate not in queries:
+            queries.append(candidate)
+    for query in queries:
+        data=get(GEOCODE,{"name":query,"count":10,"language":"en","format":"json"})
+        results=data.get("results") or []
+        ng=[r for r in results if str(r.get("country_code","")).upper()=="NG"]
+        if ng:
+            r=ng[0]
+            return (
+                float(r["latitude"]),
+                float(r["longitude"]),
+                float(r.get("elevation") or 0),
+                query,
+                str(r.get("name") or query),
+            )
+    raise RuntimeError(f"No Nigerian geocode for capital={capital!r}, state={state!r}; tried {queries}")
 
 
 def main():
@@ -40,7 +59,7 @@ def main():
     jurisdictions=list(csv.DictReader(open(args.jurisdictions,encoding="utf-8")))
     frames=[]; geocodes=[]
     for idx,j in enumerate(jurisdictions,1):
-        lat,lon,elev=geocode(j["capital"]); geocodes.append({**j,"latitude":lat,"longitude":lon,"elevation_m":elev})
+        lat,lon,elev,query,matched_name=geocode(j["capital"],j["state"]); geocodes.append({**j,"latitude":lat,"longitude":lon,"elevation_m":elev,"geocode_query":query,"geocode_match":matched_name})
         data=get(ARCHIVE,{"latitude":lat,"longitude":lon,"start_date":args.start,"end_date":args.end,"daily":"precipitation_sum,et0_fao_evapotranspiration","models":"era5_land","timezone":"Africa/Lagos"})
         d=data.get("daily") or {}; dates=d.get("time") or []
         f=pd.DataFrame({"date":pd.to_datetime(dates),"precip_mm":d.get("precipitation_sum",[]),"et0_mm":d.get("et0_fao_evapotranspiration",[])})

@@ -86,6 +86,45 @@ This creates several strategic outcomes:
 
 Acquisition is an upside scenario, not a claim or guaranteed exit.
 
+## Why this deserves venture capital
+
+A list of flood features is not investable because an agency, global platform or well-funded software company can copy a list. The venture case depends on NaijaClimaGuard becoming the **system of record for flood decisions and outcomes**, starting in Nigeria.
+
+The compounding assets are:
+
+1. a multi-source evidence router that can use the strongest authorized forecast, gauge, sensor or advisory while preserving issue time and provenance;
+2. a permissioned Nigeria Impact Graph of each customer's people, assets, stock, facilities, suppliers and dependencies;
+3. a Decision Policy Compiler that turns operating procedures into assigned actions, escalation rules and deadlines;
+4. delivery, language, comprehension and acknowledgement telemetry;
+5. an Action-to-loss Outcome Ledger joining each warning to completed action and verified operational or financial outcome;
+6. a permissioned decision-performance dataset that improves local action policies and loss functions across deployments.
+
+This is a stronger defense than claiming ownership of public weather data. A competitor can copy interface features. It cannot instantly reproduce years of customer integrations, private asset context, accepted operating procedures and verified action-to-outcome evidence.
+
+This moat is not complete today. The current product contains important components, but the investment programme must prove that customers will connect operational context, execute workflows through the platform and permit outcome measurement. If that behavior is not proven, the company remains a useful application rather than a defensible network.
+
+### Proof gates for the moat
+
+An investor should be able to reject the thesis unless NaijaClimaGuard can demonstrate all of the following:
+
+1. **Source integrity:** every decision record preserves the real source, issue time, freshness and failure state.
+2. **Workflow integration:** a pilot partner has encoded accepted operating procedures, owners and escalation rules into the platform.
+3. **Matched decision advantage:** users reach the correct action faster or complete it more reliably than in the partner's current workflow, tested on the same scenario.
+4. **Real delivery evidence:** a channel is counted as delivered only when a real provider receipt exists, with acknowledgement and comprehension measured separately.
+5. **Outcome evidence:** warning, exposure, completed action and operational or financial outcome are joined in a partner-reviewable record.
+6. **Repeat commercial use:** customers continue using the integrated workflow across events or renew a paid deployment because removing it would break a valuable operating process.
+
+National model performance can support the company, but it does not substitute for these gates. The defensible asset is the repeatedly used decision-and-outcome network.
+
+## Why an agency or global platform does not make the company irrelevant
+
+- NiHSA should remain the hydrological authority and can provide stronger source evidence. NaijaClimaGuard can make that evidence executable inside customer operations.
+- NEMA can remain the emergency coordination authority. NaijaClimaGuard can provide a configurable evidence trail for assigned action, delivery, acknowledgement and outcome.
+- Google can remain a world-class forecasting and inundation provider. Its authorized output can become one input to customer-specific Nigerian decision workflows.
+- Insurers, banks, agribusinesses, logistics firms and infrastructure operators still have private assets, procedures, customers and loss data that a public national dashboard does not automatically own.
+
+The company wins only if it integrates the best available hazard intelligence and owns the measurable decision-to-outcome layer above it.
+
 ## Current proof stack
 
 ### Already defensible
@@ -132,6 +171,15 @@ Headline format:
 
 This is the fastest honest route to a broader number while prospective evidence continues.
 
+### What substitutes for waiting on prospective GloFAS evidence
+
+Do not stop Riverine Watch or change its frozen evidence rules. Run two proof tracks in parallel:
+
+1. **National retrospective replay now:** reconstruct state-level historical environmental conditions, score only out of time and with the test state held out, then compare against independently documented flood events.
+2. **Prospective operational proof continuously:** keep Riverine Watch ingesting issue-time NASA rainfall history and GloFAS operational forecasts so future events can upgrade the operational claim.
+
+The first track produces a broader reproducible number without waiting six to twelve months. The second track remains the stronger future proof because it records what the system actually knew before an event. The two results must never be blended into one accuracy claim.
+
 ### Number we should not invent
 
 - national real-time accuracy;
@@ -152,6 +200,22 @@ A transparent stress-case sensitivity shows:
 - 5% = US$334m
 
 These are opportunity scenarios, not realized savings.
+
+The reproducible WorldPop 2025 state table currently registers **237,527,790 people across 36 states + FCT**. This is a population baseline, not flood exposure. Exposure is only claimed after people/assets are intersected with a defensible hazard footprint.
+
+## Funding ask and use of funds
+
+The investor ask is **£150,000 for 12 months**:
+
+| Use | Allocation | Delivery objective |
+| --- | ---: | --- |
+| Product and engineering | £60,000 | Ship the Impact Graph, Decision Policy Compiler and Action-to-loss Outcome Ledger as one operating system. |
+| Data and infrastructure | £22,500 | Run the evidence router and national benchmark while preserving permissioned action, acknowledgement and outcome records. |
+| Government and partnership development | £22,500 | Integrate authoritative signals and prove closed-loop workflows beside agencies instead of duplicating their hydrology. |
+| Sales and customer acquisition | £30,000 | Embed repeatable workflows inside insurers, agribusinesses, infrastructure operators and financial institutions. |
+| Legal and compliance | £7,500 | Create the data-sharing, privacy, contracts, intellectual-property and procurement foundation required for sensitive operational evidence. |
+| Contingency | £7,500 | Protect delivery against verified infrastructure, field and integration costs. |
+| **Total** | **£150,000** | **Twelve-month evidence and commercialisation runway.** |
 
 ## What an investor should understand in 30 seconds
 

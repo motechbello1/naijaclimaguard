@@ -27,6 +27,19 @@ NEMA published severe national impact figures for the 2022 flood season, includi
 Reference:
 https://nema.gov.ng/flood-21-states-have-received-relief-materials/
 
+## Reproducible population baseline
+
+The committed WorldPop Nigeria population v3.0 state table provides a 2025 baseline of **237,527,790 people across all 36 states and the FCT**.
+
+This figure must remain correctly bounded:
+
+- it is a national population baseline;
+- it is not the number of people exposed to flooding;
+- it is not a NaijaClimaGuard reach or impact number;
+- flood exposure requires intersection with a dated hazard or inundation footprint.
+
+The source rows, state aggregation and machine-readable audit record are preserved in `data/economic/`.
+
 ## Avoided-loss scenario model
 
 Using the World Bank median 2022 direct-damage estimate of **US$6.68 billion** as a stress-case reference:
@@ -37,7 +50,6 @@ Using the World Bank median 2022 direct-damage estimate of **US$6.68 billion** a
 | Low | 1% | US$66.8 million |
 | Moderate | 2% | US$133.6 million |
 | Strong | 5% | US$334.0 million |
-| Very strong | 10% | US$668.0 million |
 
 These are **not realized NaijaClimaGuard savings**. They are sensitivity scenarios showing why even small improvements in warning reach, decision speed, asset movement, business continuity or agency coordination can have material economic value during a catastrophic flood year.
 
@@ -127,6 +139,22 @@ The product can support several revenue paths without depending on consumer subs
 - white-label or embedded decision-support components.
 
 Any price quoted to an institution should be based on scope, number of locations/users, source integrations, delivery channels, reporting requirements and support obligations.
+
+## Investment case
+
+The proposed raise is **£150,000 for a 12-month evidence and commercialisation programme**.
+
+| Allocation | Amount |
+| --- | ---: |
+| Product and engineering | £60,000 |
+| Data and infrastructure | £22,500 |
+| Government and partnership development | £22,500 |
+| Sales and customer acquisition | £30,000 |
+| Legal and compliance | £7,500 |
+| Contingency | £7,500 |
+| **Total** | **£150,000** |
+
+This ask is justified by the proof sequence, not by a promise to wait for one future flood season. The national retrospective evidence factory produces a broader benchmark now, prospective Riverine Watch evidence continues in parallel, and institutional pilots measure action and economic outcomes before any realized-savings claim is published.
 
 ## Investor-safe economic headline
 
