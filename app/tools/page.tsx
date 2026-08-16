@@ -4,10 +4,11 @@ import AppShell from "@/components/shared/AppShell";
 import { useLanguage } from "@/components/shared/LanguageProvider";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   BellRing, Bot, BriefcaseBusiness, CircleDollarSign, ClipboardCheck, Code2,
   FileCheck2, Gauge, Landmark, Map, MapPin, Megaphone, Presentation,
-  Radar, Search, ShieldAlert, ShoppingBag, Telescope, UserRound, Waves,
+  Radar, Search, ShieldAlert, Telescope, UserRound, Waves, BadgeDollarSign,
 } from "lucide-react";
 
 const GROUPS = [
@@ -36,13 +37,13 @@ const GROUPS = [
     ],
   },
   {
-    title: "Operate, buy and coordinate",
-    subtitle: "For teams, institutions and customers using NaijaClimaGuard at scale.",
+    title: "Operate and coordinate",
+    subtitle: "For agencies, institutions and teams managing multiple places.",
     tools: [
-      { href: "/commercial", label: "Plans, API credits & enterprise", note: "Buy Family Plus, Business Starter or API credits, manage your workspace, or request a custom rollout.", icon: ShoppingBag },
       { href: "/command", label: "Command queue", note: "Coordinate operational priorities and follow-up.", icon: Landmark },
       { href: "/impact", label: "Economic Impact", note: "Connect flood risk to exposure, losses and intervention scenarios.", icon: CircleDollarSign },
       { href: "/api-docs", label: "Developer API", note: "Integrate NaijaClimaGuard into another product or workflow.", icon: Code2 },
+      { href: "/commercial", label: "Plans, API credits & enterprise", note: "Buy a plan or API credits, manage your commercial entitlement, or request a larger deployment.", icon: BriefcaseBusiness },
       { href: "/revenue", label: "Revenue Engine", note: "See how the platform can earn across consumer, institutional and infrastructure layers.", icon: BriefcaseBusiness },
       { href: "/pitch", label: "Pitch Mode", note: "Present the problem, product, evidence and business model from the website.", icon: Presentation },
     ],
@@ -57,14 +58,22 @@ const GROUPS = [
   },
 ];
 
+const FOUNDER_TOOL = { href: "/revenue/command", label: "Founder Revenue Command", note: "Track collected revenue, recurring run-rate, checkout conversion, renewals and enterprise pipeline.", icon: BadgeDollarSign };
+
 export default function ToolsPage() {
   const { locale } = useLanguage();
+  const { data: session } = useSession();
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
-  const filtered = useMemo(() => GROUPS.map((group) => ({
-    ...group,
-    tools: group.tools.filter((tool) => !q || `${tool.label} ${tool.note}`.toLowerCase().includes(q)),
-  })).filter((group) => group.tools.length), [q]);
+  const revenueAdmin = Boolean((session?.user as any)?.revenueAdmin);
+
+  const filtered = useMemo(() => GROUPS.map((group) => {
+    const tools = group.title === "Operate and coordinate" && revenueAdmin ? [...group.tools, FOUNDER_TOOL] : group.tools;
+    return {
+      ...group,
+      tools: tools.filter((tool) => !q || `${tool.label} ${tool.note}`.toLowerCase().includes(q)),
+    };
+  }).filter((group) => group.tools.length), [q, revenueAdmin]);
 
   const title = locale === "pcm" ? "Find anything for NaijaClimaGuard" : locale === "ha" ? "Nemo duk abin da kake buƙata" : locale === "yo" ? "Wá ohun gbogbo tí o nílò" : locale === "ig" ? "Chọta ihe ọ bụla ị chọrọ" : "Find anything in NaijaClimaGuard";
   const intro = locale === "pcm" ? "No feature suppose hide because design change. Search am or choose wetin you wan do." : "The redesign should never hide a capability. Search by what you want to do, or browse every tool in one place.";
@@ -80,7 +89,7 @@ export default function ToolsPage() {
           <p className="mt-4 max-w-2xl text-sm leading-7 text-white/66 sm:text-base">{intro}</p>
           <label className="mt-7 flex max-w-2xl items-center gap-3 rounded-full border border-white/14 bg-white/8 px-5 py-3.5">
             <Search className="h-5 w-5 shrink-0 text-[#d9ff57]" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search alerts, plans, API credits, evidence, location analysis…" className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search alerts, evidence, location analysis, API…" className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35" />
           </label>
         </section>
 
@@ -105,7 +114,7 @@ export default function ToolsPage() {
           </section>
         ))}
 
-        {filtered.length === 0 && <div className="rounded-[28px] border border-black/7 bg-white p-8 text-center dark:border-white/8 dark:bg-white/[.04]"><p className="font-black">No tool matched that search.</p><p className="mt-2 text-sm text-slate-500">Try a task such as alerts, plans, API, evidence, report, farm, or location.</p></div>}
+        {filtered.length === 0 && <div className="rounded-[28px] border border-black/7 bg-white p-8 text-center dark:border-white/8 dark:bg-white/[.04]"><p className="font-black">No tool matched that search.</p><p className="mt-2 text-sm text-slate-500">Try a task such as alerts, evidence, API, report, farm, or location.</p></div>}
       </div>
     </AppShell>
   );
