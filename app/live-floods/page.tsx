@@ -1,6 +1,7 @@
 "use client";
 
 import AppShell from "@/components/shared/AppShell";
+import NationwideLgaScout from "@/components/live/NationwideLgaScout";
 import NationalNowcast from "@/components/live/NationalNowcast";
 import IncidentLearningLoop from "@/components/live/IncidentLearningLoop";
 import { useEffect, useMemo, useState } from "react";
@@ -98,22 +99,23 @@ export default function LiveFloodsPage() {
           <div>
             <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-radar"><Activity className="h-4 w-4" /> Nationwide incident fusion</div>
             <h1 className="font-display text-3xl font-bold sm:text-4xl">Live Flood Intelligence</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">NaijaClimaGuard continuously scans flood reports and warnings from Nigerian and global news discovery feeds. This layer tells us what is being reported now across all states, instead of waiting for someone to manually search the news.</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">One operational view now combines nationwide rainfall screening, deeper hotspot checks, live flood reports and the model learning loop. The system tries to identify danger before a headline, then uses verified reporting afterward to measure what it missed.</p>
           </div>
-          <button onClick={() => load()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold shadow-sm transition hover:border-radar/40 dark:border-midnight-border dark:bg-midnight-light"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh now</button>
+          <button onClick={() => load()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold shadow-sm transition hover:border-radar/40 dark:border-midnight-border dark:bg-midnight-light"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh reports</button>
         </header>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Metric icon={Newspaper} label="Reports found · 24h" value={last24h.length} detail="External flood reports and warnings" />
           <Metric icon={ShieldAlert} label="Reported flooding · 24h" value={reported.length} detail="Headlines describing flooding already occurring" danger={reported.length > 0} />
           <Metric icon={Waves} label="States/FCT mentioned · 24h" value={affectedStates.size} detail="Automatically extracted from report text" />
-          <Metric icon={Activity} label="Discovery sources online" value={`${liveSources}/${data?.sourceHealth?.length || 0}`} detail="Feed refreshes automatically every minute" />
+          <Metric icon={Activity} label="Discovery sources online" value={`${liveSources}/${data?.sourceHealth?.length || 0}`} detail="News confirmation refreshes every minute" />
         </div>
 
         <section className="rounded-2xl border border-amber/20 bg-amber/5 p-4 sm:p-5">
-          <div className="flex gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber" /><div><h2 className="text-sm font-bold">News is a confirmation sensor, not the first warning</h2><p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">If Vanguard, Guardian, Daily Trust or another outlet reports that cars are already floating, the incident layer records that immediately. Earlier warning belongs to rainfall nowcasting, antecedent wetness, official alerts and geolocated citizen reports. We keep those evidence types separate so a headline is never mistaken for a model forecast.</p></div></div>
+          <div className="flex gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber" /><div><h2 className="text-sm font-bold">Prediction and confirmation are intentionally different layers</h2><p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">Rainfall and atmospheric signals are used for early screening. News and verified reports tell us what was publicly observed afterward. Keeping them separate inside one product lets NaijaClimaGuard learn from genuine misses without pretending a late headline was an early prediction.</p></div></div>
         </section>
 
+        <NationwideLgaScout />
         <NationalNowcast />
         <IncidentLearningLoop />
 
@@ -153,7 +155,7 @@ export default function LiveFloodsPage() {
           ))}
         </section>
 
-        <footer className="rounded-2xl border border-slate-200 p-4 text-xs leading-5 text-slate-500 dark:border-midnight-border">Last scan: {data?.generatedAt ? new Date(data.generatedAt).toLocaleString("en-NG") : "not available"}. External reporting can be late or wrong, so NaijaClimaGuard keeps source, time and wording visible instead of silently converting news into ground truth. Precise road closures require geolocated evidence; corroborated, named neighbourhoods can create broad route caution zones but not automatic road-closure claims.</footer>
+        <footer className="rounded-2xl border border-slate-200 p-4 text-xs leading-5 text-slate-500 dark:border-midnight-border">Last news scan: {data?.generatedAt ? new Date(data.generatedAt).toLocaleString("en-NG") : "not available"}. External reporting can be late or wrong, so NaijaClimaGuard keeps source, time and wording visible instead of silently converting news into ground truth. Precise road closures require geolocated evidence; rainfall scouts create caution and investigation signals, not automatic road-closure claims.</footer>
       </div>
     </AppShell>
   );
