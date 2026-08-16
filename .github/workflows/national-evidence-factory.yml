@@ -1,0 +1,52 @@
+name: National Evidence Factory
+
+on:
+  push:
+    branches: [investor-national-scale-readiness]
+    paths:
+      - "validation/national_evidence_factory/**"
+      - ".github/workflows/national-evidence-factory.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: national-evidence-factory-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-national-retrospective-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install benchmark dependencies
+        run: python -m pip install --upgrade pip requests pandas numpy scikit-learn
+      - name: Contract syntax check
+        run: |
+          python -m py_compile validation/national_evidence_factory/collect_national_events.py
+          python -m py_compile validation/national_evidence_factory/collect_state_features.py
+          python -m py_compile validation/national_evidence_factory/run_benchmark.py
+      - name: Build independent flood-event registry
+        run: |
+          python validation/national_evidence_factory/collect_national_events.py \
+            --start 2018-01-01 --end 2025-12-31
+      - name: Build nationally consistent historical feature layer
+        run: |
+          python validation/national_evidence_factory/collect_state_features.py \
+            --start 2018-01-01 --end 2025-12-31
+      - name: Run frozen out-of-time + held-out-state benchmark
+        run: python validation/national_evidence_factory/run_benchmark.py
+      - name: Preserve evidence bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: national-evidence-factory-${{ github.sha }}
+          path: validation/national_evidence_factory/out/
+          if-no-files-found: warn
+          retention-days: 90
