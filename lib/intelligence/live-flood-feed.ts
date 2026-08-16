@@ -21,15 +21,13 @@ export interface LiveFloodFeedResult {
 }
 
 type Jurisdiction = { state: string; aliases: string[] };
+const UNPARSED = "Nigeria / location unparsed";
 
-// Deliberately includes FCT plus all 36 states and common city/district aliases.
-// This is location extraction, not geocoding: a news article can still be shown
-// even when its precise road cannot be safely inferred from the headline.
 export const NIGERIA_JURISDICTIONS: Jurisdiction[] = [
   { state: "Abia", aliases: ["abia", "umuahia", "aba"] },
   { state: "Adamawa", aliases: ["adamawa", "yola", "mubi"] },
   { state: "Akwa Ibom", aliases: ["akwa ibom", "uyo", "eket"] },
-  { state: "Anambra", aliases: ["anambra", "awka", "onitsha", "nnewi"] },
+  { state: "Anambra", aliases: ["anambra", "awka", "onitsha", "nnewi", "ogidi"] },
   { state: "Bauchi", aliases: ["bauchi"] },
   { state: "Bayelsa", aliases: ["bayelsa", "yenagoa"] },
   { state: "Benue", aliases: ["benue", "makurdi"] },
@@ -40,7 +38,7 @@ export const NIGERIA_JURISDICTIONS: Jurisdiction[] = [
   { state: "Edo", aliases: ["edo state", "benin city"] },
   { state: "Ekiti", aliases: ["ekiti", "ado ekiti", "ado-ekiti"] },
   { state: "Enugu", aliases: ["enugu", "nsukka"] },
-  { state: "FCT", aliases: ["fct", "abuja", "maitama", "asokoro", "garki", "wuse", "lugbe", "kubwa", "jabi", "gwarinpa", "apo", "guzape", "nyanya", "kuje", "gwagwalada", "bwari"] },
+  { state: "FCT", aliases: ["fct", "abuja", "maitama", "asokoro", "garki", "wuse", "wuse 2", "gudu", "lokogoma", "gaduwa", "lugbe", "kubwa", "jabi", "gwarinpa", "apo", "guzape", "nyanya", "kuje", "gwagwalada", "bwari"] },
   { state: "Gombe", aliases: ["gombe"] },
   { state: "Imo", aliases: ["imo state", "owerri"] },
   { state: "Jigawa", aliases: ["jigawa", "dutse"] },
@@ -52,7 +50,7 @@ export const NIGERIA_JURISDICTIONS: Jurisdiction[] = [
   { state: "Kwara", aliases: ["kwara", "ilorin"] },
   { state: "Lagos", aliases: ["lagos", "ikeja", "lekki", "victoria island", "ikorodu", "epe", "ajah"] },
   { state: "Nasarawa", aliases: ["nasarawa", "lafia", "keffi", "mararaba"] },
-  { state: "Niger", aliases: ["niger state", "minna", "suleja", "bida"] },
+  { state: "Niger", aliases: ["niger state", "minna", "suleja", "bida", "shiroro"] },
   { state: "Ogun", aliases: ["ogun", "abeokuta", "ijebu ode", "ota", "sagamu"] },
   { state: "Ondo", aliases: ["ondo state", "akure"] },
   { state: "Osun", aliases: ["osun", "osogbo", "ile-ife", "ile ife", "ilesa"] },
@@ -67,11 +65,8 @@ export const NIGERIA_JURISDICTIONS: Jurisdiction[] = [
 
 const decodeHtml = (value: string) => value
   .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-  .replace(/&amp;/g, "&")
-  .replace(/&quot;/g, '"')
-  .replace(/&#39;|&apos;/g, "'")
-  .replace(/&lt;/g, "<")
-  .replace(/&gt;/g, ">");
+  .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
+  .replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 
 function cleanText(value: string) {
   return decodeHtml(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -79,95 +74,70 @@ function cleanText(value: string) {
 
 function stableId(value: string) {
   let hash = 2166136261;
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
+  for (let i = 0; i < value.length; i += 1) { hash ^= value.charCodeAt(i); hash = Math.imul(hash, 16777619); }
   return `flood-${(hash >>> 0).toString(16)}`;
+}
+
+function escapeRegExp(value: string) { return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function aliasAppears(text: string, alias: string) {
+  const escaped = escapeRegExp(alias.toLowerCase()).replace(/[-\s]+/g, "[-\\s]+");
+  return new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i").test(text);
 }
 
 function extractLocations(text: string) {
   const lower = text.toLowerCase();
-  const matches = NIGERIA_JURISDICTIONS
-    .map((entry) => ({
-      state: entry.state,
-      areas: entry.aliases.filter((alias) => lower.includes(alias)),
-    }))
-    .filter((entry) => entry.areas.length > 0);
-
-  if (!matches.length) return { state: "Nigeria / location unparsed", areas: [] as string[] };
-  const primary = matches[0];
-  return {
-    state: primary.state,
-    areas: primary.areas.slice(0, 4).map((area) => area.replace(/\b\w/g, (c) => c.toUpperCase())),
-  };
+  const hits: Array<{ state: string; alias: string }> = [];
+  for (const entry of NIGERIA_JURISDICTIONS) {
+    for (const alias of entry.aliases) if (aliasAppears(lower, alias)) hits.push({ state: entry.state, alias });
+  }
+  if (!hits.length) return { state: UNPARSED, areas: [] as string[] };
+  hits.sort((a, b) => b.alias.length - a.alias.length);
+  const state = hits[0].state;
+  const areas = hits.filter((hit) => hit.state === state).map((hit) => hit.alias)
+    .filter((value, index, all) => all.indexOf(value) === index)
+    .slice(0, 4).map((area) => area.replace(/\b\w/g, (c) => c.toUpperCase()));
+  return { state, areas };
 }
 
 function classify(title: string): { status: FloodFeedStatus; severity: number } {
   const value = title.toLowerCase();
-
-  const severe = [
-    "sweeps", "swept", "submerged", "washed away", "cars floating", "vehicles floating",
-    "trapped", "displaced", "dead", "death", "drowned", "collapse", "rescue",
-  ].some((word) => value.includes(word));
+  const severe = ["sweeps", "swept", "submerge", "submerged", "submerges", "washed away", "cars floating", "vehicles floating", "trapped", "displaced", "drowned", "collapse", "rescue"]
+    .some((word) => value.includes(word));
   if (severe) return { status: "REPORTED", severity: 4 };
-
-  const occurred = [
-    "floods", "flooded", "flooding", "flash flood", "inundated", "overflowed",
-    "flood sweeps", "flood hits", "flood ravages",
-  ].some((word) => value.includes(word));
+  const occurred = ["floods", "flooded", "flooding", "flash flood", "inundated", "overflowed", "flood hits", "flood ravages"]
+    .some((word) => value.includes(word));
   if (occurred) return { status: "REPORTED", severity: 3 };
-
-  const warning = ["warning", "alert", "evacuate", "expected to flood", "flood risk", "high risk"].some((word) => value.includes(word));
-  if (warning) return { status: "WARNING", severity: 2 };
-
-  const watch = ["rain", "rainfall", "downpour", "storm", "forecast"].some((word) => value.includes(word));
-  if (watch) return { status: "WATCH", severity: 1 };
-
+  if (["warning", "alert", "evacuate", "expected to flood", "flood risk", "high risk"].some((word) => value.includes(word))) return { status: "WARNING", severity: 2 };
+  if (["rain", "rainfall", "downpour", "storm", "forecast"].some((word) => value.includes(word))) return { status: "WATCH", severity: 1 };
   return { status: "UNVERIFIED", severity: 0 };
 }
 
 function parseDate(value: string | undefined) {
   if (!value) return new Date(0).toISOString();
   if (/^\d{8}T\d{6}Z?$/.test(value)) {
-    const y = value.slice(0, 4), m = value.slice(4, 6), d = value.slice(6, 8);
-    const hh = value.slice(9, 11), mm = value.slice(11, 13), ss = value.slice(13, 15);
-    const parsed = new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}Z`);
+    const parsed = new Date(`${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`);
     if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
   }
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? new Date(0).toISOString() : parsed.toISOString();
 }
 
+function isNigeriaItem(item: LiveFloodFeedItem) {
+  return item.state !== UNPARSED || /\bnigeria(?:n)?\b/i.test(item.title);
+}
+
 async function fetchGdelt(): Promise<LiveFloodFeedItem[]> {
   const query = encodeURIComponent('(flood OR flooding OR "flash flood" OR inundation) Nigeria');
-  const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=ArtList&maxrecords=100&format=json&timespan=2d&sort=HybridRel`;
-  const response = await fetch(url, { next: { revalidate: 120 }, signal: AbortSignal.timeout(9000) });
+  const response = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=ArtList&maxrecords=100&format=json&timespan=2d&sort=HybridRel`, { next: { revalidate: 120 }, signal: AbortSignal.timeout(9000) });
   if (!response.ok) throw new Error(`GDELT ${response.status}`);
   const data = await response.json();
-  const articles = Array.isArray(data?.articles) ? data.articles : [];
-
-  return articles
-    .map((article: any) => {
-      const title = cleanText(String(article?.title ?? ""));
-      const urlValue = String(article?.url ?? "");
-      const source = String(article?.domain ?? "GDELT").replace(/^www\./, "");
-      const location = extractLocations(title);
-      const risk = classify(title);
-      return {
-        id: stableId(`${title}|${urlValue}`),
-        title,
-        url: urlValue,
-        source,
-        publishedAt: parseDate(article?.seendate),
-        state: location.state,
-        areas: location.areas,
-        status: risk.status,
-        severity: risk.severity,
-        channel: "news" as const,
-      };
-    })
-    .filter((item: LiveFloodFeedItem) => item.title && item.url && /flood|inundat/i.test(item.title));
+  return (Array.isArray(data?.articles) ? data.articles : []).map((article: any) => {
+    const title = cleanText(String(article?.title ?? ""));
+    const url = String(article?.url ?? "");
+    const location = extractLocations(title);
+    const risk = classify(title);
+    return { id: stableId(`${title}|${url}`), title, url, source: String(article?.domain ?? "GDELT").replace(/^www\./, ""), publishedAt: parseDate(article?.seendate), state: location.state, areas: location.areas, status: risk.status, severity: risk.severity, channel: "news" as const };
+  }).filter((item: LiveFloodFeedItem) => item.title && item.url && /flood|inundat/i.test(item.title) && isNigeriaItem(item));
 }
 
 function readXmlTag(item: string, tag: string) {
@@ -176,33 +146,18 @@ function readXmlTag(item: string, tag: string) {
 }
 
 async function fetchGoogleNews(query: string): Promise<LiveFloodFeedItem[]> {
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-NG&gl=NG&ceid=NG:en`;
-  const response = await fetch(url, { next: { revalidate: 120 }, signal: AbortSignal.timeout(9000) });
+  const response = await fetch(`https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-NG&gl=NG&ceid=NG:en`, { next: { revalidate: 120 }, signal: AbortSignal.timeout(9000) });
   if (!response.ok) throw new Error(`Google News ${response.status}`);
   const xml = await response.text();
   const chunks = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? [];
-
   return chunks.map((chunk) => {
     const title = readXmlTag(chunk, "title");
     const link = readXmlTag(chunk, "link");
-    const publishedAt = parseDate(readXmlTag(chunk, "pubDate"));
     const sourceMatch = chunk.match(/<source(?:\s[^>]*)?>([\s\S]*?)<\/source>/i);
-    const source = sourceMatch ? cleanText(sourceMatch[1]) : "Google News";
     const location = extractLocations(title);
     const risk = classify(title);
-    return {
-      id: stableId(`${title}|${link}`),
-      title,
-      url: link,
-      source,
-      publishedAt,
-      state: location.state,
-      areas: location.areas,
-      status: risk.status,
-      severity: risk.severity,
-      channel: "news" as const,
-    };
-  }).filter((item) => item.title && item.url && /flood|inundat/i.test(item.title));
+    return { id: stableId(`${title}|${link}`), title, url: link, source: sourceMatch ? cleanText(sourceMatch[1]) : "Google News", publishedAt: parseDate(readXmlTag(chunk, "pubDate")), state: location.state, areas: location.areas, status: risk.status, severity: risk.severity, channel: "news" as const };
+  }).filter((item) => item.title && item.url && /flood|inundat/i.test(item.title) && isNigeriaItem(item));
 }
 
 export async function fetchLiveFloodFeed(): Promise<LiveFloodFeedResult> {
@@ -214,40 +169,23 @@ export async function fetchLiveFloodFeed(): Promise<LiveFloodFeedResult> {
     { source: "Daily Trust", run: () => fetchGoogleNews('site:dailytrust.com (flood OR flooding) Nigeria when:3d') },
     { source: "TheCable", run: () => fetchGoogleNews('site:thecable.ng (flood OR flooding) Nigeria when:3d') },
   ];
-
   const settled = await Promise.allSettled(sourceJobs.map((job) => job.run()));
   const sourceHealth = settled.map((result, index) => ({ source: sourceJobs[index].source, ok: result.status === "fulfilled" }));
   const combined = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
-
   const deduped = new Map<string, LiveFloodFeedItem>();
   for (const item of combined) {
     const key = item.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     const current = deduped.get(key);
-    if (!current || item.severity > current.severity || new Date(item.publishedAt) > new Date(current.publishedAt)) {
-      deduped.set(key, item);
-    }
+    if (!current || item.severity > current.severity || new Date(item.publishedAt) > new Date(current.publishedAt)) deduped.set(key, item);
   }
-
-  const items = Array.from(deduped.values())
-    .filter((item) => item.status !== "UNVERIFIED")
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    .slice(0, 150);
-
+  const items = Array.from(deduped.values()).filter((item) => item.status !== "UNVERIFIED")
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 150);
   const summary = new Map<string, { count: number; highestSeverity: number; latestAt: string }>();
   for (const item of items) {
     const current = summary.get(item.state) ?? { count: 0, highestSeverity: 0, latestAt: item.publishedAt };
-    current.count += 1;
-    current.highestSeverity = Math.max(current.highestSeverity, item.severity);
+    current.count += 1; current.highestSeverity = Math.max(current.highestSeverity, item.severity);
     if (new Date(item.publishedAt) > new Date(current.latestAt)) current.latestAt = item.publishedAt;
     summary.set(item.state, current);
   }
-
-  return {
-    generatedAt: new Date().toISOString(),
-    items,
-    stateSummary: Array.from(summary.entries())
-      .map(([state, value]) => ({ state, ...value }))
-      .sort((a, b) => b.highestSeverity - a.highestSeverity || b.count - a.count),
-    sourceHealth,
-  };
+  return { generatedAt: new Date().toISOString(), items, stateSummary: Array.from(summary.entries()).map(([state, value]) => ({ state, ...value })).sort((a, b) => b.highestSeverity - a.highestSeverity || b.count - a.count), sourceHealth };
 }
