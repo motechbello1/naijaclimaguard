@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { commercialProduct } from "@/lib/commercial-products";
 
-const PROFESSIONAL_AMOUNT_KOBO = 1_500_000;
-const PRODUCT = "NaijaClimaGuard";
-
-function dashboard(baseUrl: string, params: string) {
-  return NextResponse.redirect(new URL(`/dashboard?${params}`, baseUrl));
+function commercial(baseUrl: string, params: string) {
+  return NextResponse.redirect(new URL(`/commercial?${params}`, baseUrl));
 }
 
 export async function GET(request: NextRequest) {
@@ -13,8 +11,8 @@ export async function GET(request: NextRequest) {
   const ref = searchParams.get("reference") || searchParams.get("trxref");
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://naijaclimaguard.vercel.app";
 
-  if (!ref) return dashboard(baseUrl, "payment=failed&reason=no_reference");
-  if (!process.env.PAYSTACK_SECRET_KEY) return dashboard(baseUrl, "payment=failed&reason=payment_not_configured");
+  if (!ref) return commercial(baseUrl, "payment=failed&reason=no_reference");
+  if (!process.env.PAYSTACK_SECRET_KEY) return commercial(baseUrl, "payment=failed&reason=payment_not_configured");
 
   try {
     const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(ref)}`, {
@@ -23,55 +21,48 @@ export async function GET(request: NextRequest) {
     });
     const payload = await res.json();
     const tx = payload?.data;
-
-    if (!res.ok || !payload?.status || tx?.status !== "success") {
-      return dashboard(baseUrl, "payment=failed&reason=not_successful");
-    }
+    if (!res.ok || !payload?.status || tx?.status !== "success") return commercial(baseUrl, "payment=failed&reason=not_successful");
 
     const metadata = tx.metadata || {};
+    const product = commercialProduct(metadata.product_code);
     const customerEmail = String(tx.customer?.email || "").toLowerCase();
     const expectedEmail = String(metadata.account_email || "").toLowerCase();
     const accountUserId = String(metadata.account_user_id || "");
+    const orderId = String(metadata.order_id || "");
 
-    const validEntitlement =
-      metadata.product === PRODUCT &&
-      metadata.plan === "professional" &&
-      Number(metadata.expected_amount_kobo) === PROFESSIONAL_AMOUNT_KOBO &&
-      Number(tx.amount) === PROFESSIONAL_AMOUNT_KOBO &&
-      String(tx.currency || "").toUpperCase() === "NGN" &&
-      Boolean(accountUserId) &&
-      Boolean(expectedEmail) &&
-      customerEmail === expectedEmail;
-
-    if (!validEntitlement) {
-      console.error("Rejected Paystack entitlement mismatch", {
-        reference: ref,
-        product: metadata.product,
-        plan: metadata.plan,
-        amount: tx.amount,
-        currency: tx.currency,
-      });
-      return dashboard(baseUrl, "payment=failed&reason=entitlement_mismatch");
+    if (!product || metadata.product !== "NaijaClimaGuard" || Number(tx.amount) !== product.amountKobo || String(tx.currency || "").toUpperCase() !== product.currency || !accountUserId || !orderId || customerEmail !== expectedEmail) {
+      return commercial(baseUrl, "payment=failed&reason=entitlement_mismatch");
     }
 
-    const user = await prisma.user.findFirst({
-      where: { id: accountUserId, email: expectedEmail },
-      select: { id: true, plan: true },
+    const order = await prisma.commercialOrder.findFirst({ where: { id: orderId, userId: accountUserId, productCode: product.code } });
+    if (!order) return commercial(baseUrl, "payment=failed&reason=order_mismatch");
+    if (order.status === "PAID") return commercial(baseUrl, `payment=success&product=${product.code}`);
+
+    await prisma.$transaction(async (db) => {
+      await db.commercialOrder.update({ where: { id: order.id }, data: { status: "PAID", paidAt: new Date(), reference: ref } });
+
+      if (product.kind === "credits") {
+        await db.apiCreditWallet.upsert({
+          where: { userId: accountUserId },
+          create: { userId: accountUserId, balance: product.credits, purchased: product.credits },
+          update: { balance: { increment: product.credits }, purchased: { increment: product.credits } },
+        });
+      } else if (product.plan) {
+        await db.user.update({ where: { id: accountUserId }, data: { plan: product.plan } });
+        if (product.plan === "BUSINESS_STARTER") {
+          const existing = await db.organizationWorkspace.findFirst({ where: { ownerUserId: accountUserId, status: "ACTIVE" } });
+          if (!existing) {
+            await db.organizationWorkspace.create({
+              data: { ownerUserId: accountUserId, name: "My organisation", organizationType: "business", plan: "BUSINESS_STARTER", seatLimit: 5, locationLimit: 25 },
+            });
+          }
+        }
+      }
     });
-    if (!user) return dashboard(baseUrl, "payment=failed&reason=account_mismatch");
-    if (user.plan === "ENTERPRISE") return dashboard(baseUrl, "payment=failed&reason=enterprise_contract_managed");
 
-    // Public checkout can grant PROFESSIONAL only. There is no Enterprise path here.
-    if (user.plan !== "PROFESSIONAL") {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { plan: "PROFESSIONAL" },
-      });
-    }
-
-    return dashboard(baseUrl, "payment=success&plan=professional");
+    return commercial(baseUrl, `payment=success&product=${product.code}`);
   } catch (error) {
     console.error("Payment verification error:", error);
-    return dashboard(baseUrl, "payment=failed&reason=verification_error");
+    return commercial(baseUrl, "payment=failed&reason=verification_error");
   }
 }
