@@ -2,6 +2,7 @@
 
 import AppShell from "@/components/shared/AppShell";
 import NationalNowcast from "@/components/live/NationalNowcast";
+import IncidentLearningLoop from "@/components/live/IncidentLearningLoop";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, Clock3, ExternalLink, Newspaper, RefreshCw, Search, ShieldAlert, Waves } from "lucide-react";
 
@@ -110,10 +111,11 @@ export default function LiveFloodsPage() {
         </div>
 
         <section className="rounded-2xl border border-amber/20 bg-amber/5 p-4 sm:p-5">
-          <div className="flex gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber" /><div><h2 className="text-sm font-bold">News is a confirmation sensor, not the first warning</h2><p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">If Vanguard, Guardian, Daily Trust or another outlet reports that cars are already floating, the incident layer should record that immediately. The earlier-warning job belongs to rainfall nowcasting, antecedent wetness, official alerts and geolocated citizen reports. We keep those evidence types separate so a headline is never mistaken for a model forecast.</p></div></div>
+          <div className="flex gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber" /><div><h2 className="text-sm font-bold">News is a confirmation sensor, not the first warning</h2><p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">If Vanguard, Guardian, Daily Trust or another outlet reports that cars are already floating, the incident layer records that immediately. Earlier warning belongs to rainfall nowcasting, antecedent wetness, official alerts and geolocated citizen reports. We keep those evidence types separate so a headline is never mistaken for a model forecast.</p></div></div>
         </section>
 
         <NationalNowcast />
+        <IncidentLearningLoop />
 
         {data?.stateSummary?.length ? (
           <section>
@@ -151,7 +153,7 @@ export default function LiveFloodsPage() {
           ))}
         </section>
 
-        <footer className="rounded-2xl border border-slate-200 p-4 text-xs leading-5 text-slate-500 dark:border-midnight-border">Last scan: {data?.generatedAt ? new Date(data.generatedAt).toLocaleString("en-NG") : "not available"}. External reporting can be late or wrong, so NaijaClimaGuard keeps source, time and wording visible instead of silently converting news into ground truth. Precise road closures and safe-route recommendations require geolocated evidence, not state-level headlines.</footer>
+        <footer className="rounded-2xl border border-slate-200 p-4 text-xs leading-5 text-slate-500 dark:border-midnight-border">Last scan: {data?.generatedAt ? new Date(data.generatedAt).toLocaleString("en-NG") : "not available"}. External reporting can be late or wrong, so NaijaClimaGuard keeps source, time and wording visible instead of silently converting news into ground truth. Precise road closures require geolocated evidence; corroborated, named neighbourhoods can create broad route caution zones but not automatic road-closure claims.</footer>
       </div>
     </AppShell>
   );
