@@ -1,13 +1,14 @@
-name: Product 2026 Typecheck
+name: Product Typecheck
 
 on:
   push:
-    branches: [product-2026-action-engine, product-2026-source-fusion]
+    branches: [main, product-2026-action-engine, product-2026-source-fusion]
     paths:
       - "app/**"
       - "components/**"
       - "lib/**"
       - "prisma/**"
+      - "middleware.ts"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/product-2026-typecheck.yml"
@@ -18,6 +19,7 @@ on:
       - "components/**"
       - "lib/**"
       - "prisma/**"
+      - "middleware.ts"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/product-2026-typecheck.yml"
@@ -26,7 +28,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: product-2026-typecheck-${{ github.event.pull_request.number || github.ref }}
+  group: product-typecheck-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
