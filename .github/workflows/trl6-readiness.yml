@@ -1,4 +1,4 @@
-name: TRL6 Readiness Gate
+name: TRL6 Preparation Contract
 
 on:
   pull_request:
@@ -9,8 +9,10 @@ on:
       - "lib/**"
       - "prisma/**"
       - "scripts/check-trl6-readiness.mjs"
+      - "scripts/check-trl6-claim-gate.mjs"
       - "validation/**"
       - ".github/workflows/trl6-readiness.yml"
+      - ".github/workflows/trl6-claim-gate.yml"
   workflow_dispatch:
 
 permissions:
@@ -22,5 +24,5 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Verify TRL6 operational contracts
+      - name: Verify software and evidence-preparation contracts
         run: node scripts/check-trl6-readiness.mjs

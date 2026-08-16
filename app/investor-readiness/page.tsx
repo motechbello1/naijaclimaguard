@@ -1,169 +1,237 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRight, BarChart3, Building2, CheckCircle2, CircleDollarSign, Database,
-  FileCheck2, Globe2, Landmark, Languages, Network, RadioTower, Shield,
-  Sparkles, Target, Users, Waves,
+  ArrowRight,
+  BadgeCheck,
+  Banknote,
+  Boxes,
+  CheckCircle2,
+  CircleDollarSign,
+  ClipboardCheck,
+  Database,
+  FileCheck2,
+  Languages,
+  Network,
+  RadioTower,
+  ShieldCheck,
+  Target,
+  XCircle,
 } from "lucide-react";
-import ThemeToggle from "@/components/shared/ThemeToggle";
+import PublicProductNav from "@/components/shared/PublicProductNav";
+import { useLanguage } from "@/components/shared/LanguageProvider";
+import { PRODUCT_PROOF_COPY, type ProofRole } from "@/lib/i18n/product-proof";
 import economicBaseline from "@/data/economic/national_economic_baseline_v1.json";
 
-const competitorRows = [
-  {
-    system: "NiHSA",
-    strength: "Statutory hydrology, national monitoring, Annual Flood Outlook, public risk maps, alerts and flood-forecast services across Nigeria.",
-    gapWeTarget: "Integrate authoritative hydrology into customer-specific asset decisions, assigned runbooks, verified action and measured outcomes. NiHSA can be a source and institutional partner, not a feed we pretend to replace.",
-    icon: Landmark,
-  },
-  {
-    system: "NEMA",
-    strength: "National emergency coordination and the Fusion / Trigger Room direction for anticipatory action.",
-    gapWeTarget: "Give trigger-room operations a configurable and auditable signal → owner → channel → action → receipt → outcome record without impersonating emergency authority.",
-    icon: Building2,
-  },
-  {
-    system: "Google Flood Hub",
-    strength: "World-class AI riverine forecasting, inundation intelligence, basin tools, historical data, expert/API access and partnerships that support field delivery.",
-    gapWeTarget: "Own each Nigerian customer's private asset graph, configurable operating procedures, action evidence and economic outcome history. Strong Google forecasts can become an input to that system.",
-    icon: Globe2,
-  },
-];
-
-const proofStack = [
-  ["Riverine evidence", "80%", "4 of 5 eligible historical onset events detected retrospectively in Lokoja + Makurdi. Not national accuracy."],
-  ["Riverine horizon", "14 days", "Frozen WATCH threshold 0.70. Prospective shadow evidence continues independently."],
-  ["National evidence scope", "37", "36 states + FCT are now registered in the National Evidence Factory. Only jurisdictions with defensible event evidence enter a score denominator."],
-  ["2022 economic reference", "$6.68bn", "World Bank median estimate of direct flood damage. Used as a historical reference, never as claimed NaijaClimaGuard savings."],
-];
-
-const compoundingAssets = [
-  { icon: Database, title: "Multi-source evidence router", text: "Preserve issue time, provenance, source freshness and failure state, then route the strongest authorized signal for each decision instead of depending on one model." },
-  { icon: Target, title: "Nigeria Impact Graph", text: "Build a permissioned graph of customer assets, people, stock, facilities, suppliers, roads and dependencies that a public flood map does not possess." },
-  { icon: Users, title: "Decision Policy Compiler", text: "Convert an organisation's operating procedures into role-specific actions, owners, escalation rules and deadlines that run consistently during an event." },
-  { icon: RadioTower, title: "Delivery and comprehension telemetry", text: "Record whether a warning reached the right person, through which channel and language, whether it was understood and whether it was acknowledged." },
-  { icon: FileCheck2, title: "Action-to-loss Outcome Ledger", text: "Join each signal to the action completed and the verified operational or financial outcome, creating evidence of what protected value rather than only what was predicted." },
-  { icon: Network, title: "Decision-performance data flywheel", text: "Every permissioned pilot can improve local action policies and loss functions. Competitors can copy a screen; they cannot instantly recreate years of integrated action-and-outcome evidence." },
-];
+const FLOW_ICONS = [RadioTower, Boxes, ClipboardCheck, Languages, BadgeCheck];
+const MOAT_ICONS = [Database, Network, Target, FileCheck2];
+const STATUS_ICONS = [CheckCircle2, ShieldCheck, Database];
+const FUNDING_AMOUNTS = ["£60,000", "£22,500", "£22,500", "£30,000", "£7,500", "£7,500"];
 
 const formatUsdMillions = (value: number) => `$${(value / 1_000_000).toFixed(1)}m`;
 
-const sensitivity = economicBaseline.avoided_loss_sensitivity.map((scenario) => [
-  `${scenario.avoidable_loss_percent}%`,
-  formatUsdMillions(scenario.protected_value_usd_at_2022_median_damage),
-]);
-
-const populationBaselineMillions = (
-  economicBaseline.population.population_total_from_state_table / 1_000_000
-).toFixed(1);
-
-const fundingAllocation = [
-  ["Product and engineering", "£60,000", "Ship the Impact Graph, Decision Policy Compiler and Action-to-loss Outcome Ledger as one operating system."],
-  ["Data and infrastructure", "£22,500", "Run the evidence router and national benchmark while preserving permissioned action, acknowledgement and outcome records."],
-  ["Government and partnerships", "£22,500", "Integrate authoritative signals and prove closed-loop workflows beside agencies instead of duplicating their hydrology."],
-  ["Sales and customer acquisition", "£30,000", "Embed repeatable decision workflows inside insurers, agribusinesses, infrastructure operators and financial institutions."],
-  ["Legal and compliance", "£7,500", "Create the data-sharing, privacy, contracts, intellectual-property and procurement foundation required to hold sensitive operational evidence."],
-  ["Contingency", "£7,500", "Protect delivery against verified infrastructure, field and integration costs."],
-];
-
 export default function InvestorReadinessPage() {
+  const { locale } = useLanguage();
+  const copy = PRODUCT_PROOF_COPY[locale].investor;
+  const [role, setRole] = useState<ProofRole>("household");
+  const scenario = copy.scenarios[role];
+  const flow = [
+    copy.signalDetail,
+    scenario.exposure,
+    scenario.decision,
+    scenario.delivery,
+    scenario.proof,
+  ];
+  const statusItems = [
+    { value: "LIVE", label: copy.liveProduct, note: copy.liveProductNote },
+    { value: "4 / 5", label: copy.shadowEvidence, note: copy.shadowEvidenceNote },
+    { value: "37", label: copy.nationalFactory, note: copy.nationalFactoryNote },
+  ];
+  const sensitivity = economicBaseline.avoided_loss_sensitivity.map((item) => ({
+    label: `${item.avoidable_loss_percent}%`,
+    value: formatUsdMillions(item.protected_value_usd_at_2022_median_damage),
+  }));
+
   return (
-    <main className="min-h-screen overflow-x-hidden bg-white text-slate-950 dark:bg-midnight dark:text-white">
-      <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#061912]/90 text-white backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-lime-300/30 bg-lime-300/10"><Shield className="h-4 w-4 text-lime-300" /></div>
-            <span className="font-display text-lg font-black">NaijaClima<span className="text-lime-300">Guard</span></span>
-          </Link>
-          <div className="flex items-center gap-3"><ThemeToggle /><Link href="/model-evidence" className="text-sm text-white/70 hover:text-lime-300">Evidence</Link><Link href="/institutional-pilot" className="hidden text-sm text-white/70 hover:text-lime-300 sm:inline">Pilot</Link></div>
-        </div>
-      </nav>
+    <main className="min-h-screen bg-white text-slate-950 dark:bg-midnight dark:text-white">
+      <PublicProductNav />
 
-      <section className="relative min-h-[86vh] overflow-hidden bg-[#061912] pt-16 text-white">
-        <div className="pointer-events-none absolute -right-24 top-24 h-[32rem] w-[32rem] rounded-full border border-lime-200/10" />
-        <div className="pointer-events-none absolute -right-4 top-44 h-[22rem] w-[22rem] rounded-full border border-lime-200/10" />
-        <div className="pointer-events-none absolute bottom-[-14rem] left-[-8rem] h-[36rem] w-[36rem] rounded-full bg-cyan-900/30 blur-3xl" />
-        <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1.12fr_.88fr] lg:items-end lg:px-8 lg:py-28">
+      <section className="border-b border-slate-200 bg-[#f4f8f5] dark:border-midnight-border dark:bg-[#071812]">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.08fr_.92fr] lg:items-center lg:px-8 lg:py-24">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-lime-300/25 bg-lime-300/10 px-4 py-2 text-[11px] font-black uppercase tracking-[.2em] text-lime-200"><Sparkles className="h-3.5 w-3.5" /> Investor · Competition · Government proof</div>
-            <h1 className="mt-7 max-w-5xl font-display text-5xl font-black leading-[.94] tracking-[-.045em] sm:text-6xl lg:text-7xl">Prediction is useful.<br /><span className="text-lime-300">Action is the product.</span></h1>
-            <p className="mt-7 max-w-3xl text-base leading-8 text-white/70 sm:text-lg">NaijaClimaGuard is being built as Nigeria&apos;s flood decision network: hazard evidence comes in, exposure becomes visible, the right person gets a role-specific decision, the warning reaches them in a usable Nigerian language, action is recorded, and the economic outcome can be measured.</p>
-            <div className="mt-9 flex flex-wrap gap-3"><Link href="/institutional-pilot" className="inline-flex min-h-12 items-center gap-2 rounded-full bg-lime-300 px-6 text-sm font-black text-[#061912]">Run the proof beside your system <ArrowRight className="h-4 w-4" /></Link><Link href="/model-evidence" className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/15 px-6 text-sm font-bold text-white">Inspect the evidence</Link></div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">{proofStack.map(([label,value,note]) => <article key={label} className="rounded-[1.75rem] border border-white/10 bg-white/[.055] p-5 backdrop-blur"><p className="text-[10px] font-black uppercase tracking-[.16em] text-white/45">{label}</p><p className="mt-3 font-display text-4xl font-black text-lime-300">{value}</p><p className="mt-2 text-xs leading-5 text-white/60">{note}</p></article>)}</div>
-        </div>
-      </section>
-
-      <section className="py-20 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-[.82fr_1.18fr] lg:items-end"><div><p className="text-xs font-black uppercase tracking-[.2em] text-emerald-700 dark:text-lime-300">The standard</p><h2 className="mt-4 max-w-2xl font-display text-4xl font-black tracking-tight sm:text-5xl">We are not building a cheaper copy of what already exists.</h2></div><p className="max-w-3xl text-base leading-8 text-slate-500 dark:text-slate-300">The engineering target is to become measurably better on the complete Nigerian warning-to-action journey. Where another source has stronger raw hydrology, NaijaClimaGuard can ingest it. Where we claim an advantage, a matched benchmark must prove the exact dimension won. That makes the product stronger, not smaller.</p></div>
-          <div className="mt-12 overflow-hidden rounded-[2rem] border border-slate-200 dark:border-white/10">
-            {competitorRows.map(({system,strength,gapWeTarget,icon:Icon},index)=><div key={system} className={`grid gap-5 p-6 sm:p-8 lg:grid-cols-[.22fr_.39fr_.39fr] ${index ? "border-t border-slate-200 dark:border-white/10" : ""}`}><div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-950 text-lime-300"><Icon className="h-5 w-5" /></div><h3 className="pt-2 font-display text-lg font-black">{system}</h3></div><div><p className="text-[10px] font-black uppercase tracking-[.16em] text-slate-400">What they already do well</p><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{strength}</p></div><div><p className="text-[10px] font-black uppercase tracking-[.16em] text-emerald-700 dark:text-lime-300">Where we must win</p><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{gapWeTarget}</p></div></div>)}
-          </div>
-          <div className="mt-5 rounded-2xl bg-slate-50 p-5 text-sm leading-6 text-slate-600 dark:bg-white/5 dark:text-slate-300"><strong>Superiority rule:</strong> “better than Google” or “more accurate than NiHSA” is not published as a generic slogan. A named advantage appears only after a same-task, same-event, same-geography matched test wins that dimension. The frozen protocol lives in <code>validation/COMPETITOR_MATCHED_BENCHMARK_PROTOCOL.md</code>.</div>
-          <div className="mt-10 grid gap-5 rounded-[2rem] bg-[#061912] p-6 text-white sm:p-8 lg:grid-cols-[.72fr_1.28fr]">
-            <div><p className="text-xs font-black uppercase tracking-[.18em] text-lime-300">Why investors fund this</p><h3 className="mt-4 font-display text-3xl font-black">Own the system of record for flood decisions and outcomes.</h3></div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {[
-                ["Inputs", "Forecasts, gauges and advisories can come from the strongest authorized source."],
-                ["Context", "Private customer assets, dependencies and operating procedures make each decision specific."],
-                ["Compounding asset", "Verified action and loss outcomes make the next decision more defensible and harder to copy."],
-              ].map(([label, text]) => <article key={label} className="rounded-2xl border border-white/10 bg-white/[.055] p-4"><p className="text-[10px] font-black uppercase tracking-[.16em] text-white/40">{label}</p><p className="mt-3 text-sm leading-6 text-white/70">{text}</p></article>)}
+            <p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700 dark:text-radar">{copy.eyebrow}</p>
+            <h1 className="mt-5 max-w-4xl font-display text-5xl font-black leading-[.96] tracking-[-.045em] sm:text-6xl lg:text-7xl">{copy.title}</h1>
+            <p className="mt-6 max-w-3xl text-base leading-8 text-slate-600 dark:text-slate-300 sm:text-lg">{copy.lead}</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/my-area" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-radar px-5 text-sm font-bold text-white">{copy.openProduct}<ArrowRight className="h-4 w-4" /></Link>
+              <Link href="/dashboard" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-bold dark:border-white/20 dark:bg-white/5">{copy.openDashboard}</Link>
+              <Link href="/model-evidence" className="inline-flex min-h-12 items-center gap-2 px-2 text-sm font-bold text-emerald-800 dark:text-radar">{copy.inspectEvidence}</Link>
             </div>
           </div>
+
+          <aside className="border border-emerald-950/15 bg-[#072319] text-white shadow-[10px_10px_0_0_#b7f34a] dark:border-white/10 dark:shadow-[10px_10px_0_0_#34d399]">
+            <div className="border-b border-white/10 p-5 sm:p-6">
+              <p className="text-[10px] font-black uppercase tracking-[.2em] text-radar">{copy.readinessLabel}</p>
+              <h2 className="mt-3 font-display text-2xl font-black sm:text-3xl">{copy.readinessTitle}</h2>
+              <p className="mt-3 text-sm leading-6 text-white/65">{copy.readinessBody}</p>
+            </div>
+            <div className="grid sm:grid-cols-3 lg:grid-cols-1">
+              {statusItems.map((item, index) => {
+                const Icon = STATUS_ICONS[index];
+                return (
+                  <div key={item.label} className={`grid grid-cols-[auto_1fr_auto] gap-3 p-5 ${index ? "border-t border-white/10 sm:border-l sm:border-t-0 lg:border-l-0 lg:border-t" : ""}`}>
+                    <Icon className="mt-0.5 h-4 w-4 text-radar" />
+                    <div><p className="text-xs font-black uppercase tracking-wider text-white/70">{item.label}</p><p className="mt-1 text-xs leading-5 text-white/50">{item.note}</p></div>
+                    <span className="font-display text-xl font-black text-radar">{item.value}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
         </div>
       </section>
 
-      <section className="bg-[#eef2df] py-20 text-[#0b251b] sm:py-24">
+      <section className="border-b border-slate-200 py-16 dark:border-midnight-border sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl"><p className="text-xs font-black uppercase tracking-[.2em] text-emerald-800">The compounding moat</p><h2 className="mt-4 font-display text-4xl font-black tracking-tight sm:text-5xl">Six assets that become stronger with every verified deployment.</h2><p className="mt-5 max-w-3xl text-base leading-8 text-emerald-950/65">Features are copyable. The defensible company is the permissioned graph, workflow integration and action-to-outcome evidence that accumulates behind those features.</p></div>
-          <div className="mt-12 grid gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-3">{compoundingAssets.map(({icon:Icon,title,text},index)=><article key={title} className="border-t border-emerald-950/20 pt-5"><div className="flex items-center justify-between"><Icon className="h-5 w-5" /><span className="font-mono text-xs opacity-40">0{index+1}</span></div><h3 className="mt-6 font-display text-xl font-black">{title}</h3><p className="mt-3 text-sm leading-7 text-emerald-950/65">{text}</p></article>)}</div>
-        </div>
-      </section>
-
-      <section className="py-20 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[1.05fr_.95fr]">
-            <div><div className="inline-flex items-center gap-2 rounded-full border border-emerald-900/15 px-4 py-2 text-xs font-black uppercase tracking-[.16em] text-emerald-800 dark:text-lime-300"><Database className="h-4 w-4" /> National Evidence Factory</div><h2 className="mt-5 font-display text-4xl font-black tracking-tight sm:text-5xl">Get a broader number now without pretending the future already happened.</h2><p className="mt-5 max-w-3xl text-sm leading-7 text-slate-500 dark:text-slate-300">The national benchmark is executable, not a slide. It registers all 36 states + FCT, builds independent flood-event labels, constructs nationally consistent historical features, and scores state-years out of time while holding the test state out of training. A state with inadequate evidence is an evidence gap, not an invented success.</p><div className="mt-7 space-y-3">{[
-              "Automatic flood labels use EC-JRC / GDACS flood-event geometry intersected with Nigeria ADM1 boundaries; curated institutional events remain a second evidence path.",
-              "Each test state-year is excluded geographically and temporally from fitting.",
-              "Model family and alert threshold are selected from prior data only.",
-              "Headline output is event detection with an exact denominator, plus false-alert burden, PR-AUC, ROC-AUC and Brier score.",
-              "Prospective Riverine Watch continues separately and can upgrade the operational claim later.",
-            ].map(item=><div key={item} className="flex gap-3 text-sm leading-6"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" /><span>{item}</span></div>)}</div></div>
-            <aside className="rounded-[2.25rem] bg-[#061912] p-7 text-white sm:p-9"><Waves className="h-7 w-7 text-lime-300" /><p className="mt-8 text-xs font-black uppercase tracking-[.18em] text-white/40">The only acceptable national headline</p><p className="mt-4 font-display text-3xl font-black leading-tight">“X of Y independently documented eligible flood events detected retrospectively across Z scored Nigerian jurisdictions.”</p><p className="mt-5 text-sm leading-7 text-white/60">No hidden denominator. No random train/test split. No “99% accuracy” shortcut. No claim that retrospective replay is prospective warning proof.</p></aside>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-slate-200 bg-slate-50 py-20 dark:border-white/10 dark:bg-white/[.025] sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-start"><div><div className="inline-flex items-center gap-2 rounded-full border border-emerald-800/15 px-4 py-2 text-xs font-black uppercase tracking-[.16em] text-emerald-800 dark:text-lime-300"><CircleDollarSign className="h-4 w-4" /> Economic decision layer</div><h2 className="mt-5 font-display text-4xl font-black tracking-tight sm:text-5xl">The model number is not the business number.</h2><p className="mt-5 text-sm leading-7 text-slate-500 dark:text-slate-300">The World Bank places direct damage from Nigeria&apos;s 2022 floods at US$3.79bn–US$9.12bn, with a median estimate of US$6.68bn. The reproducible WorldPop 2025 state table registers {populationBaselineMillions} million people across all 36 states + FCT. NaijaClimaGuard is building the exposure → expected loss → intervention → measured avoided loss chain so institutions can decide where action creates the most value.</p><div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100"><strong>Boundary:</strong> population is not flood exposure until intersected with a hazard footprint. The values beside this text are sensitivity scenarios against the historical median damage reference. They are not money already saved by the platform.</div></div><div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[.035]"><div className="grid grid-cols-2 bg-[#061912] px-6 py-4 text-[10px] font-black uppercase tracking-[.15em] text-white/55"><span>Assumed avoidable share</span><span>Value protected in a 2022-scale event</span></div>{sensitivity.map(([pct,value])=><div key={pct} className="grid grid-cols-2 border-t border-slate-200 px-6 py-5 dark:border-white/10"><span className="font-display text-2xl font-black">{pct}</span><span className="font-display text-2xl font-black text-emerald-700 dark:text-lime-300">{value}</span></div>)}</div></div>
-        </div>
-      </section>
-
-      <section className="py-20 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[.72fr_1.28fr]">
+          <div className="grid gap-8 lg:grid-cols-[.7fr_1.3fr] lg:items-end">
             <div>
-              <p className="text-xs font-black uppercase tracking-[.2em] text-emerald-700 dark:text-lime-300">The 12-month raise</p>
-              <h2 className="mt-4 font-display text-5xl font-black tracking-tight sm:text-6xl">£150,000</h2>
-              <p className="mt-5 max-w-xl text-base leading-8 text-slate-500 dark:text-slate-300">Capital is tied to creating proprietary decision infrastructure and the first permissioned action-to-outcome records, while national retrospective proof and prospective monitoring establish the hazard evidence underneath it.</p>
-              <div className="mt-7 rounded-2xl bg-[#eef2df] p-5 text-sm leading-7 text-[#0b251b]"><strong>What this is not:</strong> funding to wait six to twelve months before learning anything. Historical replay produces a broader reproducible number now. Prospective shadow operation then tests whether that performance survives real deployment.</div>
+              <p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700 dark:text-radar">{copy.demoEyebrow}</p>
+              <h2 className="mt-4 font-display text-4xl font-black tracking-tight sm:text-5xl">{copy.demoTitle}</h2>
             </div>
-            <div className="overflow-hidden rounded-[2rem] border border-slate-200 dark:border-white/10">
-              {fundingAllocation.map(([category, amount, outcome], index) => (
-                <article key={category} className={`grid gap-3 p-5 sm:grid-cols-[.65fr_.25fr_1.1fr] sm:items-start sm:p-6 ${index ? "border-t border-slate-200 dark:border-white/10" : ""}`}>
-                  <h3 className="font-display text-base font-black">{category}</h3>
-                  <p className="font-display text-xl font-black text-emerald-700 dark:text-lime-300">{amount}</p>
-                  <p className="text-sm leading-6 text-slate-500 dark:text-slate-300">{outcome}</p>
-                </article>
-              ))}
+            <div>
+              <p className="max-w-3xl text-base leading-7 text-slate-600 dark:text-slate-300">{copy.demoBody}</p>
+              <p className="mt-3 border-l-2 border-amber-500 pl-3 text-xs leading-5 text-slate-500 dark:text-slate-400">{copy.demoNotice}</p>
+            </div>
+          </div>
+
+          <div className="mt-10 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 dark:border-midnight-border dark:bg-midnight-light/30">
+            <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-midnight-border sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <p className="text-xs font-black uppercase tracking-[.14em] text-slate-500">{copy.roleLabel}</p>
+              <div className="grid grid-cols-2 gap-2 sm:flex" role="group" aria-label={copy.roleLabel}>
+                {(Object.keys(copy.roles) as ProofRole[]).map((item) => (
+                  <button key={item} type="button" onClick={() => setRole(item)} aria-pressed={role === item} className={`min-h-10 rounded-lg px-4 text-xs font-bold transition-colors ${role === item ? "bg-slate-950 text-white dark:bg-radar dark:text-slate-950" : "border border-slate-200 bg-white text-slate-600 hover:border-radar/50 dark:border-midnight-border dark:bg-midnight dark:text-slate-300"}`}>
+                    {copy.roles[item]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid lg:grid-cols-5">
+              {flow.map((text, index) => {
+                const Icon = FLOW_ICONS[index];
+                const label = Object.values(copy.fields)[index];
+                return (
+                  <article key={label} className={`relative min-h-48 p-5 sm:p-6 ${index ? "border-t border-slate-200 dark:border-midnight-border lg:border-l lg:border-t-0" : ""}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-radar/10 text-radar"><Icon className="h-4 w-4" /></span>
+                      <span className="font-mono text-[10px] text-slate-400">0{index + 1}</span>
+                    </div>
+                    <h3 className="mt-5 text-xs font-black uppercase tracking-[.14em] text-slate-500">{label}</h3>
+                    <p className="mt-3 text-sm font-semibold leading-6 text-slate-800 dark:text-slate-100">{text}</p>
+                    {index < flow.length - 1 ? <ArrowRight className="absolute -right-3 top-1/2 z-10 hidden h-5 w-5 rounded-full bg-white text-radar dark:bg-midnight lg:block" /> : null}
+                  </article>
+                );
+              })}
             </div>
           </div>
         </div>
       </section>
 
-      <section className="bg-[#061912] py-20 text-white sm:py-24">
-        <div className="mx-auto max-w-5xl px-4 text-center sm:px-6"><Network className="mx-auto h-9 w-9 text-lime-300" /><p className="mt-7 text-xs font-black uppercase tracking-[.2em] text-white/40">The strategic asset</p><h2 className="mt-4 font-display text-4xl font-black tracking-tight sm:text-5xl">A better Nigerian flood operating system, not a cheaper dashboard.</h2><p className="mx-auto mt-5 max-w-4xl text-base leading-8 text-white/65">The acquisition-grade outcome is a system that repeatedly proves better Nigerian decisions: stronger usable evidence, clearer exposure, faster correct action, better last-mile comprehension, measurable delivery and an auditable economic outcome. Raw forecasting can be ours or ingested from the strongest available source. The network is the product.</p><div className="mt-8 flex flex-wrap justify-center gap-3"><Link href="/institutional-pilot" className="inline-flex min-h-12 items-center gap-2 rounded-full bg-lime-300 px-6 text-sm font-black text-[#061912]">Benchmark it beside your workflow <ArrowRight className="h-4 w-4" /></Link><Link href="/model-evidence" className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/15 px-6 text-sm font-bold">See current evidence <BarChart3 className="h-4 w-4" /></Link></div></div>
+      <section className="border-b border-slate-200 bg-slate-950 py-16 text-white dark:border-midnight-border sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr]">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[.18em] text-radar">{copy.moatEyebrow}</p>
+              <h2 className="mt-4 font-display text-4xl font-black tracking-tight sm:text-5xl">{copy.moatTitle}</h2>
+              <p className="mt-5 text-base leading-7 text-white/60">{copy.moatBody}</p>
+            </div>
+            <div className="grid border border-white/10 sm:grid-cols-2">
+              {copy.moatItems.map((item, index) => {
+                const Icon = MOAT_ICONS[index];
+                return (
+                  <article key={item.title} className={`p-5 sm:p-6 ${index % 2 ? "sm:border-l sm:border-white/10" : ""} ${index > 1 ? "border-t border-white/10" : index ? "border-t border-white/10 sm:border-t-0" : ""}`}>
+                    <Icon className="h-5 w-5 text-radar" />
+                    <h3 className="mt-4 font-display text-lg font-black">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/55">{item.body}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-12 grid overflow-hidden border border-white/10 lg:grid-cols-2">
+            <div className="p-6 sm:p-8">
+              <p className="text-xs font-black uppercase tracking-[.15em] text-white/35">{copy.forecastQuestion}</p>
+              <p className="mt-4 font-display text-2xl font-black text-white/70">{copy.forecastAnswer}</p>
+            </div>
+            <div className="border-t border-white/10 bg-radar/10 p-6 sm:p-8 lg:border-l lg:border-t-0">
+              <p className="text-xs font-black uppercase tracking-[.15em] text-radar">{copy.networkQuestion}</p>
+              <p className="mt-4 font-display text-2xl font-black">{copy.networkAnswer}</p>
+            </div>
+          </div>
+          <div className="mt-6 max-w-4xl">
+            <h3 className="font-display text-2xl font-black">{copy.comparisonTitle}</h3>
+            <p className="mt-3 text-sm leading-7 text-white/60">{copy.comparisonBody}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-slate-200 py-16 dark:border-midnight-border sm:py-20">
+        <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+          <div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-radar/10 text-radar"><CircleDollarSign className="h-5 w-5" /></div>
+            <h2 className="mt-5 font-display text-3xl font-black sm:text-4xl">{copy.economicsTitle}</h2>
+            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{copy.economicsBody}</p>
+            <dl className="mt-7 border-y border-slate-200 dark:border-midnight-border">
+              <div className="grid grid-cols-[1fr_auto] gap-4 py-4"><dt className="text-sm text-slate-500">{copy.damageReference}</dt><dd className="font-display text-2xl font-black">$6.68bn</dd></div>
+              <div className="grid grid-cols-[1fr_auto] gap-4 border-t border-slate-200 py-4 dark:border-midnight-border"><dt className="text-sm text-slate-500">{copy.populationReference}</dt><dd className="font-display text-2xl font-black">237.5m</dd></div>
+            </dl>
+            <p className="mt-6 text-xs font-black uppercase tracking-[.15em] text-slate-500">{copy.sensitivity}</p>
+            <div className="mt-3 grid grid-cols-4 border border-slate-200 dark:border-midnight-border">
+              {sensitivity.map((item, index) => <div key={item.label} className={`p-3 text-center sm:p-4 ${index ? "border-l border-slate-200 dark:border-midnight-border" : ""}`}><p className="text-xs font-bold text-slate-400">{item.label}</p><p className="mt-1 font-display text-base font-black sm:text-xl">{item.value}</p></div>)}
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-500">{copy.sensitivityNote}</p>
+          </div>
+
+          <div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-radar/10 text-radar"><Banknote className="h-5 w-5" /></div>
+            <h2 className="mt-5 font-display text-3xl font-black sm:text-4xl">{copy.fundingTitle}</h2>
+            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{copy.fundingBody}</p>
+            <div className="mt-7 border border-slate-200 dark:border-midnight-border">
+              {copy.fundingLabels.map((label, index) => (
+                <div key={label} className={`grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-3 text-sm sm:px-5 ${index ? "border-t border-slate-200 dark:border-midnight-border" : ""}`}>
+                  <span className="font-semibold">{label}</span><span className="font-mono font-bold text-emerald-700 dark:text-radar">{FUNDING_AMOUNTS[index]}</span>
+                </div>
+              ))}
+              <div className="grid grid-cols-[1fr_auto] items-center gap-4 border-t-2 border-slate-950 bg-slate-50 px-4 py-4 text-sm dark:border-white dark:bg-white/5 sm:px-5"><span className="font-black">TOTAL</span><span className="font-mono text-lg font-black">£150,000</span></div>
+            </div>
+            <div className="mt-4 border-l-4 border-radar bg-radar/5 p-4 text-sm leading-6"><strong>{copy.output}:</strong> {copy.readinessBody}</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl">
+            <h2 className="font-display text-4xl font-black tracking-tight sm:text-5xl">{copy.boundaryTitle}</h2>
+            <p className="mt-4 text-base leading-7 text-slate-600 dark:text-slate-300">{copy.boundaryBody}</p>
+          </div>
+          <div className="mt-9 grid border border-slate-200 dark:border-midnight-border lg:grid-cols-2">
+            <div className="p-6 sm:p-8">
+              <h3 className="flex items-center gap-2 font-display text-xl font-black"><CheckCircle2 className="h-5 w-5 text-radar" />{copy.claimedNow}</h3>
+              <ul className="mt-5 space-y-4">{copy.claimedList.map((item) => <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600 dark:text-slate-300"><CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-radar" />{item}</li>)}</ul>
+            </div>
+            <div className="border-t border-slate-200 p-6 dark:border-midnight-border lg:border-l lg:border-t-0 sm:p-8">
+              <h3 className="flex items-center gap-2 font-display text-xl font-black"><XCircle className="h-5 w-5 text-crimson" />{copy.notClaimed}</h3>
+              <ul className="mt-5 space-y-4">{copy.blockedList.map((item) => <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600 dark:text-slate-300"><XCircle className="mt-1 h-4 w-4 shrink-0 text-crimson" />{item}</li>)}</ul>
+            </div>
+          </div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/institutional-pilot" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-radar px-5 text-sm font-bold text-white">{PRODUCT_PROOF_COPY[locale].nav.pilot}<ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/model-evidence" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-slate-300 px-5 text-sm font-bold dark:border-white/20">{copy.inspectEvidence}</Link>
+          </div>
+        </div>
       </section>
     </main>
   );

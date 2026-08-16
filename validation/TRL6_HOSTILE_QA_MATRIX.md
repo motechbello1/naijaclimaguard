@@ -1,4 +1,4 @@
-# NaijaClimaGuard TRL6 Hostile QA Matrix
+# NaijaClimaGuard Pre-TRL6 Hostile QA Matrix
 
 This matrix separates three evidence classes so implementation checks are never presented as field proof.
 
@@ -39,7 +39,7 @@ This matrix separates three evidence classes so implementation checks are never 
 
 ## Safety and claim gates
 
-The following are blocking failures for a TRL6 demonstration build:
+The following are blocking failures for a TRL6-preparation demonstration build:
 
 1. `0.9928`, `99.28`, `48 hours before government`, or `tamper-proof` reappears as a public product claim.
 2. Model v5 is presented as the production engine before its final governed decision exists.

@@ -1,0 +1,16 @@
+name: TRL6 Claim Gate (manual and evidence-blocking)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-claim-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Block the TRL6 claim until every field-evidence gate is verified
+        run: node scripts/check-trl6-claim-gate.mjs

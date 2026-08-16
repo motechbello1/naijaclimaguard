@@ -1,4 +1,4 @@
-# NaijaClimaGuard TRL6 Platform Readiness
+# NaijaClimaGuard TRL6 Preparation and Claim Boundary
 
 This document defines what NaijaClimaGuard may and may not claim as operational evidence while Model v5 remains under validation.
 
@@ -59,7 +59,9 @@ None of those layers may silently rewrite another layer's evidence.
 
 ## TRL6 evidence interpretation
 
-Passing the repository TRL6 Readiness Gate proves that the required product contracts are present in the implementation and that withdrawn claims have not re-entered the checked public surfaces. It does **not** by itself prove national deployment, partner-feed coverage, prospective flood-prediction accuracy or institutional adoption.
+Passing the repository TRL6 Preparation Contract proves that the required product and evidence-control contracts are present in the implementation and that withdrawn claims have not re-entered the checked public surfaces. It does **not** by itself prove national deployment, partner-feed coverage, prospective flood-prediction accuracy, relevant-environment operation or institutional adoption.
+
+The manual TRL6 Claim Gate reads `validation/TRL6_EVIDENCE_REGISTER.json` and intentionally fails until every field-evidence row is verified and an independent promotion decision is recorded. A failing claim gate is the correct state while the product remains pre-TRL6.
 
 TRL6 presentation evidence should therefore combine:
 
