@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import {
   BellRing, Bot, BriefcaseBusiness, CircleDollarSign, ClipboardCheck, Code2,
   FileCheck2, Gauge, Landmark, Map, MapPin, Megaphone, Presentation,
-  Radar, Search, ShieldAlert, Telescope, UserRound, Waves,
+  Radar, Search, ShieldAlert, ShoppingBag, Telescope, UserRound, Waves,
 } from "lucide-react";
 
 const GROUPS = [
@@ -36,9 +36,10 @@ const GROUPS = [
     ],
   },
   {
-    title: "Operate and coordinate",
-    subtitle: "For agencies, institutions and teams managing multiple places.",
+    title: "Operate, buy and coordinate",
+    subtitle: "For teams, institutions and customers using NaijaClimaGuard at scale.",
     tools: [
+      { href: "/commercial", label: "Plans, API credits & enterprise", note: "Buy Family Plus, Business Starter or API credits, manage your workspace, or request a custom rollout.", icon: ShoppingBag },
       { href: "/command", label: "Command queue", note: "Coordinate operational priorities and follow-up.", icon: Landmark },
       { href: "/impact", label: "Economic Impact", note: "Connect flood risk to exposure, losses and intervention scenarios.", icon: CircleDollarSign },
       { href: "/api-docs", label: "Developer API", note: "Integrate NaijaClimaGuard into another product or workflow.", icon: Code2 },
@@ -79,7 +80,7 @@ export default function ToolsPage() {
           <p className="mt-4 max-w-2xl text-sm leading-7 text-white/66 sm:text-base">{intro}</p>
           <label className="mt-7 flex max-w-2xl items-center gap-3 rounded-full border border-white/14 bg-white/8 px-5 py-3.5">
             <Search className="h-5 w-5 shrink-0 text-[#d9ff57]" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search alerts, evidence, location analysis, API…" className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search alerts, plans, API credits, evidence, location analysis…" className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35" />
           </label>
         </section>
 
@@ -104,7 +105,7 @@ export default function ToolsPage() {
           </section>
         ))}
 
-        {filtered.length === 0 && <div className="rounded-[28px] border border-black/7 bg-white p-8 text-center dark:border-white/8 dark:bg-white/[.04]"><p className="font-black">No tool matched that search.</p><p className="mt-2 text-sm text-slate-500">Try a task such as alerts, evidence, API, report, farm, or location.</p></div>}
+        {filtered.length === 0 && <div className="rounded-[28px] border border-black/7 bg-white p-8 text-center dark:border-white/8 dark:bg-white/[.04]"><p className="font-black">No tool matched that search.</p><p className="mt-2 text-sm text-slate-500">Try a task such as alerts, plans, API, evidence, report, farm, or location.</p></div>}
       </div>
     </AppShell>
   );
