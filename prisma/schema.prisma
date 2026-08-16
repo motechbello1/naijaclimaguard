@@ -298,3 +298,22 @@ model OrganizationWorkspace {
 
   @@index([ownerUserId, createdAt])
 }
+
+model ExternalFloodReport {
+  id           String   @id
+  title        String
+  url          String   @unique
+  source       String
+  publishedAt  DateTime
+  discoveredAt DateTime @default(now())
+  lastSeenAt   DateTime @updatedAt
+  state        String?
+  areas        Json?
+  status       String
+  severity     Int      @default(0)
+  channel      String   @default("news")
+  metadata     Json?
+
+  @@index([publishedAt])
+  @@index([state, publishedAt])
+}
