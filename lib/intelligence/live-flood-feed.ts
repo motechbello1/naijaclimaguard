@@ -101,6 +101,10 @@ function extractLocations(text: string) {
 
 function classify(title: string): { status: FloodFeedStatus; severity: number } {
   const value = title.toLowerCase();
+  if (["archives", "archive page", "tag page", "latest news on"].some((word) => value.includes(word))) {
+    return { status: "UNVERIFIED", severity: 0 };
+  }
+
   const physicalImpact = [
     "sweeps", "swept", "submerge", "submerged", "submerges", "washed away", "cars floating",
     "vehicles floating", "stranded", "trapped", "displaced", "drowned", "collapse", "rescue",
