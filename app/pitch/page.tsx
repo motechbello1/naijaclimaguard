@@ -10,94 +10,35 @@ const sections = [
 export default function PitchPage() {
   return (
     <main className="bg-[#071713] text-white">
-      <div className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#071713]/85 backdrop-blur-xl">
+      <div className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#071713]/88 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2 text-sm font-bold"><ArrowLeft className="h-4 w-4" /> Exit pitch</Link>
-          <div className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-[.18em]"><Radio className="h-3.5 w-3.5 text-[#d9ff57]" /> Live product pitch</div>
+          <a href="/" className="flex items-center gap-2 text-sm font-bold text-white/75 transition hover:text-white"><ArrowLeft className="h-4 w-4" /> Exit pitch</a>
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-xs font-black uppercase tracking-[.18em]"><Radio className="h-3.5 w-3.5 text-[#d9ff57]" /> Live product pitch</div>
         </div>
       </div>
 
-      <section className="flex min-h-screen items-end border-b border-white/10 px-4 pb-16 pt-28 sm:px-6 sm:pb-20 lg:px-8">
+      <section className="relative flex min-h-screen items-end overflow-hidden border-b border-white/10 px-4 pb-16 pt-28 sm:px-6 sm:pb-20 lg:px-8">
+        <div className="pointer-events-none absolute -right-32 top-24 h-[34rem] w-[34rem] rounded-full bg-[#225d49]/28 blur-3xl" />
         <div className="mx-auto grid w-full max-w-7xl gap-12 lg:grid-cols-[1.15fr_.85fr] lg:items-end">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[.25em] text-[#d9ff57]">NaijaClimaGuard</p>
-            <h1 className="mt-5 max-w-5xl font-display text-6xl font-black leading-[.9] tracking-[-.05em] sm:text-7xl lg:text-[7rem]">Nigeria&apos;s climate-risk action operating system.</h1>
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-white/65">Not another flood map. A system designed to turn climate intelligence into earlier decisions, measurable economic value and verified action.</p>
-          </div>
-          <div className="relative aspect-video overflow-hidden rounded-[2rem] border border-white/15 bg-[#102820]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(217,255,87,.2),transparent_35%),linear-gradient(135deg,#13382e,#071713)]" />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center"><div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#d9ff57] text-[#071713]"><Play className="ml-1 h-7 w-7 fill-current" /></div><p className="mt-5 font-black">Investor film placeholder</p><p className="mt-1 text-xs text-white/45">Drop the final pitch video here</p></div>
-          </div>
+          <div className="relative"><p className="text-xs font-black uppercase tracking-[.25em] text-[#d9ff57]">NaijaClimaGuard</p><h1 className="mt-5 max-w-5xl font-display text-6xl font-black leading-[.9] tracking-[-.05em] sm:text-7xl lg:text-[7rem]">Nigeria&apos;s climate-risk action operating system.</h1><p className="mt-7 max-w-2xl text-lg leading-8 text-white/65">Not another flood map. A system designed to turn climate intelligence into earlier decisions, measurable economic value and verified action.</p></div>
+          <div className="relative aspect-video overflow-hidden rounded-[2rem] border border-white/15 bg-[#102820]"><div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(217,255,87,.2),transparent_35%),linear-gradient(135deg,#13382e,#071713)]" /><div className="absolute inset-0 flex flex-col items-center justify-center text-center"><div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#d9ff57] text-[#071713]"><Play className="ml-1 h-7 w-7 fill-current" /></div><p className="mt-5 font-black">Investor film placeholder</p><p className="mt-1 text-xs text-white/45">Drop the final pitch video here</p></div></div>
         </div>
       </section>
 
-      {sections.map((section) => (
-        <section key={section.n} className="border-b border-white/10 px-4 py-24 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[.25fr_.75fr]">
-            <div className="text-sm font-black text-[#d9ff57]">{section.n}</div>
-            <div><h2 className="max-w-4xl font-display text-4xl font-black leading-[1.03] sm:text-6xl">{section.title}</h2><p className="mt-6 max-w-3xl text-lg leading-8 text-white/60">{section.body}</p></div>
-          </div>
-        </section>
-      ))}
+      {sections.map((section) => <section key={section.n} className="border-b border-white/10 px-4 py-24 sm:px-6 lg:px-8"><div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[.25fr_.75fr]"><div className="text-sm font-black text-[#d9ff57]">{section.n}</div><div><h2 className="max-w-4xl font-display text-4xl font-black leading-[1.03] text-white sm:text-6xl">{section.title}</h2><p className="mt-6 max-w-3xl text-lg leading-8 text-white/60">{section.body}</p></div></div></section>)}
 
-      <section className="border-b border-white/10 px-4 py-24 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-xs font-black uppercase tracking-[.22em] text-[#d9ff57]">04 · What already exists</p>
-          <h2 className="mt-4 max-w-4xl font-display text-4xl font-black leading-tight sm:text-6xl">The new proposition sits on top of working product capability.</h2>
-          <div className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {[ [Waves,"Public risk engine"], [BarChart3,"Riverine Watch v1"], [Shield,"Action OS"], [Database,"Evidence ledger"], [Users,"Citizen workflows"], [Globe2,"API layer"], [Landmark,"Agency tools"], [Building2,"Commercial workflows"] ].map(([Icon,label]) => {
-              const I = Icon as typeof Waves; return <div key={String(label)} className="rounded-2xl border border-white/10 bg-white/5 p-5"><I className="h-5 w-5 text-[#d9ff57]" /><p className="mt-5 font-black">{String(label)}</p></div>;
-            })}
-          </div>
-        </div>
-      </section>
+      <section className="border-b border-white/10 px-4 py-24 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><p className="text-xs font-black uppercase tracking-[.22em] text-[#d9ff57]">04 · What already exists</p><h2 className="mt-4 max-w-4xl font-display text-4xl font-black leading-tight text-white sm:text-6xl">The new proposition sits on top of working product capability.</h2><div className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-4">{[[Waves,"Public risk engine"],[BarChart3,"Riverine Watch v1"],[Shield,"Action OS"],[Database,"Evidence ledger"],[Users,"Citizen workflows"],[Globe2,"API layer"],[Landmark,"Agency tools"],[Building2,"Commercial workflows"]].map(([Icon,label]) => { const I = Icon as typeof Waves; return <div key={String(label)} className="border-t border-white/15 py-5"><I className="h-5 w-5 text-[#d9ff57]" /><p className="mt-5 font-black">{String(label)}</p></div>; })}</div></div></section>
 
-      <section className="bg-[#d9ff57] px-4 py-24 text-[#071713] sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-xs font-black uppercase tracking-[.22em]">05 · Economic engine</p>
-          <h2 className="mt-4 max-w-5xl font-display text-5xl font-black leading-[.98] tracking-tight sm:text-7xl">The number that matters is not only probability. It is the value of acting early.</h2>
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            <div className="rounded-[2rem] bg-[#071713] p-7 text-white"><CircleDollarSign className="h-7 w-7 text-[#d9ff57]" /><p className="mt-8 text-3xl font-black">₦ exposure</p><p className="mt-2 text-sm text-white/55">What people, assets and economic activity sit in the path of risk?</p></div>
-            <div className="rounded-[2rem] bg-[#071713] p-7 text-white"><Shield className="h-7 w-7 text-[#d9ff57]" /><p className="mt-8 text-3xl font-black">₦ action</p><p className="mt-2 text-sm text-white/55">What intervention can reduce harm before impact?</p></div>
-            <div className="rounded-[2rem] bg-[#071713] p-7 text-white"><BarChart3 className="h-7 w-7 text-[#d9ff57]" /><p className="mt-8 text-3xl font-black">Benefit / cost</p><p className="mt-2 text-sm text-white/55">How much potentially avoidable loss is created per naira of intervention?</p></div>
-          </div>
-          <Link href="/impact" className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#071713] px-6 py-3.5 font-black text-white">Open scenario engine <ArrowRight className="h-4 w-4" /></Link>
-        </div>
-      </section>
+      <section className="bg-[#d9ff57] px-4 py-24 text-[#071713] sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><p className="text-xs font-black uppercase tracking-[.22em]">05 · Economic engine</p><h2 className="mt-4 max-w-5xl font-display text-5xl font-black leading-[.98] tracking-tight sm:text-7xl">The number that matters is not only probability. It is the value of acting early.</h2><div className="mt-10 grid gap-4 md:grid-cols-3"><PitchMetric icon={CircleDollarSign} title="₦ exposure" text="What people, assets and economic activity sit in the path of risk?" /><PitchMetric icon={Shield} title="₦ action" text="What intervention can reduce harm before impact?" /><PitchMetric icon={BarChart3} title="Benefit / cost" text="How much potentially avoidable loss is created per naira of intervention?" /></div><Link href="/impact" className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#071713] px-6 py-3.5 font-black text-white">Open scenario engine <ArrowRight className="h-4 w-4" /></Link></div></section>
 
-      <section className="border-b border-white/10 px-4 py-24 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2">
-          <div><p className="text-xs font-black uppercase tracking-[.22em] text-[#d9ff57]">06 · Revenue</p><h2 className="mt-4 font-display text-5xl font-black leading-tight">One intelligence layer. Multiple buyers.</h2></div>
-          <div className="space-y-3">
-            {["Government command and anticipatory-action intelligence", "Insurance and reinsurance risk intelligence", "Banks and agricultural lenders", "Logistics and infrastructure operators", "Agribusiness and large asset owners", "Commercial climate-risk APIs"].map((item) => <div key={item} className="flex gap-3 rounded-2xl bg-white/5 p-4"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#d9ff57]" /><span className="font-semibold text-white/75">{item}</span></div>)}
-          </div>
-        </div>
-      </section>
+      <section className="border-b border-white/10 px-4 py-24 sm:px-6 lg:px-8"><div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2"><div><p className="text-xs font-black uppercase tracking-[.22em] text-[#d9ff57]">06 · Revenue</p><h2 className="mt-4 font-display text-5xl font-black leading-tight text-white">One intelligence layer. Multiple buyers.</h2></div><div className="divide-y divide-white/10">{["Government command and anticipatory-action intelligence","Insurance and reinsurance risk intelligence","Banks and agricultural lenders","Logistics and infrastructure operators","Agribusiness and large asset owners","Commercial climate-risk APIs"].map((item) => <div key={item} className="flex gap-3 py-4"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#d9ff57]" /><span className="font-semibold text-white/75">{item}</span></div>)}</div></div></section>
 
-      <section className="border-b border-white/10 px-4 py-24 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-xs font-black uppercase tracking-[.22em] text-[#d9ff57]">07 · Nigerian economic participation</p>
-          <h2 className="mt-4 max-w-4xl font-display text-4xl font-black leading-tight sm:text-6xl">A resilience network can create work around prevention, not only disaster response.</h2>
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            <Job icon={Users} title="Community intelligence" body="Local verification, communication and field evidence workflows." />
-            <Job icon={Sprout} title="Resilience services" body="Farm, drainage, infrastructure and preparedness service providers." />
-            <Job icon={Building2} title="Risk operations" body="Assessment, implementation, monitoring and verification roles around institutions." />
-          </div>
-        </div>
-      </section>
+      <section className="border-b border-white/10 px-4 py-24 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><p className="text-xs font-black uppercase tracking-[.22em] text-[#d9ff57]">07 · Nigerian economic participation</p><h2 className="mt-4 max-w-4xl font-display text-4xl font-black leading-tight text-white sm:text-6xl">A resilience network can create work around prevention, not only disaster response.</h2><div className="mt-10 grid gap-4 md:grid-cols-3"><Job icon={Users} title="Community intelligence" body="Local verification, communication and field evidence workflows." /><Job icon={Sprout} title="Resilience services" body="Farm, drainage, infrastructure and preparedness service providers." /><Job icon={Building2} title="Risk operations" body="Assessment, implementation, monitoring and verification roles around institutions." /></div></div></section>
 
-      <section className="px-4 py-28 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl text-center">
-          <p className="text-xs font-black uppercase tracking-[.22em] text-[#d9ff57]">08 · The ask</p>
-          <h2 className="mx-auto mt-4 max-w-5xl font-display text-5xl font-black leading-[.98] tracking-tight sm:text-7xl">Help turn flood intelligence into infrastructure for economic resilience.</h2>
-          <p className="mx-auto mt-7 max-w-2xl text-lg text-white/60">We are building the validated exposure data, economic action engine, institutional integrations and deployment partnerships required to take the platform from strong prototype to national operating infrastructure.</p>
-          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row"><Link href="/" className="rounded-full bg-[#d9ff57] px-6 py-3.5 font-black text-[#071713]">Explore the product</Link><Link href="/api-docs" className="rounded-full border border-white/20 px-6 py-3.5 font-black">Explore the API</Link></div>
-        </div>
-      </section>
+      <section className="px-4 py-28 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl text-center"><p className="text-xs font-black uppercase tracking-[.22em] text-[#d9ff57]">08 · The ask</p><h2 className="mx-auto mt-4 max-w-5xl font-display text-5xl font-black leading-[.98] tracking-tight text-white sm:text-7xl">Help turn flood intelligence into infrastructure for economic resilience.</h2><p className="mx-auto mt-7 max-w-2xl text-lg text-white/60">We are building the validated exposure data, economic action engine, institutional integrations and deployment partnerships required to take the platform from strong prototype to national operating infrastructure.</p><div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row"><a href="/" className="rounded-full bg-[#d9ff57] px-6 py-3.5 font-black text-[#071713]">Explore the product</a><Link href="/api-docs" className="rounded-full border border-white/20 px-6 py-3.5 font-black">Explore the API</Link></div></div></section>
     </main>
   );
 }
 
-function Job({ icon: Icon, title, body }: { icon: typeof Users; title: string; body: string }) {
-  return <div className="rounded-[2rem] border border-white/10 bg-white/5 p-7"><Icon className="h-6 w-6 text-[#d9ff57]" /><h3 className="mt-7 text-2xl font-black">{title}</h3><p className="mt-3 text-sm leading-6 text-white/55">{body}</p></div>;
-}
+function PitchMetric({ icon: Icon, title, text }: { icon: typeof CircleDollarSign; title: string; text: string }) { return <div className="border-t-2 border-[#071713] py-6"><Icon className="h-7 w-7" /><p className="mt-8 text-3xl font-black">{title}</p><p className="mt-2 text-sm text-[#071713]/62">{text}</p></div>; }
+function Job({ icon: Icon, title, body }: { icon: typeof Users; title: string; body: string }) { return <div className="border-t border-white/15 py-7"><Icon className="h-6 w-6 text-[#d9ff57]" /><h3 className="mt-7 text-2xl font-black text-white">{title}</h3><p className="mt-3 text-sm leading-6 text-white/55">{body}</p></div>; }
