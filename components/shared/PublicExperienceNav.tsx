@@ -25,7 +25,7 @@ export default function PublicExperienceNav() {
   const revenueAdmin = Boolean((session?.user as any)?.revenueAdmin);
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 border-b border-black/8 bg-[#f7f7f2]/94 text-[#0d1f19] backdrop-blur-xl dark:border-white/10 dark:bg-[#071713]/94 dark:text-white" aria-label="Public product navigation">
+    <nav className="fixed inset-x-0 top-0 z-50 border-b border-black/8 bg-[#f7f7f2]/[.94] text-[#0d1f19] backdrop-blur-xl dark:border-white/10 dark:bg-[#071713]/[.94] dark:text-white" aria-label="Public product navigation">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
         <BrandLockup href="/" className="shrink-0" />
 

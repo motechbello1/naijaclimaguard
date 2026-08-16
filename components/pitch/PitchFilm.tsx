@@ -50,7 +50,7 @@ export default function PitchFilm() {
     <>
       <div className="group relative aspect-video overflow-hidden rounded-[2rem] border border-black/10 bg-[#102820] shadow-[0_24px_80px_rgba(3,25,18,.22)] dark:border-white/15">
         {playing ? <FilmFrame title="NaijaClimaGuard two-minute concept film" /> : <>
-          <img src={`https://i.ytimg.com/vi/${FILM_ID}/maxresdefault.jpg`} alt="NaijaClimaGuard concept-film cover" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={`https://i.ytimg.com/vi/${FILM_ID}/hqdefault.jpg`} alt="NaijaClimaGuard concept-film cover" className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#06130f] via-[#06130f]/45 to-[#06130f]/10" />
           <button onClick={() => setPlaying(true)} className="absolute inset-0 flex flex-col items-center justify-center text-center text-white" aria-label="Play the two-minute NaijaClimaGuard concept film">
             <span className="flex h-20 w-20 items-center justify-center rounded-full bg-[#d9ff57] text-[#071713] shadow-[0_16px_50px_rgba(0,0,0,.28)] transition group-hover:scale-105"><Play className="ml-1 h-7 w-7 fill-current" /></span>
