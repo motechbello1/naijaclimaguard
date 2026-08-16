@@ -117,7 +117,7 @@ export default function ActionCard({ score, level, locationId, locationName, mod
         </div>
         <div>
           <label className="sr-only" htmlFor={`asset-${locationId}`}>What is at this place?</label>
-          <select id={`asset-${locationId}`} value={assetType} onChange={(e) => changeAssetType(e.target.value as AssetType)} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold dark:border-midnight-border dark:bg-midnight-light">
+          <select id={`asset-${locationId}`} value={assetType} onChange={(e) => changeAssetType(e.target.value as AssetType)} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold dark:border-midnight-border dark:bg-midnight-light dark:text-slate-100">
             {(Object.keys(ASSET_LABELS) as AssetType[]).map((a) => <option key={a} value={a}>{ASSET_LABELS[a]}</option>)}
           </select>
         </div>
@@ -139,15 +139,15 @@ export default function ActionCard({ score, level, locationId, locationName, mod
             <button key={`${role}-${assetType}-${index}`} type="button" onClick={() => toggleAction(index, action)} className="flex w-full items-start gap-3 rounded-xl border border-slate-200/80 bg-white/70 p-3 text-left transition-all hover:border-radar/30 dark:border-midnight-border dark:bg-midnight-light/60">
               {complete ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-radar" /> : <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />}
               <span className="min-w-0 flex-1">
-                <span className={`block text-sm leading-relaxed ${complete ? "text-slate-400 line-through" : "text-slate-700 dark:text-slate-200"}`}>{action}</span>
-                {mode !== "simple" && complete && <span className="mt-1 block text-[10px] text-slate-400">{isRecording ? "Recording evidence…" : isRecorded ? "Acknowledgement recorded in evidence history" : "Completed locally; evidence ledger unavailable"}</span>}
+                <span className={`block text-sm leading-relaxed ${complete ? "text-slate-400 dark:text-slate-500 line-through" : "text-slate-700 dark:text-slate-200"}`}>{action}</span>
+                {mode !== "simple" && complete && <span className="mt-1 block text-[10px] text-slate-400 dark:text-slate-500">{isRecording ? "Recording evidence…" : isRecorded ? "Acknowledgement recorded in evidence history" : "Completed locally; evidence ledger unavailable"}</span>}
               </span>
             </button>
           );
         })}
       </div>
 
-      <p className="mt-4 text-[11px] leading-relaxed text-slate-500">{mode === "simple" ? simpleFooter : "Completed actions are appended to evidence history when the server ledger is available. Unchecking an item does not erase an earlier evidence event."}</p>
+      <p className="mt-4 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">{mode === "simple" ? simpleFooter : "Completed actions are appended to evidence history when the server ledger is available. Unchecking an item does not erase an earlier evidence event."}</p>
     </section>
   );
 }
