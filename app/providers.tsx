@@ -9,22 +9,25 @@ import LanguagePreferenceSync from "@/components/shared/LanguagePreferenceSync";
 import PlatformTranslationBridge from "@/components/shared/PlatformTranslationBridge";
 import { SpeechProvider } from "@/components/shared/SpeechProvider";
 import GlobalAccessibilityDock from "@/components/shared/GlobalAccessibilityDock";
+import { NationalAreaProvider } from "@/components/shared/NationalArea";
 import FloodAssistant from "@/components/assistant/FloodAssistant";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-        <LanguageProvider>
-          <SpeechProvider>
-            <LanguagePreferenceSync />
-            <PlatformTranslationBridge />
-            <SplashScreen />
-            {children}
-            <GlobalAccessibilityDock />
-            <FloodAssistant />
-          </SpeechProvider>
-        </LanguageProvider>
+        <NationalAreaProvider>
+          <LanguageProvider>
+            <SpeechProvider>
+              <LanguagePreferenceSync />
+              <PlatformTranslationBridge />
+              <SplashScreen />
+              {children}
+              <GlobalAccessibilityDock />
+              <FloodAssistant />
+            </SpeechProvider>
+          </LanguageProvider>
+        </NationalAreaProvider>
       </ThemeProvider>
     </SessionProvider>
   );
