@@ -42,13 +42,14 @@ export async function GET() {
   }, { headers: { "Cache-Control": "no-store" } });
 }
 
-async function callDedicated(endpoint: string, text: string, locale: string, requestedVoice?: string) {
+async function callDedicated(endpoint: string, text: string, locale: string, signal: AbortSignal, requestedVoice?: string) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const token = process.env.NCG_NEURAL_TTS_TOKEN?.trim();
   if (token) headers.Authorization = `Bearer ${token}`;
   return fetch(endpoint, {
     method: "POST",
     headers,
+    signal,
     cache: "no-store",
     body: JSON.stringify({
       text,
@@ -59,12 +60,13 @@ async function callDedicated(endpoint: string, text: string, locale: string, req
   });
 }
 
-async function callHuggingFace(text: string, locale: string) {
+async function callHuggingFace(text: string, locale: string, signal: AbortSignal) {
   const token = hfToken();
   if (!token) throw new Error("HF_TOKEN_MISSING");
   const endpoint = `https://router.huggingface.co/hf-inference/models/${encodeURIComponent(HF_MODEL).replace(/%2F/g, "/")}`;
   return fetch(endpoint, {
     method: "POST",
+    signal,
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -104,8 +106,8 @@ export async function POST(request: NextRequest) {
   const timeout = setTimeout(() => controller.abort(), 55_000);
   try {
     const upstream = dedicated
-      ? await callDedicated(dedicated, text, locale, payload?.voice)
-      : await callHuggingFace(text, locale);
+      ? await callDedicated(dedicated, text, locale, controller.signal, payload?.voice)
+      : await callHuggingFace(text, locale, controller.signal);
 
     if (!upstream.ok) {
       const contentType = upstream.headers.get("content-type") || "";
