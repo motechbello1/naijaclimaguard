@@ -7,7 +7,7 @@ import { signOut, useSession } from "next-auth/react";
 import {
   Shield, LayoutDashboard, Map, Zap, BarChart3,
   LogOut, ChevronDown, ChevronLeft, ChevronRight, User, Radar, Home, Megaphone, Telescope, FileCheck2, ShieldAlert,
-  Menu, X, Settings2, ClipboardCheck,
+  Menu, X, Settings2, ClipboardCheck, Newspaper, Navigation,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
@@ -22,6 +22,8 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   HOUSEHOLD: [
     { href: "/my-area", key: "myArea", icon: Home },
     { href: "/dashboard", key: "mySafety", icon: LayoutDashboard },
+    { href: "/live-floods", key: "liveData", icon: Newspaper },
+    { href: "/safe-route", key: "locationAnalysis", icon: Navigation },
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "myAlerts", icon: Zap },
     { href: "/evidence", key: "myHistory", icon: FileCheck2 },
@@ -29,6 +31,8 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
   FARMER: [
     { href: "/dashboard", key: "myFarmRisk", icon: LayoutDashboard },
+    { href: "/live-floods", key: "liveData", icon: Newspaper },
+    { href: "/safe-route", key: "locationAnalysis", icon: Navigation },
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "farmAlerts", icon: Zap },
     { href: "/outlook", key: "rainOutlook", icon: Telescope },
@@ -37,6 +41,8 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
   BUSINESS: [
     { href: "/dashboard", key: "riskOverview", icon: LayoutDashboard },
+    { href: "/live-floods", key: "liveData", icon: Newspaper },
+    { href: "/safe-route", key: "locationAnalysis", icon: Navigation },
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "alertsActions", icon: Zap },
     { href: "/intelligence", key: "riskIntelligence", icon: Radar },
@@ -44,6 +50,8 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
   AGENCY: [
     { href: "/dashboard", key: "operations", icon: LayoutDashboard },
+    { href: "/live-floods", key: "liveData", icon: Newspaper },
+    { href: "/safe-route", key: "locationAnalysis", icon: Navigation },
     { href: "/command", key: "commandQueue", icon: ShieldAlert },
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/intelligence", key: "intelligence", icon: Radar },
@@ -145,10 +153,12 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <header className="flex h-12 shrink-0 items-center border-b border-slate-200 bg-white/95 px-2.5 backdrop-blur-xl dark:border-midnight-border dark:bg-midnight/95 sm:h-14 sm:px-4 lg:h-16 lg:px-6">
           <div className="flex min-w-0 items-center gap-2 lg:hidden"><button onClick={() => setMobileOpen(true)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800" aria-label="Open navigation"><Menu className="h-4 w-4" /></button><Logo mobile /></div>
           <div className="hidden min-w-0 lg:block"><SatelliteStatus /></div>
-          <div className="ml-auto hidden items-center gap-2 lg:flex"><ExperienceRoleControl /><ExplanationModeControl /><LanguageSelector compact /><ReadAloudControl compact /><ThemeToggle /></div>
+          <div className="ml-auto hidden items-center gap-2 lg:flex"><ExperienceRoleControl /><ExplanationModeControl /><LanguageSelector /><ReadAloudControl /><ThemeToggle /></div>
         </header>
-
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3 pb-[max(5rem,env(safe-area-inset-bottom))] sm:p-5 sm:pb-6 lg:p-8"><PageExplanation pathname={pathname} />{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3 pb-[max(5rem,env(safe-area-inset-bottom))] sm:p-5 sm:pb-6 lg:p-8">
+          <PageExplanation />
+          {children}
+        </main>
       </div>
     </div>
   );
