@@ -156,7 +156,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           <div className="ml-auto hidden items-center gap-2 lg:flex"><ExperienceRoleControl /><ExplanationModeControl /><LanguageSelector /><ReadAloudControl /><ThemeToggle /></div>
         </header>
         <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain p-3 pb-[max(5rem,env(safe-area-inset-bottom))] sm:p-5 sm:pb-6 lg:p-8">
-          <PageExplanation />
+          <PageExplanation pathname={pathname} />
           {children}
         </main>
       </div>
