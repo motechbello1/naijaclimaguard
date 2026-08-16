@@ -1,0 +1,7 @@
+"use client";
+
+export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return (
+    <html lang="en"><body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#071713", color: "white" }}><main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}><section style={{ width: "100%", maxWidth: 560, background: "#f3f4ee", color: "#0d1f19", borderRadius: 28, overflow: "hidden" }}><div style={{ padding: 28, background: "#0d2a21", color: "white" }}><div style={{ width: 48, height: 48, borderRadius: 16, display: "grid", placeItems: "center", background: "#d9ff57", color: "#071713", fontWeight: 900 }}>N</div><h1 style={{ margin: "28px 0 8px", fontSize: 30, lineHeight: 1.05 }}>NaijaClimaGuard hit a temporary problem.</h1><p style={{ margin: 0, opacity: .64, lineHeight: 1.6 }}>You can retry without losing your saved places or account information.</p></div><div style={{ padding: 20, display: "flex", gap: 10, flexWrap: "wrap" }}><button onClick={reset} style={{ flex: 1, minWidth: 140, border: 0, borderRadius: 16, padding: "13px 18px", background: "#d9ff57", color: "#071713", fontWeight: 800 }}>Try again</button><a href="/" style={{ flex: 1, minWidth: 140, textAlign: "center", borderRadius: 16, padding: "13px 18px", background: "#071713", color: "white", textDecoration: "none", fontWeight: 800 }}>Go home</a></div></section></main></body></html>
+  );
+}
