@@ -252,3 +252,24 @@ model InstitutionalLead {
   @@index([createdAt])
   @@index([stage, createdAt])
 }
+
+/// Durable archive of flood reports/warnings discovered from external media.
+/// This is evidence of what was publicly reported, not proof of a road-level flood.
+model ExternalFloodReport {
+  id           String   @id
+  title        String
+  url          String   @unique
+  source       String
+  publishedAt  DateTime
+  discoveredAt DateTime @default(now())
+  lastSeenAt   DateTime @updatedAt
+  state        String?
+  areas        Json?
+  status       String
+  severity     Int      @default(0)
+  channel      String   @default("news")
+  metadata     Json?
+
+  @@index([publishedAt])
+  @@index([state, publishedAt])
+}
