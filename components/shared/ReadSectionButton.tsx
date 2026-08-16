@@ -21,8 +21,10 @@ const labelByLocale: Record<string, string> = {
 
 export default function ReadSectionButton({ targetId, compact = false, label, className = "" }: Props) {
   const { locale } = useLanguage();
-  const { speaking, loading, activeTarget, speakTarget, stop, error } = useSpeech();
+  const { supported, checking, speaking, loading, activeTarget, speakTarget, stop, error } = useSpeech();
   const active = activeTarget === targetId && (speaking || loading);
+
+  if (checking || !supported) return null;
 
   return (
     <div className={`inline-flex flex-col items-start gap-1 ${className}`}>
@@ -35,7 +37,7 @@ export default function ReadSectionButton({ targetId, compact = false, label, cl
         {loading && active ? <Loader2 className="h-4 w-4 animate-spin text-emerald-700 dark:text-[#d9ff57]" /> : active ? <Square className="h-3.5 w-3.5 fill-current text-emerald-700 dark:text-[#d9ff57]" /> : <Headphones className="h-4 w-4 text-emerald-700 dark:text-[#d9ff57]" />}
         {!compact && <span>{active ? (locale === "pcm" ? "Stop am" : locale === "ha" ? "Tsaya" : locale === "yo" ? "Dúró" : locale === "ig" ? "Kwụsị" : "Stop") : (label || labelByLocale[locale] || labelByLocale.en)}</span>}
       </button>
-      {error && activeTarget === targetId ? <span className="max-w-[240px] text-[10px] leading-4 text-rose-600 dark:text-rose-300">{error}</span> : null}
+      {error && activeTarget === targetId ? <span className="max-w-[240px] text-[10px] leading-4 text-slate-500 dark:text-white/45">{error}</span> : null}
     </div>
   );
 }
