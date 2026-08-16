@@ -1,5 +1,7 @@
 import type { AppLocale } from "./config";
 import { translatePlatformText as translateCorePlatformText } from "./platform-copy";
+import { translateActionOSExact } from "./action-os";
+import { translateActionOSDetailExact } from "./action-os-detail";
 import { REPORT_COPY } from "./pages/report";
 import { EVIDENCE_OUTLOOK_COPY } from "./pages/evidence-outlook";
 import { PROFILE_COMMAND_COPY } from "./pages/profile-command";
@@ -55,6 +57,16 @@ export function translatePlatformText(locale: AppLocale, source: string): string
 
   const dynamic = translateDynamic(locale, source);
   if (dynamic) return dynamic;
+
+  // Action OS used to run a second MutationObserver. It now shares this one pipeline.
+  const actionDetail = translateActionOSDetailExact(source, locale);
+  if (actionDetail !== source) return actionDetail;
+  const actionCore = translateActionOSExact(source, locale);
+  if (actionCore !== source) {
+    return actionCore === "Mụọ ihe ị ga-eme tupu ịdọ aka ná ntị bụrụ nkeจริง."
+      ? "Mụọ ihe ị ga-eme tupu ịdọ aka ná ntị bụrụ nke n'ezie."
+      : actionCore;
+  }
 
   for (const pack of PAGE_PACKS) {
     const translated = pack[locale]?.[source];
