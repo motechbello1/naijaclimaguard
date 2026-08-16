@@ -2,6 +2,7 @@ import type { AppLocale } from "./config";
 import { translatePlatformText as translateCorePlatformText } from "./platform-copy";
 import { translateActionOSExact } from "./action-os";
 import { translateActionOSDetailExact } from "./action-os-detail";
+import { translateNaturalOverride } from "./natural-overrides";
 import { REPORT_COPY } from "./pages/report";
 import { EVIDENCE_OUTLOOK_COPY } from "./pages/evidence-outlook";
 import { PROFILE_COMMAND_COPY } from "./pages/profile-command";
@@ -9,14 +10,7 @@ import { DASHBOARD_COPY } from "./pages/dashboard";
 import { AUTH_COPY } from "./pages/auth";
 import { TECHNICAL_COPY } from "./pages/technical";
 
-const PAGE_PACKS = [
-  REPORT_COPY,
-  EVIDENCE_OUTLOOK_COPY,
-  PROFILE_COMMAND_COPY,
-  DASHBOARD_COPY,
-  AUTH_COPY,
-  TECHNICAL_COPY,
-];
+const PAGE_PACKS = [REPORT_COPY, EVIDENCE_OUTLOOK_COPY, PROFILE_COMMAND_COPY, DASHBOARD_COPY, AUTH_COPY, TECHNICAL_COPY];
 
 function translateDynamic(locale: AppLocale, source: string): string | null {
   const synced = source.match(/^Synced\s+(.+)$/i);
@@ -58,7 +52,9 @@ export function translatePlatformText(locale: AppLocale, source: string): string
   const dynamic = translateDynamic(locale, source);
   if (dynamic) return dynamic;
 
-  // Action OS used to run a second MutationObserver. It now shares this one pipeline.
+  const natural = translateNaturalOverride(locale, source);
+  if (natural) return natural;
+
   const actionDetail = translateActionOSDetailExact(source, locale);
   if (actionDetail !== source) return actionDetail;
   const actionCore = translateActionOSExact(source, locale);
