@@ -25,10 +25,7 @@ import pandas as pd
 import requests
 
 WORLDPOP_ARCHIVE_URLS = [
-    # This is the archive currently listed by WorldPop's v3.0 directory.
     "https://data.worldpop.org/repo/wopr/NGA/population/v3.0/NGA_population_v3_0_admin.zip",
-    # The release PDF calls the table archive by this name, even though the live
-    # directory may not expose it. Keep as a bounded compatibility fallback.
     "https://data.worldpop.org/repo/wopr/NGA/population/v3.0/NGA_population_v3_0_table.zip",
 ]
 WORLDPOP_README = "https://data.worldpop.org/repo/wopr/NGA/population/v3.0/NGA_population_v3_0_README.pdf"
@@ -46,6 +43,7 @@ ALIASES = {
     "akwa-ibom": "Akwa Ibom",
     "cross-river": "Cross River",
     "nasarawa": "Nasarawa",
+    "nassarawa": "Nasarawa",
 }
 
 
@@ -70,17 +68,15 @@ def download_table() -> tuple[pd.DataFrame, str, list[str]]:
                 if state_name:
                     with zf.open(state_name) as fh:
                         return pd.read_csv(fh), url, names
-                # Some releases use an admin-state filename. Inspect all small CSVs
-                # and accept one only if it has state/admin1 names and a numeric total.
                 for name in names:
                     if not name.lower().endswith(".csv"):
                         continue
                     with zf.open(name) as fh:
                         candidate = pd.read_csv(fh)
-                    lowered = " ".join(str(c).lower() for c in candidate.columns)
-                    if any(k in lowered for k in ["state", "admin1", "adm1"]) and len(candidate) >= 30:
+                    lower_cols = {str(c).lower() for c in candidate.columns}
+                    if any(c in lower_cols for c in {"statename", "state", "admin1", "adm1"}) and len(candidate) >= 30:
                         return candidate, url, names
-                errors.append(f"{url}: no state table; files={names}")
+                errors.append(f"{url}: no state/admin1 table; files={names}")
         except Exception as exc:
             errors.append(f"{url}: {exc}")
     raise RuntimeError("WorldPop v3 state table unavailable from documented/live archives: " + " | ".join(errors))
@@ -88,25 +84,37 @@ def download_table() -> tuple[pd.DataFrame, str, list[str]]:
 
 def normalize_worldpop(df: pd.DataFrame) -> pd.DataFrame:
     cols = {str(c).lower(): c for c in df.columns}
-    state_col = next((c for k, c in cols.items() if any(token in k for token in ["state", "admin1", "adm1", "name"])), None)
+    # Prefer an explicit ADM1/state field. The live WorldPop v3 admin archive is
+    # LGA-level (`lganame`, `statename`, `population`), so choosing a generic
+    # `name` field would incorrectly treat LGAs as states.
+    state_col = (
+        cols.get("statename")
+        or cols.get("state")
+        or cols.get("admin1")
+        or cols.get("adm1")
+        or next((c for k, c in cols.items() if "state" in k or "admin1" in k or "adm1" in k), None)
+    )
     if state_col is None:
-        raise RuntimeError(f"Could not identify state-name column in {list(df.columns)}")
+        raise RuntimeError(f"Could not identify state/admin1 column in {list(df.columns)}")
 
-    numeric_candidates = []
-    for c in df.columns:
-        if c == state_col:
-            continue
-        series = pd.to_numeric(df[c], errors="coerce")
-        if series.notna().mean() > 0.8:
-            numeric_candidates.append((float(series.fillna(0).sum()), c, series))
-    if not numeric_candidates:
-        raise RuntimeError("Could not identify numeric population total column")
+    if "population" in cols:
+        pop_col = cols["population"]
+        pop_series = pd.to_numeric(df[pop_col], errors="coerce")
+    else:
+        numeric_candidates = []
+        for c in df.columns:
+            if c == state_col:
+                continue
+            series = pd.to_numeric(df[c], errors="coerce")
+            if series.notna().mean() > 0.8:
+                numeric_candidates.append((float(series.fillna(0).sum()), c, series))
+        if not numeric_candidates:
+            raise RuntimeError("Could not identify numeric population total column")
+        _, pop_col, pop_series = max(numeric_candidates, key=lambda x: x[0])
 
-    # Population totals dominate code/id fields by aggregate magnitude. Preserve
-    # the chosen source column in the manifest so this inference remains auditable.
-    _, pop_col, pop_series = max(numeric_candidates, key=lambda x: x[0])
     out = pd.DataFrame({"state": df[state_col].map(canonical_state), "population_2025": pop_series.round().astype("Int64")})
     out = out[out.state.ne("") & out.population_2025.notna()].copy()
+    # If the source is LGA-level, this converts it to auditable state/FCT totals.
     out = out.groupby("state", as_index=False).population_2025.sum().sort_values("state")
     out.attrs["source_state_column"] = str(state_col)
     out.attrs["source_population_column"] = str(pop_col)
@@ -129,7 +137,7 @@ def main() -> None:
     missing = sorted(expected_states - population_states)
     extra = sorted(population_states - expected_states)
     if missing:
-        raise RuntimeError(f"WorldPop state table missing registered jurisdictions: {missing}; extra={extra}; columns={list(raw.columns)}")
+        raise RuntimeError(f"WorldPop state aggregation missing registered jurisdictions: {missing}; extra={extra}; columns={list(raw.columns)}")
 
     population = expected[["state", "capital", "zone", "kind"]].merge(population, on="state", how="left")
     total_population = int(population.population_2025.sum())
