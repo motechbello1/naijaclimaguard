@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isRevenueAdminEmail } from "@/lib/revenue-admin";
+import { isFounderSessionUser } from "@/lib/revenue-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +29,7 @@ type LeadRow = {
 
 async function authorised() {
   const session = await getServerSession(authOptions);
-  const email = session?.user?.email;
-  return { session, ok: Boolean(email && isRevenueAdminEmail(email)) };
+  return { session, ok: isFounderSessionUser(session?.user as any) };
 }
 
 function ngnFromKobo(value: number) {

@@ -11,8 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#071713",
     categories: ["weather", "utilities", "productivity"],
     icons: [
-      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
-      { src: "/brand/naijaclimaguard-mark.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+      { src: "/brand/favicon-light.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/brand/favicon-dark.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
     ],
   };
 }

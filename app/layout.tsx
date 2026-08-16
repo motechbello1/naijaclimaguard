@@ -9,8 +9,11 @@ export const metadata: Metadata = {
     "Nigeria-focused flood-risk decision support with live location monitoring, auditable risk context, and an independent validation pipeline for NASA, GloFAS, and ERA5-Land data.",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
-    shortcut: "/icon.svg",
+    icon: [
+      { url: "/brand/favicon-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
+      { url: "/brand/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
+    ],
+    shortcut: "/brand/favicon-dark.svg",
     apple: "/brand/naijaclimaguard-mark.svg",
   },
 };

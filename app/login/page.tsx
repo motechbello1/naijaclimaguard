@@ -10,35 +10,48 @@ import { BrandLockup } from "@/components/shared/BrandLogo";
 const LOGIN_IMAGE = "https://images.unsplash.com/photo-1741110539426-fce3268c3c0d?auto=format&fit=crop&fm=jpg&q=80&w=1600";
 
 function LoginForm() {
-  const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<"user" | "founder">(searchParams.get("mode") === "founder" ? "founder" : "user");
+  const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const registered = searchParams.get("registered") === "true";
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
     setError("");
-    const result = await signIn("credentials", { email, password, redirect: false });
-    if (result?.error) { setError("Invalid email or password"); setLoading(false); }
-    else router.push("/dashboard");
+    const provider = mode === "founder" ? "founder-credentials" : "credentials";
+    const result = await signIn(provider, mode === "founder"
+      ? { username: identity, password, redirect: false }
+      : { email: identity, password, redirect: false });
+    if (result?.error) {
+      setError(mode === "founder" ? "Invalid founder username or password" : "Invalid email or password");
+      setLoading(false);
+      return;
+    }
+    const requested = searchParams.get("callbackUrl");
+    const safeDestination = requested?.startsWith("/") ? requested : null;
+    router.push(safeDestination || (mode === "founder" ? "/admin" : "/dashboard"));
   };
 
   return (
     <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900 sm:p-8">
       {registered && <div className="mb-5 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 dark:border-radar/20 dark:bg-radar/10 dark:text-radar"><CheckCircle2 className="h-4 w-4" /> Account created. Sign in to protect your places.</div>}
+      <div className="mb-6 grid grid-cols-2 rounded-full bg-slate-100 p-1 dark:bg-slate-950" aria-label="Choose account access">
+        <button type="button" onClick={() => { setMode("user"); setIdentity(""); setError(""); }} className={`rounded-full px-4 py-2.5 text-xs font-black transition ${mode === "user" ? "bg-white text-[#071713] shadow-sm dark:bg-slate-800 dark:text-white" : "text-slate-500"}`}>User or enterprise</button>
+        <button type="button" onClick={() => { setMode("founder"); setIdentity(""); setError(""); }} className={`rounded-full px-4 py-2.5 text-xs font-black transition ${mode === "founder" ? "bg-[#071713] text-[#d9ff57] shadow-sm dark:bg-[#d9ff57] dark:text-[#071713]" : "text-slate-500"}`}>Founder access</button>
+      </div>
       <div className="mb-6"><p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-radar">Welcome back</p><h1 className="mt-2 font-display text-3xl font-black tracking-tight">Open your climate-risk workspace.</h1><p className="mt-2 text-sm text-slate-500">Your saved homes, farms, businesses and community locations stay together in one account.</p></div>
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && <div className="rounded-xl border border-crimson/20 bg-crimson/10 px-4 py-3 text-sm text-crimson">{error}</div>}
-        <div><label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Email</label><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base focus:border-emerald-600 focus:outline-none dark:border-slate-700 dark:bg-slate-950" placeholder="you@example.com" required /></div>
+        <div><label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">{mode === "founder" ? "Founder username" : "Email"}</label><input type={mode === "founder" ? "text" : "email"} value={identity} onChange={(event) => setIdentity(event.target.value)} autoComplete={mode === "founder" ? "username" : "email"} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base focus:border-emerald-600 focus:outline-none dark:border-slate-700 dark:bg-slate-950" placeholder={mode === "founder" ? "Founder username" : "you@example.com"} required /></div>
         <div><label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-slate-500">Password</label><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base focus:border-emerald-600 focus:outline-none dark:border-slate-700 dark:bg-slate-950" placeholder="••••••••" required /></div>
-        <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#071713] py-3.5 text-sm font-black text-white transition hover:brightness-110 disabled:opacity-60 dark:bg-[#d9ff57] dark:text-[#071713]">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}{loading ? "Signing in..." : "Log in to NaijaClimaGuard"}</button>
+        <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#071713] py-3.5 text-sm font-black text-white transition hover:brightness-110 disabled:opacity-60 dark:bg-[#d9ff57] dark:text-[#071713]">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}{loading ? "Signing in..." : mode === "founder" ? "Open founder command" : "Log in to NaijaClimaGuard"}</button>
       </form>
-      <div className="mt-6 border-t border-slate-100 pt-6 text-center dark:border-slate-800"><p className="text-sm text-slate-500">New here? <Link href="/register" className="font-black text-emerald-700 hover:underline dark:text-radar">Create your free account</Link></p></div>
-      <details className="mt-5 rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-950"><summary className="cursor-pointer font-bold">Demo access</summary><div className="mt-2 space-y-1"><p>Password: demo1234</p><p>free@naijaclimaguard.com</p><p>pro@naijaclimaguard.com</p><p>enterprise@naijaclimaguard.com</p></div></details>
+      {mode === "user" ? <div className="mt-6 border-t border-slate-100 pt-6 text-center dark:border-slate-800"><p className="text-sm text-slate-500">New here? <Link href="/register" className="font-black text-emerald-700 hover:underline dark:text-radar">Create your free account</Link></p></div> : <p className="mt-5 rounded-xl bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-500 dark:bg-slate-950">Founder access is a separate protected identity. A household, business, agency or enterprise account does not receive founder permissions.</p>}
     </div>
   );
 }

@@ -11,11 +11,13 @@ import { SpeechProvider } from "@/components/shared/SpeechProvider";
 import GlobalAccessibilityDock from "@/components/shared/GlobalAccessibilityDock";
 import { NationalAreaProvider } from "@/components/shared/NationalArea";
 import FloodAssistant from "@/components/assistant/FloodAssistant";
+import ThemeBrandSync from "@/components/shared/ThemeBrandSync";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <ThemeBrandSync />
         <NationalAreaProvider>
           <LanguageProvider>
             <SpeechProvider>

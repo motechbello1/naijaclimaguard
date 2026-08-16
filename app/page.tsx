@@ -46,7 +46,7 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen bg-[#f7f7f2] text-slate-950 dark:bg-midnight dark:text-slate-100">
-      <nav className="fixed inset-x-0 top-0 z-50 border-b border-black/8 bg-[#f7f7f2]/94 text-[#071713] backdrop-blur-xl dark:border-white/10 dark:bg-[#071713]/90 dark:text-white">
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-black/8 bg-[#f7f7f2]/[.96] text-[#071713] backdrop-blur-xl dark:border-white/10 dark:bg-[#071713]/[.96] dark:text-white">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
           <BrandLockup href="/" />
           <div className="hidden items-center gap-6 xl:flex">

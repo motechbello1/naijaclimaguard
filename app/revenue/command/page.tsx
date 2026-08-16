@@ -1,11 +1,13 @@
 "use client";
 
 import AppShell from "@/components/shared/AppShell";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
   ArrowUpRight, BadgeDollarSign, Banknote, Building2, CalendarClock,
   CheckCircle2, CircleDollarSign, Clock3, CreditCard, Gauge, Loader2,
-  RefreshCw, ShoppingCart, Target, TrendingUp, UsersRound, WalletCards,
+  RefreshCw, ShieldAlert, ShoppingCart, Target, TrendingUp, UsersRound, WalletCards,
 } from "lucide-react";
 
 type DashboardData = any;
@@ -54,13 +56,16 @@ function RevenueBars({ points }: { points: Array<{ date: string; revenueNgn: num
 }
 
 export default function RevenueCommandPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const isFounder = (session?.user as any)?.role === "FOUNDER";
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, any>>({});
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
       const response = await fetch("/api/admin/revenue", { cache: "no-store" });
@@ -73,9 +78,16 @@ export default function RevenueCommandPage() {
     } catch (err: any) {
       setError(err?.message || "Revenue command could not load.");
     } finally { setLoading(false); }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login?mode=founder&callbackUrl=/admin");
+      return;
+    }
+    if (status === "authenticated" && isFounder) load();
+    if (status === "authenticated" && !isFounder) setLoading(false);
+  }, [isFounder, load, router, status]);
 
   const saveLead = async (id: string) => {
     const draft = drafts[id];
@@ -102,6 +114,14 @@ export default function RevenueCommandPage() {
   };
 
   const bestProduct = useMemo(() => data?.productBreakdown?.[0], [data]);
+
+  if (status === "loading") {
+    return <AppShell><div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-emerald-700" /></div></AppShell>;
+  }
+
+  if (status === "authenticated" && !isFounder) {
+    return <AppShell><section className="mx-auto max-w-2xl rounded-[30px] border border-amber-300/50 bg-amber-50 p-8 text-amber-950 dark:border-amber-300/20 dark:bg-amber-300/8 dark:text-amber-100"><ShieldAlert className="h-8 w-8" /><h1 className="mt-5 text-3xl font-black">Founder sign-in required</h1><p className="mt-3 text-sm font-semibold leading-7">This account is a user or enterprise workspace. Founder Command requires the separate founder username and password.</p><button onClick={() => router.push("/login?mode=founder&callbackUrl=/admin")} className="mt-6 rounded-full bg-[#071713] px-5 py-3 text-sm font-black text-white dark:bg-[#d9ff57] dark:text-[#071713]">Use founder access</button></section></AppShell>;
+  }
 
   return (
     <AppShell>
