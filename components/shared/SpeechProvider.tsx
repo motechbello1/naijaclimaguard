@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Headphones, Square } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "./LanguageProvider";
@@ -110,6 +110,10 @@ const playErrorByLocale: Record<string, string> = {
   ig: "A pụghị ịkpọ olu ahụ. Biko nwaa ọzọ.",
 };
 
+function hasDeviceSpeech() {
+  return typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+}
+
 export function SpeechProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { locale } = useLanguage();
@@ -136,13 +140,15 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
         const response = await fetch("/api/tts", { cache: "no-store" });
         const data = response.ok ? await response.json() : null;
         if (!cancelled) {
-          setSupported(Boolean(data?.available));
-          setProvider(data?.provider || null);
+          const deviceAvailable = hasDeviceSpeech();
+          setSupported(Boolean(data?.available) || deviceAvailable);
+          setProvider(data?.provider || (deviceAvailable ? "device-speech" : null));
         }
       } catch {
         if (!cancelled) {
-          setSupported(false);
-          setProvider(null);
+          const deviceAvailable = hasDeviceSpeech();
+          setSupported(deviceAvailable);
+          setProvider(deviceAvailable ? "device-speech" : null);
         }
       } finally {
         if (!cancelled) setChecking(false);
@@ -170,6 +176,7 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
       sourceRef.current.disconnect();
       sourceRef.current = null;
     }
+    if (hasDeviceSpeech()) window.speechSynthesis.cancel();
   };
 
   const stop = () => {
@@ -204,6 +211,27 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const playDeviceChunk = async (text: string, runId: number) => {
+    if (!hasDeviceSpeech() || runId !== runRef.current) throw new Error(playErrorByLocale[locale] || playErrorByLocale.en);
+    await new Promise<void>((resolve, reject) => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = SPEECH_LANG[locale] || SPEECH_LANG.en;
+      const baseLanguage = utterance.lang.toLowerCase().split("-")[0];
+      const voices = window.speechSynthesis.getVoices();
+      utterance.voice = voices.find((voice) => voice.lang.toLowerCase() === utterance.lang.toLowerCase())
+        || voices.find((voice) => voice.lang.toLowerCase().startsWith(baseLanguage))
+        || null;
+      utterance.rate = locale === "en" || locale === "pcm" ? 0.96 : 0.9;
+      utterance.onstart = () => {
+        setLoading(false);
+        setSpeaking(true);
+      };
+      utterance.onend = () => resolve();
+      utterance.onerror = (event) => event.error === "canceled" ? resolve() : reject(new Error(playErrorByLocale[locale] || playErrorByLocale.en));
+      window.speechSynthesis.speak(utterance);
+    });
+  };
+
   const speak = async (text: string, targetId?: string) => {
     const clean = text.replace(/\s+/g, " ").trim();
     if (!clean || !supported) return;
@@ -211,7 +239,7 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     // Called synchronously from the user's tap so iOS/Safari unlocks audio before
     // a slow neural generation request returns.
     const context = unlockAudio();
-    if (!context) {
+    if (!context && !hasDeviceSpeech()) {
       setError(playErrorByLocale[locale] || playErrorByLocale.en);
       return;
     }
@@ -227,29 +255,31 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     try {
       for (let index = 0; index < chunks.length; index += 1) {
         if (runId !== runRef.current) return;
-        setLoading(true);
-        const controller = new AbortController();
-        requestRef.current = controller;
-        const response = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: chunks[index], locale }),
-          signal: controller.signal,
-        });
-        requestRef.current = null;
+        try {
+          if (!context) throw new Error("Neural audio context unavailable");
+          setLoading(true);
+          const controller = new AbortController();
+          requestRef.current = controller;
+          const response = await fetch("/api/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: chunks[index], locale }),
+            signal: controller.signal,
+          });
+          requestRef.current = null;
 
-        if (!response.ok) {
-          let message = unavailableByLocale[locale] || unavailableByLocale.en;
-          try {
-            const data = await response.json();
-            if (data?.error && response.status < 500) message = data.error;
-          } catch { /* keep localised message */ }
-          throw new Error(message);
+          if (!response.ok) throw new Error(unavailableByLocale[locale] || unavailableByLocale.en);
+          const blob = await response.blob();
+          if (!blob.size) throw new Error(unavailableByLocale[locale] || unavailableByLocale.en);
+          await playBlob(blob, context, runId);
+        } catch (neuralError: any) {
+          requestRef.current = null;
+          if (neuralError?.name === "AbortError" || runId !== runRef.current) return;
+          if (!hasDeviceSpeech()) throw neuralError;
+          setProvider("device-speech-fallback");
+          setError(null);
+          await playDeviceChunk(chunks[index], runId);
         }
-
-        const blob = await response.blob();
-        if (!blob.size) throw new Error(unavailableByLocale[locale] || unavailableByLocale.en);
-        await playBlob(blob, context, runId);
       }
 
       if (runId === runRef.current) {
@@ -297,7 +327,7 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     if (audioContextRef.current) void audioContextRef.current.close();
   }, []);
 
-  const value = useMemo(() => ({
+  const value = {
     supported,
     checking,
     speaking,
@@ -310,7 +340,7 @@ export function SpeechProvider({ children }: { children: React.ReactNode }) {
     speak,
     speakTarget,
     stop,
-  }), [supported, checking, speaking, loading, activeTarget, error, provider, autoRead, locale]);
+  };
 
   return <SpeechContext.Provider value={value}>{children}</SpeechContext.Provider>;
 }
@@ -322,7 +352,7 @@ export function useSpeech() {
 }
 
 export function ReadAloudControl({ compact = false }: { compact?: boolean }) {
-  const { supported, checking, speaking, loading, autoRead, setAutoRead, stop } = useSpeech();
+  const { supported, checking, speaking, loading, error, autoRead, setAutoRead, speak, stop } = useSpeech();
   const { locale } = useLanguage();
 
   if (checking) return null;
@@ -343,11 +373,25 @@ export function ReadAloudControl({ compact = false }: { compact?: boolean }) {
     : locale === "yo" ? "Kà ojúewé laifọwọyi"
     : locale === "ig" ? "Gụọ ibe na-akpaghị aka"
     : "Auto-read pages";
+  const pageLabel = locale === "pcm" ? "Read this page"
+    : locale === "ha" ? "Karanta wannan shafin"
+    : locale === "yo" ? "Ka ojúewé yìí"
+    : locale === "ig" ? "Gụọ ibe a"
+    : "Read this page";
+
+  const togglePageSpeech = () => {
+    if (speaking || loading) {
+      stop();
+      return;
+    }
+    const summary = visiblePageSummary();
+    if (summary) void speak(summary, "page-summary");
+  };
 
   if (compact) {
     if (!supported) return null;
     return (
-      <button type="button" onClick={speaking || loading ? stop : undefined} className="flex min-h-10 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300" title={hint}>
+      <button type="button" onClick={togglePageSpeech} className="flex min-h-10 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200" title={speaking || loading ? "Stop audio" : pageLabel} aria-label={speaking || loading ? "Stop audio" : pageLabel} aria-pressed={speaking || loading}>
         {speaking || loading ? <Square className="h-3.5 w-3.5 fill-current text-radar" /> : <Headphones className="h-4 w-4 text-radar" />}
       </button>
     );
@@ -358,9 +402,10 @@ export function ReadAloudControl({ compact = false }: { compact?: boolean }) {
       <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
         <Headphones className="h-4 w-4 text-radar" />
         <span>{label}</span>
-        {(speaking || loading) && <button type="button" onClick={stop} className="ml-auto rounded-full border border-slate-200 px-2 py-1 text-[10px] dark:border-white/10">Stop</button>}
+        {supported && <button type="button" onClick={togglePageSpeech} className="ml-auto rounded-full border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-700 dark:border-white/15 dark:text-white" aria-pressed={speaking || loading}>{speaking || loading ? "Stop" : pageLabel}</button>}
       </div>
       <p className="mt-1.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">{supported ? hint : unavailable}</p>
+      {error && <p className="mt-2 text-[11px] font-semibold leading-4 text-red-600 dark:text-red-300" role="alert">{error}</p>}
       {supported && (
         <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 border-t border-slate-200 pt-3 text-[11px] text-slate-500 dark:border-white/10 dark:text-slate-400">
           <span>{autoLabel}</span>

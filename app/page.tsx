@@ -15,9 +15,9 @@ import {
   Shield,
   Sprout,
   UserPlus,
-  Waves,
 } from "lucide-react";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import { BrandLockup } from "@/components/shared/BrandLogo";
 import {
   NIGERIA_ADMIN_AREAS,
   NIGERIA_STATE_COUNT,
@@ -46,25 +46,22 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen bg-[#f7f7f2] text-slate-950 dark:bg-midnight dark:text-slate-100">
-      <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#071713]/90 text-white backdrop-blur-xl">
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-black/8 bg-[#f7f7f2]/94 text-[#071713] backdrop-blur-xl dark:border-white/10 dark:bg-[#071713]/90 dark:text-white">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10"><Waves className="h-4 w-4" /></div>
-            <span className="font-display text-base font-black tracking-tight sm:text-lg">NaijaClimaGuard</span>
-          </Link>
+          <BrandLockup href="/" />
           <div className="hidden items-center gap-6 xl:flex">
-            <a href="#my-area" className="text-sm text-white/70 hover:text-white">Check my area</a>
-            <Link href="/impact" className="text-sm text-white/70 hover:text-white">Economic Impact</Link>
-            <Link href="/action-center" className="text-sm text-white/70 hover:text-white">Action OS</Link>
-            <Link href="/evidence" className="text-sm text-white/70 hover:text-white">Evidence</Link>
-            <Link href="/investor-readiness" className="text-sm text-white/70 hover:text-white">Investor Proof</Link>
-            <Link href="/api-docs" className="text-sm text-white/70 hover:text-white">API</Link>
-            <Link href="/pitch" className="text-sm text-white/70 hover:text-white">Pitch Mode</Link>
+            <a href="#my-area" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Check my area</a>
+            <Link href="/impact" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Economic Impact</Link>
+            <Link href="/action-center" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Action OS</Link>
+            <Link href="/evidence" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Evidence</Link>
+            <Link href="/investor-readiness" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Investor Proof</Link>
+            <Link href="/api-docs" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">API</Link>
+            <Link href="/pitch" className="text-sm text-slate-600 hover:text-[#071713] dark:text-white/70 dark:hover:text-white">Pitch Mode</Link>
           </div>
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link href="/login" className="inline-flex items-center gap-2 rounded-full border border-white/25 px-3 py-2 text-xs font-bold sm:px-4 sm:text-sm"><LogIn className="h-4 w-4" /> <span className="hidden sm:inline">Log in</span></Link>
+            <Link href="/login" className="inline-flex items-center gap-2 rounded-full border border-black/15 px-3 py-2 text-xs font-bold dark:border-white/25 sm:px-4 sm:text-sm"><LogIn className="h-4 w-4" /> <span className="hidden sm:inline">Log in</span></Link>
             <Link href="/register" className="inline-flex items-center gap-2 rounded-full bg-[#d9ff57] px-3 py-2 text-xs font-black text-[#071713] sm:px-4 sm:text-sm"><UserPlus className="h-4 w-4" /> <span className="hidden sm:inline">Create account</span><span className="sm:hidden">Join</span></Link>
           </div>
         </div>

@@ -8,7 +8,7 @@ import {
   BarChart3, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck,
   Compass, FileCheck2, Home, LayoutDashboard, LogOut, Map, MapPin, Megaphone,
   Menu, Presentation, Radar, Settings2, ShieldAlert, Telescope,
-  WalletCards, Waves, X, Zap,
+  BadgeDollarSign, WalletCards, X, Zap,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
@@ -20,6 +20,7 @@ import LanguageSelector from "./LanguageSelector";
 import { ReadAloudControl } from "./SpeechProvider";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { BrandLockup, BrandMark } from "./BrandLogo";
 
 const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: any }>> = {
   HOUSEHOLD: [
@@ -76,14 +77,7 @@ const MOBILE_LINKS = [
 ];
 
 function Brand({ compact = false }: { compact?: boolean }) {
-  return (
-    <Link href="/dashboard" className="group flex min-w-0 items-center gap-3 text-white" data-ncg-no-translate="true">
-      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[14px] bg-[#d9ff57] text-[#071713] shadow-[0_10px_28px_rgba(217,255,87,.14)]">
-        <Waves className="h-5 w-5" />
-      </div>
-      {!compact && <div className="min-w-0"><p className="truncate text-[15px] font-black tracking-[-0.03em]">NaijaClimaGuard</p><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/35">Climate action OS</p></div>}
-    </Link>
-  );
+  return <BrandLockup href="/dashboard" compact={compact} inverse className="group text-white" />;
 }
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
@@ -100,6 +94,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const userPlan = (session?.user as any)?.plan || "FREE";
   const userName = session?.user?.name || session?.user?.email || "User";
   const initial = userName.trim().charAt(0).toUpperCase() || "U";
+  const revenueAdmin = Boolean((session?.user as any)?.revenueAdmin);
+  const productLinks = revenueAdmin
+    ? [...PRODUCT_LINKS, { href: "/admin", label: "Founder Command", icon: BadgeDollarSign }]
+    : PRODUCT_LINKS;
 
   useEffect(() => setMoreOpen(false), [pathname]);
   useEffect(() => {
@@ -143,7 +141,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           {!collapsed && <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[.18em] text-white/35">{tr("Workspace")}</p>}
           <nav className="space-y-1">{nav.map(navLink)}</nav>
           {!collapsed && <p className="px-3 pb-2 pt-6 text-[10px] font-black uppercase tracking-[.18em] text-white/35">{tr("Explore")}</p>}
-          <nav className="space-y-1">{PRODUCT_LINKS.map((item) => { const active = pathname === item.href; const Icon = item.icon; return <Link key={item.href} href={item.href} className={`group flex min-h-11 items-center gap-3 rounded-[14px] px-3 text-sm font-semibold ${active ? "bg-white/[.11] text-white" : "text-white/70 hover:bg-white/[.06] hover:text-white"}`}><Icon className={`h-[18px] w-[18px] ${active ? "text-[#d9ff57]" : "text-white/55"}`} />{!collapsed && <span>{tr(item.label)}</span>}</Link>; })}</nav>
+          <nav className="space-y-1">{productLinks.map((item) => { const active = pathname === item.href || (item.href === "/admin" && pathname.startsWith("/revenue/command")); const Icon = item.icon; return <Link key={item.href} href={item.href} className={`group flex min-h-11 items-center gap-3 rounded-[14px] px-3 text-sm font-semibold ${active ? "bg-white/[.11] text-white" : "text-white/70 hover:bg-white/[.06] hover:text-white"}`}><Icon className={`h-[18px] w-[18px] ${active ? "text-[#d9ff57]" : "text-white/55"}`} />{!collapsed && <span>{tr(item.label)}</span>}</Link>; })}</nav>
         </div>
 
         <div className="relative m-3 rounded-[20px] border border-white/10 bg-[#0b211a] p-2">
@@ -155,7 +153,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       <div className={`min-w-0 flex-1 transition-[padding] duration-300 ${collapsed ? "lg:pl-[102px]" : "lg:pl-[296px]"}`}>
         <header className="sticky top-0 z-30 border-b border-[#0d1f19]/7 bg-[#f3f4ee]/94 backdrop-blur-xl dark:border-white/8 dark:bg-[#07110e]/94">
           <div className="mx-auto flex h-[68px] max-w-[1680px] items-center gap-3 px-4 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3 lg:hidden" data-ncg-no-translate="true"><div className="flex h-9 w-9 items-center justify-center rounded-[13px] bg-[#071713] text-[#d9ff57]"><Waves className="h-4 w-4" /></div><div className="min-w-0"><p className="truncate text-[15px] font-black tracking-[-.03em]">NaijaClimaGuard</p><p className="truncate text-[10px] font-semibold text-slate-500 dark:text-white/48">{area.name}</p></div></div>
+            <div className="flex min-w-0 items-center gap-3 lg:hidden" data-ncg-no-translate="true"><BrandMark className="h-9 w-9 shrink-0" /><div className="min-w-0"><p className="truncate text-[15px] font-black tracking-[-.03em]">NaijaClimaGuard</p><p className="truncate text-[10px] font-semibold text-slate-500 dark:text-white/48">{area.name}</p></div></div>
             <div className="hidden lg:block"><SatelliteStatus /></div>
             <div className="ml-auto flex items-center gap-2">
               <div className="hidden xl:block"><NationalAreaControl compact /></div>
@@ -182,7 +180,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <Link href="/tools" className="mt-5 flex items-center justify-between rounded-[20px] bg-[#071713] px-5 py-4 text-white"><div><p className="text-sm font-black">{tr("Find any tool")}</p><p className="mt-1 text-[11px] text-white/55">{tr("Search every feature in one place")}</p></div><Compass className="h-5 w-5 text-[#d9ff57]" /></Link>
         <div className="mt-4 grid grid-cols-2 gap-2">{nav.map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} className="rounded-[18px] border border-black/7 bg-white p-4 shadow-[0_6px_24px_rgba(25,45,36,.05)] dark:border-white/8 dark:bg-white/[.04]"><Icon className="h-5 w-5 text-emerald-700 dark:text-[#d9ff57]" /><p className="mt-4 text-sm font-bold">{t(item.key)}</p></Link>; })}</div>
         <div className="mt-5 rounded-[22px] border border-black/7 bg-white p-4 dark:border-white/8 dark:bg-white/[.04]"><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-emerald-700 dark:text-[#d9ff57]" /><p className="text-sm font-black">{tr("Preferences")}</p></div><div className="mt-4 grid gap-3"><NationalAreaControl /><LanguageSelector /><ExperienceRoleControl /><ExplanationModeControl /><ReadAloudControl /><div className="flex items-center justify-between rounded-[14px] bg-[#f3f4ee] p-3 dark:bg-black/20"><span className="text-xs font-semibold">{tr("Appearance")}</span><ThemeToggle /></div></div></div>
-        <div className="mt-4 grid grid-cols-2 gap-2">{PRODUCT_LINKS.filter((item) => item.href !== "/tools").map((item) => <Link key={item.href} href={item.href} className="rounded-[18px] bg-[#071713] p-4 text-white"><item.icon className="h-5 w-5 text-[#d9ff57]" /><p className="mt-3 text-sm font-bold">{tr(item.label)}</p></Link>)}</div>
+        <div className="mt-4 grid grid-cols-2 gap-2">{productLinks.filter((item) => item.href !== "/tools").map((item) => <Link key={item.href} href={item.href} className="rounded-[18px] bg-[#071713] p-4 text-white"><item.icon className="h-5 w-5 text-[#d9ff57]" /><p className="mt-3 text-sm font-bold">{tr(item.label)}</p></Link>)}</div>
         <button onClick={handleLogout} className="mt-4 flex w-full items-center justify-center gap-2 rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200"><LogOut className="h-4 w-4" /> {t("signOut")}</button>
       </section></div>}
     </div>

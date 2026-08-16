@@ -7,8 +7,12 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Nigeria-focused flood risk, warning delivery and early-action support.",
     start_url: "/my-area",
     display: "standalone",
-    background_color: "#0f172a",
-    theme_color: "#0f172a",
+    background_color: "#071713",
+    theme_color: "#071713",
     categories: ["weather", "utilities", "productivity"],
+    icons: [
+      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/brand/naijaclimaguard-mark.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+    ],
   };
 }

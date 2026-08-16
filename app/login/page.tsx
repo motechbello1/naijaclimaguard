@@ -3,8 +3,9 @@
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Loader2, LockKeyhole, LogIn, MapPin, Waves } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, LockKeyhole, LogIn, MapPin } from "lucide-react";
 import Link from "next/link";
+import { BrandLockup } from "@/components/shared/BrandLogo";
 
 const LOGIN_IMAGE = "https://images.unsplash.com/photo-1741110539426-fce3268c3c0d?auto=format&fit=crop&fm=jpg&q=80&w=1600";
 
@@ -46,8 +47,8 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#f7f7f2] text-slate-950 dark:bg-midnight dark:text-slate-100">
       <div className="grid min-h-screen lg:grid-cols-[1.05fr_.95fr]">
-        <section className="relative hidden overflow-hidden bg-[#071713] text-white lg:block"><img src={LOGIN_IMAGE} alt="Flood-affected community" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-[#06130f] via-[#06130f]/70 to-[#06130f]/20" /><div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-14"><Link href="/" className="flex items-center gap-2.5 font-black"><span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10"><Waves className="h-5 w-5 text-[#d9ff57]" /></span>NaijaClimaGuard</Link><div className="max-w-xl"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#d9ff57]">36 states + FCT</p><h2 className="mt-4 font-display text-5xl font-black leading-[1.02] tracking-tight">Come back to the places that matter to you.</h2><div className="mt-7 space-y-3 text-sm text-white/70"><p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#d9ff57]" /> Monitor exact saved locations across Nigeria</p><p className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-[#d9ff57]" /> Keep personal and institutional workspaces separated by account</p></div></div></div></section>
-        <section className="flex min-h-screen items-center justify-center p-4 sm:p-8 lg:p-12"><div className="w-full max-w-md"><div className="mb-6 flex items-center justify-between lg:hidden"><Link href="/" className="flex items-center gap-2 font-black"><Waves className="h-5 w-5 text-emerald-700" /> NaijaClimaGuard</Link><Link href="/" className="flex items-center gap-1 text-xs font-bold text-slate-500"><ArrowLeft className="h-3.5 w-3.5" /> Home</Link></div><Suspense fallback={<div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center">Loading...</div>}><LoginForm /></Suspense></div></section>
+        <section className="relative hidden overflow-hidden bg-[#071713] text-white lg:block"><img src={LOGIN_IMAGE} alt="Flood-affected community" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-[#06130f] via-[#06130f]/70 to-[#06130f]/20" /><div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-14"><BrandLockup href="/" inverse className="text-white" /><div className="max-w-xl"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#d9ff57]">36 states + FCT</p><h2 className="mt-4 font-display text-5xl font-black leading-[1.02] tracking-tight">Come back to the places that matter to you.</h2><div className="mt-7 space-y-3 text-sm text-white/70"><p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#d9ff57]" /> Monitor exact saved locations across Nigeria</p><p className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-[#d9ff57]" /> Keep personal and institutional workspaces separated by account</p></div></div></div></section>
+        <section className="flex min-h-screen items-center justify-center p-4 sm:p-8 lg:p-12"><div className="w-full max-w-md"><div className="mb-6 flex items-center justify-between lg:hidden"><BrandLockup href="/" /><Link href="/" className="flex items-center gap-1 text-xs font-bold text-slate-500"><ArrowLeft className="h-3.5 w-3.5" /> Home</Link></div><Suspense fallback={<div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center">Loading...</div>}><LoginForm /></Suspense></div></section>
       </div>
     </main>
   );

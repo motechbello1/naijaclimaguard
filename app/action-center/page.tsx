@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, Check, CheckCircle2,
-  ClipboardCheck, Download, ExternalLink, House, Landmark, Loader2, MapPin,
+  ClipboardCheck, ExternalLink, House, Landmark, Loader2, MapPin,
   RefreshCw, Share2, ShieldAlert, ShieldCheck, Sprout, TriangleAlert, WifiOff,
 } from "lucide-react";
 
@@ -182,7 +182,7 @@ export default function ActionCenterPage() {
   const readiness = checks.length ? Math.round((completed / checks.length) * 100) : 0;
   const official = Boolean(risk?.safety_state?.active);
   const band = risk ? riskBand(risk.risk.score, official) : null;
-  const generatedAt = risk?.meta?.generated_at ? new Date(risk.meta.generated_at) : null;
+  const generatedAt = useMemo(() => risk?.meta?.generated_at ? new Date(risk.meta.generated_at) : null, [risk?.meta?.generated_at]);
 
   const snapshotText = useMemo(() => {
     if (!risk || !band) return "";
