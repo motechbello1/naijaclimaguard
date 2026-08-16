@@ -9,6 +9,7 @@ import {
   BellRing, Bot, BriefcaseBusiness, CircleDollarSign, ClipboardCheck, Code2,
   FileCheck2, Gauge, Landmark, Map, MapPin, Megaphone, Presentation,
   Radar, Search, ShieldAlert, Telescope, UserRound, Waves, BadgeDollarSign,
+  Navigation,
 } from "lucide-react";
 
 const GROUPS = [
@@ -20,6 +21,7 @@ const GROUPS = [
       { href: "/my-area", label: "My Area", note: "Save and manage homes, farms, businesses and community places.", icon: MapPin },
       { href: "/action-center", label: "What to do now", note: "Turn current risk into clear actions for the place you are protecting.", icon: ClipboardCheck },
       { href: "/action", label: "Warnings and alerts", note: "Choose when and how NaijaClimaGuard should warn you.", icon: BellRing },
+      { href: "/safe-route", label: "Safe Route", note: "Compare route candidates against verified flood evidence and corroborated flood zones.", icon: Navigation },
       { href: "/report", label: "Report flooding", note: "Send a local flood observation into the platform.", icon: Megaphone },
       { href: "/emergency-pack", label: "Emergency pack", note: "Keep practical preparedness information close at hand.", icon: ShieldAlert },
       { href: "/drill", label: "Preparedness drill", note: "Practice what to do before a real warning arrives.", icon: Waves },
@@ -29,6 +31,7 @@ const GROUPS = [
     title: "Understand risk",
     subtitle: "Deeper intelligence when you need more than the simple view.",
     tools: [
+      { href: "/live-floods", label: "Live Flood Intelligence", note: "See the 774-LGA scout, national nowcast, live flood reports, source health and incident learning loop together.", icon: Radar },
       { href: "/predict", label: "Location analysis", note: "Run exact-coordinate analysis for a saved place.", icon: Map },
       { href: "/outlook", label: "Rain outlook", note: "Explore rainfall outlook and conditions affecting risk.", icon: Telescope },
       { href: "/intelligence", label: "Risk intelligence", note: "Explore operational risk signals and context.", icon: Radar },
@@ -89,7 +92,7 @@ export default function ToolsPage() {
           <p className="mt-4 max-w-2xl text-sm leading-7 text-white/66 sm:text-base">{intro}</p>
           <label className="mt-7 flex max-w-2xl items-center gap-3 rounded-full border border-white/14 bg-white/8 px-5 py-3.5">
             <Search className="h-5 w-5 shrink-0 text-[#d9ff57]" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search alerts, evidence, location analysis, API…" className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search alerts, live floods, safe route, evidence, API…" className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/35" />
           </label>
         </section>
 
@@ -114,7 +117,7 @@ export default function ToolsPage() {
           </section>
         ))}
 
-        {filtered.length === 0 && <div className="rounded-[28px] border border-black/7 bg-white p-8 text-center dark:border-white/8 dark:bg-white/[.04]"><p className="font-black">No tool matched that search.</p><p className="mt-2 text-sm text-slate-500">Try a task such as alerts, evidence, API, report, farm, or location.</p></div>}
+        {filtered.length === 0 && <div className="rounded-[28px] border border-black/7 bg-white p-8 text-center dark:border-white/8 dark:bg-white/[.04]"><p className="font-black">No tool matched that search.</p><p className="mt-2 text-sm text-slate-500">Try a task such as alerts, live floods, safe route, evidence, API, report, farm, or location.</p></div>}
       </div>
     </AppShell>
   );
