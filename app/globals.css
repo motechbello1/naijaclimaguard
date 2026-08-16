@@ -10,6 +10,8 @@
   --ncg-paper: #f3f4ee;
   --ncg-lime: #d9ff57;
   --ncg-mint: #56bd8d;
+  --ncg-water: #dff8ef;
+  --ncg-sand: #f5efe1;
 }
 
 html { scroll-behavior: smooth; max-width: 100%; }
@@ -48,7 +50,6 @@ html[data-experience-role="agency"] .role-agency-inline { display: inline; }
 .text-gradient-green { color: #168760; background: none; -webkit-text-fill-color: unset; }
 .text-gradient-blue { color: #167e97; background: none; -webkit-text-fill-color: unset; }
 
-/* One authored surface language across legacy and new pages. */
 .glass-card {
   min-width: 0;
   border: 1px solid rgba(13,31,25,.08);
@@ -76,6 +77,34 @@ html[data-experience-role="agency"] .role-agency-inline { display: inline; }
   background:
     radial-gradient(circle at 82% 8%, rgba(86,189,141,.09), transparent 24rem),
     radial-gradient(circle at 12% 88%, rgba(217,255,87,.07), transparent 26rem);
+}
+
+.ncg-water-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(13,31,25,.08);
+  background:
+    radial-gradient(circle at 84% 22%, rgba(86,189,141,.22), transparent 22rem),
+    linear-gradient(145deg, rgba(255,255,255,.96), rgba(223,248,239,.68));
+}
+.ncg-water-panel::after {
+  content: "";
+  position: absolute;
+  width: 18rem;
+  height: 18rem;
+  right: -7rem;
+  bottom: -10rem;
+  border: 1px solid rgba(13,31,25,.10);
+  border-radius: 46% 54% 48% 52%;
+  box-shadow: 0 0 0 2.4rem rgba(255,255,255,.16), 0 0 0 4.8rem rgba(86,189,141,.05);
+  transform: rotate(-16deg);
+  pointer-events: none;
+}
+.dark .ncg-water-panel {
+  background:
+    radial-gradient(circle at 84% 22%, rgba(86,189,141,.16), transparent 22rem),
+    linear-gradient(145deg, rgba(10,30,24,.98), rgba(7,23,19,.95));
+  border-color: rgba(255,255,255,.08);
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -120,7 +149,6 @@ input:focus,select:focus,textarea:focus { box-shadow: 0 0 0 3px rgba(22,135,96,.
   main img,main canvas,main video { max-width: 100%; height: auto; }
   main svg { max-width: 100%; }
 
-  /* Do not globally destroy two-column layouts. Compact metrics should stay compact. */
   .grid.grid-cols-3,.grid.grid-cols-4,.grid.grid-cols-5,.grid.grid-cols-6 { grid-template-columns: minmax(0,1fr) !important; }
   .ncg-app .grid.grid-cols-2 { gap: .65rem; }
 
@@ -132,6 +160,24 @@ input:focus,select:focus,textarea:focus { box-shadow: 0 0 0 3px rgba(22,135,96,.
   main .text-5xl { font-size: 2.15rem; line-height: 1.08; }
   main .text-6xl,main .text-7xl,main .text-8xl { font-size: 2.4rem; line-height: 1.04; }
   .glass-card { border-radius: 20px; box-shadow: 0 8px 26px rgba(20,45,35,.045); }
+
+  /* The mobile dock must stay legible on every page and theme. */
+  nav[aria-label="Primary navigation"] {
+    background: #071713 !important;
+    border-color: rgba(255,255,255,.10) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 18px 54px rgba(3,20,15,.34) !important;
+  }
+  nav[aria-label="Primary navigation"] a:not([class*="bg-[#d9ff57]"]),
+  nav[aria-label="Primary navigation"] button:not([class*="bg-[#d9ff57]"]) {
+    color: rgba(255,255,255,.88) !important;
+  }
+  nav[aria-label="Primary navigation"] a:not([class*="bg-[#d9ff57]"]) svg,
+  nav[aria-label="Primary navigation"] button:not([class*="bg-[#d9ff57]"]) svg {
+    color: rgba(255,255,255,.82) !important;
+    opacity: 1 !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
