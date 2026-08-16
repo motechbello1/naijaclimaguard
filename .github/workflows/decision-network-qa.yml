@@ -1,0 +1,27 @@
+name: Flood Decision Network QA
+
+on:
+  pull_request:
+    paths:
+      - "app/decision-network/**"
+      - "lib/decision-network/**"
+      - "validation/decision_network_qa.py"
+      - ".github/workflows/decision-network-qa.yml"
+  push:
+    branches: [product-2026-flood-decision-network]
+    paths:
+      - "app/decision-network/**"
+      - "lib/decision-network/**"
+      - "validation/decision_network_qa.py"
+      - ".github/workflows/decision-network-qa.yml"
+
+jobs:
+  decision-network-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python validation/decision_network_qa.py

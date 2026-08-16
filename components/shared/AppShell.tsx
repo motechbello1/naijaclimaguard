@@ -7,7 +7,7 @@ import { signOut, useSession } from "next-auth/react";
 import {
   Shield, LayoutDashboard, Map, Zap, BarChart3,
   LogOut, ChevronDown, ChevronLeft, ChevronRight, User, Radar, Home, Megaphone, Telescope, FileCheck2, ShieldAlert,
-  Menu, X, Settings2, ClipboardCheck,
+  Menu, X, Settings2, ClipboardCheck, Network,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
@@ -18,10 +18,28 @@ import LanguageSelector from "./LanguageSelector";
 import { ReadAloudControl } from "./SpeechProvider";
 import type { MessageKey } from "@/lib/i18n/messages";
 
-const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: any }>> = {
+type NavItem = {
+  href: string;
+  key?: MessageKey;
+  labels?: Record<string, string>;
+  icon: any;
+};
+
+const DECISION_NETWORK_LABELS: Record<string, string> = {
+  en: "Decision Network",
+  pcm: "Flood Decision Network",
+  ha: "Cibiyar Shawarar Ambaliya",
+  yo: "Nẹ́tíwọ́ọ̀kì Ìpinnu Ìkún Omi",
+  ig: "Netwọk Mkpebi Idei Mmiri",
+};
+
+const decisionNetworkItem: NavItem = { href: "/decision-network", labels: DECISION_NETWORK_LABELS, icon: Network };
+
+const NAV_BY_ROLE: Record<string, NavItem[]> = {
   HOUSEHOLD: [
     { href: "/my-area", key: "myArea", icon: Home },
     { href: "/dashboard", key: "mySafety", icon: LayoutDashboard },
+    decisionNetworkItem,
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "myAlerts", icon: Zap },
     { href: "/evidence", key: "myHistory", icon: FileCheck2 },
@@ -29,6 +47,7 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
   FARMER: [
     { href: "/dashboard", key: "myFarmRisk", icon: LayoutDashboard },
+    decisionNetworkItem,
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "farmAlerts", icon: Zap },
     { href: "/outlook", key: "rainOutlook", icon: Telescope },
@@ -37,6 +56,7 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
   BUSINESS: [
     { href: "/dashboard", key: "riskOverview", icon: LayoutDashboard },
+    decisionNetworkItem,
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/action", key: "alertsActions", icon: Zap },
     { href: "/intelligence", key: "riskIntelligence", icon: Radar },
@@ -45,6 +65,7 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   AGENCY: [
     { href: "/dashboard", key: "operations", icon: LayoutDashboard },
     { href: "/command", key: "commandQueue", icon: ShieldAlert },
+    decisionNetworkItem,
     { href: "/action-center", key: "whatToDoNow", icon: ClipboardCheck },
     { href: "/intelligence", key: "intelligence", icon: Radar },
     { href: "/predict", key: "locationAnalysis", icon: Map },
@@ -73,7 +94,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { data: session } = useSession();
   const { role } = useExperienceProfile();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const nav = NAV_BY_ROLE[role] || NAV_BY_ROLE.HOUSEHOLD;
 
   useEffect(() => {
@@ -105,7 +126,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     <nav className="space-y-1">
       {nav.map((item) => {
         const active = pathname === item.href;
-        const label = t(item.key);
+        const label = item.labels?.[locale] || (item.key ? t(item.key) : item.href);
         return (
           <Link key={item.href} href={item.href} onClick={() => mobile && setMobileOpen(false)} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${active ? "border border-radar/20 bg-radar/10 text-radar" : "border border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white"}`} title={!mobile && collapsed ? label : undefined}>
             <item.icon className="h-[18px] w-[18px] shrink-0" />
