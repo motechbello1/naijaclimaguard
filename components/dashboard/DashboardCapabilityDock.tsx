@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   Activity, ArrowUpRight, BellRing, Building2, ClipboardCheck, Compass, FileCheck2,
-  Landmark, Map, Navigation, Radar, Route, ShieldAlert, Telescope, Waves,
+  Map, Navigation, Radar, ShieldAlert, Telescope, Waves,
 } from "lucide-react";
 import { useExperienceProfile } from "@/components/shared/ExperienceProfile";
 import { useLanguage } from "@/components/shared/LanguageProvider";
