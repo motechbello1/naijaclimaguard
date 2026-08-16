@@ -39,14 +39,16 @@ export interface NationalLgaScoutResult {
   limitation: string;
 }
 
-const BATCH_SIZE = 90;
+const BATCH_SIZE = 60;
 const DEEP_SCAN_LIMIT = 60;
+const MAX_BATCH_ATTEMPTS = 3;
 
 function clamp(value: number) { return Math.max(0, Math.min(1, value)); }
 function round1(value: number) { return Math.round(value * 10) / 10; }
 function sum(values: number[], start: number, end: number) {
   return values.slice(Math.max(0, start), Math.max(0, end)).reduce((total, value) => total + Math.max(0, Number(value) || 0), 0);
 }
+function sleep(ms: number) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
 function nigeriaHourKey() {
   return new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 13) + ":00";
@@ -79,9 +81,6 @@ function scoutFromHourly(point: NigeriaLgaPoint, hourly: any): LgaScoutResult | 
   const maxShowers = showers.length ? Math.max(0, ...showers.slice(envelopeStart, envelopeEnd).map((value) => Number(value) || 0)) : 0;
   const capeMax = cape.length ? Math.max(0, ...cape.slice(envelopeStart, envelopeEnd).map((value) => Number(value) || 0)) : 0;
 
-  // Cheap nationwide screen: short rainfall bursts and imminent rainfall dominate.
-  // It is intentionally more sensitive than the deep flood-risk layer so candidate
-  // LGAs are not discarded before antecedent rainfall is examined.
   const rainSignal = Math.max(
     clamp(recent1 / 12),
     clamp(recent3 / 25),
@@ -119,13 +118,27 @@ async function fetchScoutBatch(points: NigeriaLgaPoint[]) {
     forecast_hours: "6",
     timezone: "Africa/Lagos",
   });
-  const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
-    next: { revalidate: 15 * 60 },
-    signal: AbortSignal.timeout(18000),
-  });
-  if (!response.ok) throw new Error(`nationwide weather scout returned ${response.status}`);
-  const payload = await response.json();
-  return Array.isArray(payload) ? payload : [payload];
+
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= MAX_BATCH_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
+        next: { revalidate: 15 * 60 },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!response.ok) throw new Error(`nationwide weather scout returned ${response.status}`);
+      const payload = await response.json();
+      const rows = Array.isArray(payload) ? payload : [payload];
+      if (rows.length < Math.max(1, Math.floor(points.length * 0.9))) {
+        throw new Error(`weather scout returned only ${rows.length}/${points.length} points`);
+      }
+      return rows;
+    } catch (error) {
+      lastError = error;
+      if (attempt < MAX_BATCH_ATTEMPTS) await sleep(250 * attempt);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("nationwide weather batch failed");
 }
 
 async function deepScan(points: LgaScoutResult[]) {
@@ -150,7 +163,7 @@ async function deepScan(points: LgaScoutResult[]) {
     try {
       if (rows[index]?.hourly) result.set(`${point.state}|${point.lga}`, deriveUrbanFlashRisk(rows[index].hourly));
     } catch {
-      // A scout result remains useful even when the expensive history request fails.
+      // Keep the lightweight result if deeper history fails.
     }
   });
   return result;
@@ -159,6 +172,8 @@ async function deepScan(points: LgaScoutResult[]) {
 export async function scoutNationwideLgas(): Promise<NationalLgaScoutResult> {
   const registry = await fetchNigeriaLgaRegistry();
   const outputs: LgaScoutResult[] = [];
+  const failedBatches: NigeriaLgaPoint[][] = [];
+
   for (let i = 0; i < registry.length; i += BATCH_SIZE) {
     const points = registry.slice(i, i + BATCH_SIZE);
     try {
@@ -168,19 +183,33 @@ export async function scoutNationwideLgas(): Promise<NationalLgaScoutResult> {
         if (parsed) outputs.push(parsed);
       });
     } catch {
-      // Continue other batches; coverage counts expose partial provider failure.
+      failedBatches.push(points);
     }
   }
 
-  outputs.sort((a, b) => b.scoutScore - a.scoutScore);
-  const deepCandidates = outputs.filter((item) => item.scoutScore >= 25).slice(0, DEEP_SCAN_LIMIT);
+  // One smaller salvage pass means a single large-request timeout does not remove
+  // an entire region from the national picture.
+  for (const failed of failedBatches) {
+    for (let i = 0; i < failed.length; i += 20) {
+      const points = failed.slice(i, i + 20);
+      try {
+        const payloads = await fetchScoutBatch(points);
+        points.forEach((point, index) => {
+          const parsed = scoutFromHourly(point, payloads[index]?.hourly);
+          if (parsed) outputs.push(parsed);
+        });
+      } catch {
+        // Availability count remains visible so partial provider failure is never hidden.
+      }
+    }
+  }
+
+  const deduped = Array.from(new Map(outputs.map((item) => [`${item.state}|${item.lga}`, item])).values());
+  deduped.sort((a, b) => b.scoutScore - a.scoutScore);
+  const deepCandidates = deduped.filter((item) => item.scoutScore >= 25).slice(0, DEEP_SCAN_LIMIT);
   const deep = await deepScan(deepCandidates);
-  const enriched = outputs.map((item) => ({ ...item, deepRisk: deep.get(`${item.state}|${item.lga}`) }));
-  enriched.sort((a, b) => {
-    const aScore = a.deepRisk?.score ?? a.scoutScore;
-    const bScore = b.deepRisk?.score ?? b.scoutScore;
-    return bScore - aScore;
-  });
+  const enriched = deduped.map((item) => ({ ...item, deepRisk: deep.get(`${item.state}|${item.lga}`) }));
+  enriched.sort((a, b) => Math.max(b.scoutScore, b.deepRisk?.score ?? 0) - Math.max(a.scoutScore, a.deepRisk?.score ?? 0));
 
   const stateMap = new Map<string, NationalLgaScoutResult["stateSummary"][number]>();
   for (const item of enriched) {
@@ -203,13 +232,13 @@ export async function scoutNationwideLgas(): Promise<NationalLgaScoutResult> {
   return {
     generatedAt: new Date().toISOString(),
     coverage: registry.length,
-    available: outputs.length,
+    available: deduped.length,
     elevated: hotspots.filter((item) => Math.max(item.scoutScore, item.deepRisk?.score ?? 0) >= 30).length,
     high: hotspots.filter((item) => Math.max(item.scoutScore, item.deepRisk?.score ?? 0) >= 55).length,
     critical: hotspots.filter((item) => Math.max(item.scoutScore, item.deepRisk?.score ?? 0) >= 75).length,
     hotspots,
     stateSummary: Array.from(stateMap.values()).sort((a, b) => b.highestScore - a.highestScore),
-    methodology: "A lightweight rainfall and convection screen checks one geographic point for every Nigerian LGA. Only suspicious LGAs receive the more expensive 168-hour antecedent-rainfall deep scan.",
+    methodology: "A lightweight rainfall and convection screen checks one geographic point for every Nigerian LGA. Failed provider batches are retried and salvaged in smaller groups. Only suspicious LGAs receive the more expensive 168-hour antecedent-rainfall deep scan.",
     limitation: "An LGA centroid is not street-level sensing. Weather models can still miss a local cloudburst or drainage failure. Scout results are early-warning signals, not confirmation that flooding is occurring.",
   };
 }
