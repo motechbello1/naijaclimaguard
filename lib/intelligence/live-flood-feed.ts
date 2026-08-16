@@ -228,7 +228,7 @@ export async function fetchLiveFloodFeed(): Promise<LiveFloodFeedResult> {
     }
   }
 
-  const items = [...deduped.values()]
+  const items = Array.from(deduped.values())
     .filter((item) => item.status !== "UNVERIFIED")
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     .slice(0, 150);
@@ -245,7 +245,7 @@ export async function fetchLiveFloodFeed(): Promise<LiveFloodFeedResult> {
   return {
     generatedAt: new Date().toISOString(),
     items,
-    stateSummary: [...summary.entries()]
+    stateSummary: Array.from(summary.entries())
       .map(([state, value]) => ({ state, ...value }))
       .sort((a, b) => b.highestSeverity - a.highestSeverity || b.count - a.count),
     sourceHealth,
