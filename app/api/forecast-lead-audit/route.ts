@@ -14,10 +14,23 @@ export async function GET(req: Request) {
   try {
     if (!state || !eventAt) {
       const feed = await fetchLiveFloodFeed();
+      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
       const recentReported = feed.items
-        .filter((item) => item.status === "REPORTED" && item.state !== "Nigeria / location unparsed")
-        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-      const target = recentReported.find((item) => item.state === "FCT") || recentReported[0];
+        .filter((item) =>
+          item.status === "REPORTED" &&
+          item.state !== "Nigeria / location unparsed" &&
+          new Date(item.publishedAt).getTime() >= cutoff
+        );
+
+      // Prefer the FCT incident while it is the active case we are investigating,
+      // but anchor to the earliest discovered report, never the latest article.
+      const fctReports = recentReported
+        .filter((item) => item.state === "FCT")
+        .sort((a, b) => new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime());
+      const allReports = [...recentReported]
+        .sort((a, b) => new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime());
+      const target = fctReports[0] || allReports[0];
+
       if (!target) return NextResponse.json({ error: "No recent geolocated flood report is available for forecast replay." }, { status: 404 });
       state = target.state;
       eventAt = target.publishedAt;
@@ -38,10 +51,10 @@ export async function GET(req: Request) {
       source: source || null,
       audits,
       finding: earliestUseful
-        ? `Archived ECMWF guidance contained an elevated rainfall/convective signal roughly ${earliestUseful.effectiveLeadHours} hours before the first selected public report.`
+        ? `Archived ECMWF guidance contained an elevated rainfall/convective signal roughly ${earliestUseful.effectiveLeadHours} hours before the earliest discovered public report.`
         : "The replayed ECMWF runs did not cross the current elevated-signal threshold at the five-point urban screening grid. That is a genuine forecast miss under this screening logic, not a hidden success.",
       earliestUsefulLeadHours: earliestUseful?.effectiveLeadHours ?? null,
-      methodology: "Replays individual ECMWF IFS forecast runs that would have been available before the event. A conservative six-hour model publication delay is applied so the audit never credits NaijaClimaGuard with a forecast that had not yet been distributed.",
+      methodology: "Replays individual ECMWF IFS forecast runs that would have been available before the event. A conservative six-hour model publication delay is applied so the audit never credits NaijaClimaGuard with a forecast that had not yet been distributed. The event anchor is the earliest discovered public flood report in the selected incident window.",
       safety: "This score is a retrospective rainfall/convective signal audit, not proof that a specific road could have been declared flooded or closed at that time.",
     });
   } catch (error) {
