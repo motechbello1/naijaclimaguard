@@ -2,6 +2,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
+import { isRevenueAdminEmail } from "@/lib/revenue-admin";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -29,7 +30,11 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (session.user) { (session.user as any).id = token.id; (session.user as any).plan = token.plan; }
+      if (session.user) {
+        (session.user as any).id = token.id;
+        (session.user as any).plan = token.plan;
+        (session.user as any).revenueAdmin = isRevenueAdminEmail(session.user.email);
+      }
       return session;
     },
   },
