@@ -23,6 +23,7 @@ export default function LandingPage() {
           </Link>
           <div className="hidden md:flex items-center gap-8">
             <a href="#validation" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Model Evidence</a>
+            <Link href="/investor-readiness" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Investor Proof</Link>
             <a href="#api" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">API</a>
             <a href="#pricing" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Pricing</a>
             <Link href="/how-to-use" className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">How to Use</Link>
@@ -260,6 +261,7 @@ export default function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/about" className="text-xs text-slate-400 hover:text-radar transition-colors">About</Link>
             <Link href="/how-to-use" className="text-xs text-slate-400 hover:text-radar transition-colors">How to Use</Link>
+            <Link href="/investor-readiness" className="text-xs text-slate-400 hover:text-radar transition-colors">Investor Proof</Link>
             <Link href="/contact" className="text-xs text-slate-400 hover:text-radar transition-colors">Contact Sales</Link>
             <span className="text-xs text-slate-400">Public risk: derived-v2 · Riverine Watch v1 shadow: NASA IMERG + GloFAS · Lokoja + Makurdi</span>
           </div>

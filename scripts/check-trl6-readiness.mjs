@@ -16,6 +16,14 @@ const requiredFiles = [
   "lib/i18n/config.ts",
   "prisma/schema.prisma",
   "app/how-to-use/page.tsx",
+  "app/investor-readiness/page.tsx",
+  "app/model-evidence/page.tsx",
+  "app/login/page.tsx",
+  "app/dashboard/page.tsx",
+  "components/shared/PublicProductNav.tsx",
+  "lib/i18n/product-proof.ts",
+  "validation/TRL6_EVIDENCE_REGISTER.json",
+  "scripts/check-trl6-claim-gate.mjs",
 ];
 
 let failed = 0;
@@ -31,7 +39,28 @@ const assertAbsent = (files, phrase, label) => {
   hits.length ? fail(`${label} — found in ${hits.join(", ")}`) : pass(label);
 };
 
-for (const file of requiredFiles) exists(file) ? pass(`Required TRL6 surface exists: ${file}`) : fail(`Required TRL6 surface missing: ${file}`);
+for (const file of requiredFiles) exists(file) ? pass(`Required preparation surface exists: ${file}`) : fail(`Required preparation surface missing: ${file}`);
+
+// Product continuity and evidence presentation must be visible from the investor surfaces.
+assertContains("components/shared/PublicProductNav.tsx", 'href: "/my-area"', "Investor surfaces link to the live public product");
+assertContains("components/shared/PublicProductNav.tsx", 'href="/dashboard"', "Investor surfaces preserve dashboard access");
+assertContains("components/shared/PublicProductNav.tsx", 'href="/login"', "Investor surfaces preserve sign-in access");
+assertContains("app/investor-readiness/page.tsx", 'type ProofRole', "Investor surface contains the role-specific decision-loop demonstration");
+assertContains("app/model-evidence/page.tsx", 'copy.status', "Evidence surface publishes the governed readiness status");
+assertContains("lib/i18n/product-proof.ts", 'const pcm:', "Product proof has a Nigerian Pidgin copy pack");
+assertContains("lib/i18n/product-proof.ts", 'const ha:', "Product proof has a Hausa copy pack");
+assertContains("lib/i18n/product-proof.ts", 'const yo:', "Product proof has a Yoruba copy pack");
+assertContains("lib/i18n/product-proof.ts", 'const ig:', "Product proof has an Igbo copy pack");
+
+const evidenceRegister = JSON.parse(read("validation/TRL6_EVIDENCE_REGISTER.json"));
+evidenceRegister.current_claim_status === "PRE_TRL6"
+  ? pass("Public TRL status remains PRE_TRL6 until field evidence is verified")
+  : fail("TRL claim status must remain PRE_TRL6 until the manual claim gate passes");
+for (const gate of evidenceRegister.gates) {
+  gate.requirement && Object.hasOwn(gate, "status") && Object.hasOwn(gate, "evidence_reference")
+    ? pass(`Evidence gate is reviewable: ${gate.id}`)
+    : fail(`Evidence gate is incomplete: ${gate.id}`);
+}
 
 // Role-specific UX: the same analytics dashboard must not be the only experience.
 assertContains("components/dashboard/AdaptiveDashboard.tsx", 'HOUSEHOLD: { title: "My Safety"', "Household dashboard contract exists");
@@ -95,8 +124,8 @@ for (const phrase of ["0.9928", "99.28", "48 hours before government", "days ahe
 }
 
 if (failed) {
-  console.error(`\nTRL6 readiness gate failed: ${failed} issue(s).`);
+  console.error(`\nTRL6 preparation contract failed: ${failed} issue(s).`);
   process.exit(1);
 }
 
-console.log("\nTRL6 readiness gate passed. This proves repository operational contracts, not prospective field validation.");
+console.log("\nTRL6 preparation contract passed. This proves software and evidence controls, not prospective field validation or a TRL6 claim.");
