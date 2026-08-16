@@ -1,0 +1,22 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#071713"/>
+  <circle cx="1325" cy="150" r="360" fill="#0E3227"/>
+  <circle cx="1325" cy="150" r="255" stroke="#D9FF57" stroke-opacity=".28" stroke-width="2"/>
+  <circle cx="1325" cy="150" r="145" stroke="#18C890" stroke-opacity=".4" stroke-width="2"/>
+  <path d="M-60 715C145 605 287 798 490 690C687 585 820 727 1040 612C1240 508 1414 638 1660 470" stroke="#18C890" stroke-opacity=".34" stroke-width="42"/>
+  <path d="M-60 756C145 646 287 839 490 731C687 626 820 768 1040 653C1240 549 1414 679 1660 511" stroke="#D9FF57" stroke-opacity=".18" stroke-width="3"/>
+  <g transform="translate(110 98)">
+    <path d="M72 0C36 16 12 25 0 28v49c0 50 28 89 72 107 44-18 72-57 72-107V28C132 25 108 16 72 0Z" fill="#0E3227" stroke="#D9FF57" stroke-width="5"/>
+    <path d="M39 113c13-4 18-17 24-29 6-13 13-29 28-34 10-3 19 1 27 9" stroke="#18C890" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="39" cy="113" r="8" fill="#D9FF57"/>
+    <circle cx="91" cy="50" r="8" fill="#18C890"/>
+    <circle cx="118" cy="59" r="8" fill="#D9FF57"/>
+  </g>
+  <text x="300" y="150" fill="#F7F7F2" font-family="Arial, Helvetica, sans-serif" font-size="54" font-weight="800">NaijaClimaGuard</text>
+  <text x="110" y="395" fill="#D9FF57" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" letter-spacing="5">TWO-MINUTE CONCEPT FILM</text>
+  <text x="110" y="485" fill="#F7F7F2" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="800">From flood warning</text>
+  <text x="110" y="568" fill="#F7F7F2" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="800">to verified action.</text>
+  <text x="112" y="630" fill="#B8C8C1" font-family="Arial, Helvetica, sans-serif" font-size="27">Problem → product → proof → ask</text>
+  <rect x="110" y="704" width="316" height="58" rx="29" fill="#D9FF57"/>
+  <text x="158" y="742" fill="#071713" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="800">PLAY THE FILM</text>
+</svg>
