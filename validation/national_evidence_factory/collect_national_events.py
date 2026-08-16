@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Build a Nigeria-wide retrospective flood-event candidate registry.
+"""Build a Nigeria-wide independent retrospective flood-event registry.
 
-Sources:
-- GDACS flood-event API for dated/geospatial event discovery.
-- ReliefWeb reports API for independent institutional/humanitarian corroboration.
+Primary automatic label source:
+- GDACS / EC-JRC flood event archive and observed flood geometry.
+- geoBoundaries gbOpen Nigeria ADM1 polygons for state assignment.
 
-The collector never turns a single news/report mention into a headline benchmark event.
-Events become headline-eligible only when geospatial GDACS evidence is independently
-corroborated by a second publisher/report near the event date, or when a curated
-repository event already carries an institutional/remote-sensing source.
+The automatic headline denominator therefore comes from an observed/geospatial flood
+product that is independent from the ERA5-Land/NASA rainfall predictors used by the
+benchmark. Repository-curated institutional events are retained as a second label path.
+
+A GDACS event is not assigned to a Nigerian state from nearby news text. It becomes
+headline-eligible for a state only when the returned event/observed-flood geometry
+intersects that state's ADM1 polygon. If geometry is unavailable, the event remains a
+non-headline discovery record unless a repository-curated record already supports it.
 """
 from __future__ import annotations
 
@@ -17,42 +21,31 @@ import csv
 import json
 import re
 import time
-from dataclasses import dataclass, asdict
-from datetime import date, datetime, timedelta
+from dataclasses import asdict, dataclass
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 import requests
+from shapely.geometry import shape
+from shapely.ops import unary_union
 
 GDACS_SEARCH = "https://www.gdacs.org/gdacsapi/api/events/geteventlist/search"
-RELIEFWEB = "https://api.reliefweb.int/v2/reports?appname=naijaclimaguard-national-benchmark"
-
-STATE_ALIASES = {
-    "Abia": ["Abia", "Umuahia"], "Adamawa": ["Adamawa", "Yola"],
-    "Akwa Ibom": ["Akwa Ibom", "Uyo"], "Anambra": ["Anambra", "Awka", "Onitsha"],
-    "Bauchi": ["Bauchi"], "Bayelsa": ["Bayelsa", "Yenagoa"],
-    "Benue": ["Benue", "Makurdi"], "Borno": ["Borno", "Maiduguri"],
-    "Cross River": ["Cross River", "Calabar"], "Delta": ["Delta State", "Asaba", "Warri"],
-    "Ebonyi": ["Ebonyi", "Abakaliki"], "Edo": ["Edo State", "Benin City"],
-    "Ekiti": ["Ekiti", "Ado Ekiti", "Ado-Ekiti"], "Enugu": ["Enugu"],
-    "Gombe": ["Gombe"], "Imo": ["Imo State", "Owerri"],
-    "Jigawa": ["Jigawa", "Dutse", "Hadejia"], "Kaduna": ["Kaduna"],
-    "Kano": ["Kano"], "Katsina": ["Katsina"], "Kebbi": ["Kebbi", "Birnin Kebbi"],
-    "Kogi": ["Kogi", "Lokoja"], "Kwara": ["Kwara", "Ilorin"],
-    "Lagos": ["Lagos"], "Nasarawa": ["Nasarawa", "Lafia"],
-    "Niger": ["Niger State", "Minna"], "Ogun": ["Ogun", "Abeokuta"],
-    "Ondo": ["Ondo State", "Akure"], "Osun": ["Osun", "Osogbo"],
-    "Oyo": ["Oyo State", "Ibadan"], "Plateau": ["Plateau State", "Jos"],
-    "Rivers": ["Rivers State", "Port Harcourt"], "Sokoto": ["Sokoto"],
-    "Taraba": ["Taraba", "Jalingo"], "Yobe": ["Yobe", "Damaturu"],
-    "Zamfara": ["Zamfara", "Gusau"],
-    "Federal Capital Territory": ["Federal Capital Territory", "FCT", "Abuja"],
-}
+GDACS_GEOMETRY = "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry"
+GEOBOUNDARIES_META = "https://www.geoboundaries.org/api/current/gbOpen/NGA/ADM1/"
 
 INSTITUTIONAL_HINTS = (
     "NEMA", "NiHSA", "NIHSA", "SEMA", "IFRC", "OCHA", "UNICEF", "IOM",
-    "European Commission", "Copernicus", "World Bank", "FAO", "WFP",
+    "European Commission", "Copernicus", "World Bank", "FAO", "WFP", "JRC",
 )
+
+NAME_ALIASES = {
+    "FCT": "Federal Capital Territory",
+    "Federal Capital Territory": "Federal Capital Territory",
+    "Nassarawa": "Nasarawa",
+    "Cross Rivers": "Cross River",
+}
+
 
 @dataclass
 class Candidate:
@@ -70,20 +63,17 @@ class Candidate:
     date_basis: str
 
 
-def get_json(url: str, *, params: dict[str, Any] | None = None, method="get", payload=None, tries=4):
+def get_json(url: str, params: dict[str, Any] | None = None, tries: int = 4):
     last = None
     for attempt in range(tries):
         try:
-            if method == "post":
-                r = requests.post(url, json=payload, timeout=60, headers={"User-Agent":"NaijaClimaGuard/1.0"})
-            else:
-                r = requests.get(url, params=params, timeout=60, headers={"User-Agent":"NaijaClimaGuard/1.0"})
+            r = requests.get(url, params=params, timeout=90, headers={"User-Agent": "NaijaClimaGuard-NationalEvidence/1.0"})
             r.raise_for_status()
             return r.json()
         except Exception as exc:
             last = exc
             if attempt + 1 < tries:
-                time.sleep(2 ** attempt)
+                time.sleep(min(15, 2 ** attempt))
     raise RuntimeError(f"request failed: {url}: {last}")
 
 
@@ -98,75 +88,133 @@ def parse_date(value: Any) -> date | None:
         return date(int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else None
 
 
-def state_mentions(text: str) -> set[str]:
-    found: set[str] = set()
-    for state, aliases in STATE_ALIASES.items():
-        for alias in aliases:
-            if re.search(rf"(?<!\w){re.escape(alias)}(?!\w)", text, flags=re.I):
-                found.add(state)
-                break
-    return found
+def canonical_state(raw: str) -> str:
+    raw = (raw or "").strip()
+    raw = NAME_ALIASES.get(raw, raw)
+    raw = re.sub(r"\s+State$", "", raw, flags=re.I).strip()
+    return NAME_ALIASES.get(raw, raw)
 
 
-def collect_reliefweb(start: date, end: date) -> list[dict[str, Any]]:
-    payload = {
-        "query": {"value": "flood flooding Nigeria", "operator": "OR"},
-        "filter": {
-            "operator": "AND",
-            "conditions": [
-                {"field": "country", "value": "Nigeria"},
-                {"field": "date.created", "value": {"from": f"{start.isoformat()}T00:00:00+00:00", "to": f"{end.isoformat()}T23:59:59+00:00"}},
-            ],
-        },
-        "fields": {"include": ["title", "body", "date.created", "date.original", "source.name", "url", "disaster_type.name"]},
-        "limit": 1000,
-        "preset": "analysis",
-        "sort": ["date.created:asc"],
-    }
-    data = get_json(RELIEFWEB, method="post", payload=payload)
-    rows = []
-    for item in data.get("data", []):
-        f = item.get("fields", {})
-        sources = [s.get("name", "") for s in (f.get("source") or []) if isinstance(s, dict)]
-        title = f.get("title") or ""
-        body = f.get("body") or ""
-        states = state_mentions(f"{title}\n{body}")
-        created = ((f.get("date") or {}).get("original") or (f.get("date") or {}).get("created"))
-        d = parse_date(created)
-        if not d or not states:
+def load_adm1() -> dict[str, Any]:
+    meta = get_json(GEOBOUNDARIES_META)
+    if isinstance(meta, list):
+        meta = meta[0] if meta else {}
+    url = meta.get("gjDownloadURL") or meta.get("simplifiedGeometryGeoJSON")
+    if not url:
+        raise RuntimeError("geoBoundaries Nigeria ADM1 metadata did not provide a GeoJSON URL")
+    gj = get_json(url)
+    states: dict[str, Any] = {}
+    for feature in gj.get("features", []):
+        props = feature.get("properties") or {}
+        raw_name = props.get("shapeName") or props.get("ADM1_NAME") or props.get("name") or ""
+        name = canonical_state(str(raw_name))
+        if not name or not feature.get("geometry"):
             continue
-        rows.append({
-            "date": d, "states": states, "title": title, "body": body,
-            "sources": sources, "url": f.get("url") or "",
-        })
-    return rows
+        geom = shape(feature["geometry"])
+        if not geom.is_empty:
+            states[name] = geom
+    if len(states) < 30:
+        raise RuntimeError(f"geoBoundaries ADM1 mapping unexpectedly small: {len(states)}")
+    return states
 
 
-def collect_gdacs(start: date, end: date) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
-    # Year-sized queries avoid archive paging ambiguity and keep responses bounded.
-    year = start.year
-    while year <= end.year:
+def geometry_from_payload(payload: Any):
+    geoms = []
+    def add_geo(obj: Any):
+        if not isinstance(obj, dict):
+            return
+        typ = obj.get("type")
+        if typ == "FeatureCollection":
+            for f in obj.get("features", []):
+                add_geo(f)
+        elif typ == "Feature":
+            add_geo(obj.get("geometry"))
+        elif typ in {"Polygon", "MultiPolygon"}:
+            try:
+                g = shape(obj)
+                if not g.is_empty:
+                    geoms.append(g)
+            except Exception:
+                pass
+        else:
+            for v in obj.values():
+                if isinstance(v, (dict, list)):
+                    add_geo(v)
+    if isinstance(payload, list):
+        for item in payload:
+            add_geo(item)
+    else:
+        add_geo(payload)
+    return unary_union(geoms) if geoms else None
+
+
+def event_state_intersections(event_id: str, state_geoms: dict[str, Any]) -> tuple[list[str], str]:
+    try:
+        payload = get_json(GDACS_GEOMETRY, {"eventtype": "FL", "eventid": event_id})
+        flood_geom = geometry_from_payload(payload)
+    except Exception as exc:
+        return [], f"geometry unavailable: {exc}"
+    if flood_geom is None or flood_geom.is_empty:
+        return [], "geometry response contained no Polygon/MultiPolygon"
+    hit = []
+    for state, state_geom in state_geoms.items():
+        try:
+            inter = flood_geom.intersection(state_geom)
+            if not inter.is_empty and getattr(inter, "area", 0.0) > 1e-10:
+                hit.append(state)
+        except Exception:
+            continue
+    return sorted(hit), "observed/event flood polygon intersects ADM1"
+
+
+def collect_gdacs(start: date, end: date, state_geoms: dict[str, Any]) -> list[Candidate]:
+    out: list[Candidate] = []
+    for year in range(start.year, end.year + 1):
         a = max(start, date(year, 1, 1)); b = min(end, date(year, 12, 31))
-        params = {"eventlist": "FL", "fromdate": a.isoformat(), "todate": b.isoformat(), "alertlevel": "green;orange;red"}
-        data = get_json(GDACS_SEARCH, params=params)
+        params = {
+            "eventlist": "FL", "fromdate": a.isoformat(), "todate": b.isoformat(),
+            "alertlevel": "reg;green;orange;red", "pagesize": 100,
+        }
+        data = get_json(GDACS_SEARCH, params)
         features = data.get("features", []) if isinstance(data, dict) else data if isinstance(data, list) else []
         for feature in features:
             props = feature.get("properties", feature) if isinstance(feature, dict) else {}
             blob = json.dumps(props, ensure_ascii=False)
             if not re.search(r"Nigeria|\bNGA\b", blob, flags=re.I):
                 continue
+            event_id = str(props.get("eventid") or props.get("eventId") or props.get("event_id") or props.get("id") or "").strip()
+            if not event_id:
+                continue
             start_d = parse_date(props.get("fromdate") or props.get("fromDate") or props.get("datefrom") or props.get("startdate"))
             end_d = parse_date(props.get("todate") or props.get("toDate") or props.get("dateto") or props.get("enddate")) or start_d
             if not start_d:
                 continue
-            event_id = str(props.get("eventid") or props.get("eventId") or props.get("event_id") or props.get("id") or f"{start_d}-flood")
+            states, spatial_note = event_state_intersections(event_id, state_geoms)
             name = str(props.get("name") or props.get("eventname") or props.get("country") or "Nigeria flood")
-            states = state_mentions(blob + " " + name)
-            events.append({"event_id": event_id, "date": start_d, "end": end_d or start_d, "states": states, "raw": props})
-        year += 1
-    # de-duplicate by event id
-    return list({e["event_id"]: e for e in events}.values())
+            if not states:
+                out.append(Candidate(
+                    event_id=f"gdacs-{event_id}-unassigned", state="UNASSIGNED", event_date=start_d.isoformat(),
+                    event_end_date=(end_d or start_d).isoformat(), discovery_source="GDACS / EC-JRC",
+                    source_url=f"https://www.gdacs.org/resources.aspx?eventid={event_id}&eventtype=FL",
+                    corroborating_sources="geoBoundaries gbOpen ADM1", corroborating_urls=GEOBOUNDARIES_META,
+                    confidence_grade="C", headline_eligible=False,
+                    evidence_summary=f"{name}. {spatial_note}", date_basis="GDACS-event-start",
+                ))
+                continue
+            for state in states:
+                out.append(Candidate(
+                    event_id=f"gdacs-{event_id}-{state.lower().replace(' ', '-')}", state=state,
+                    event_date=start_d.isoformat(), event_end_date=(end_d or start_d).isoformat(),
+                    discovery_source="GDACS / EC-JRC observed flood/event geometry",
+                    source_url=f"https://www.gdacs.org/resources.aspx?eventid={event_id}&eventtype=FL",
+                    corroborating_sources="geoBoundaries gbOpen ADM1 spatial intersection",
+                    corroborating_urls=GEOBOUNDARIES_META,
+                    confidence_grade="A", headline_eligible=True,
+                    evidence_summary=f"{name}. {spatial_note}; label source is independent from meteorological predictors.",
+                    date_basis="GDACS-event-start-spatial",
+                ))
+            time.sleep(0.08)
+    return out
 
 
 def curated_repository_events(path: Path) -> list[Candidate]:
@@ -179,15 +227,16 @@ def curated_repository_events(path: Path) -> list[Candidate]:
             if str(row.get("include_in_benchmark", "")).lower() not in {"true","1","yes"}:
                 continue
             state = location_state.get(row.get("location", ""))
-            if not state:
+            event_date = row.get("observed_by_date", "")
+            if not state or not event_date:
                 continue
             source = row.get("source", "")
             institutional = any(k.lower() in source.lower() for k in INSTITUTIONAL_HINTS)
             out.append(Candidate(
-                event_id=f"curated-{row['event_id']}", state=state,
-                event_date=row.get("observed_by_date", ""), event_end_date=row.get("event_end_date", "") or row.get("observed_by_date", ""),
+                event_id=f"curated-{row.get('event_id','')}", state=state, event_date=event_date,
+                event_end_date=row.get("event_end_date", "") or event_date,
                 discovery_source=source, source_url=row.get("source_url", ""),
-                corroborating_sources="repository-curated", corroborating_urls="",
+                corroborating_sources="repository-curated independent event registry", corroborating_urls="",
                 confidence_grade="A" if institutional else "B", headline_eligible=True,
                 evidence_summary=row.get("evidence_note", ""), date_basis="observed-date-curated",
             ))
@@ -197,63 +246,42 @@ def curated_repository_events(path: Path) -> list[Candidate]:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", default="2018-01-01")
-    ap.add_argument("--end", default=date.today().isoformat())
+    ap.add_argument("--end", default="2025-12-31")
     ap.add_argument("--out", default="validation/national_evidence_factory/out/national_event_registry.csv")
     ap.add_argument("--curated", default="validation/model_v4_event_registry.csv")
     args = ap.parse_args()
     start, end = date.fromisoformat(args.start), date.fromisoformat(args.end)
 
-    relief = collect_reliefweb(start, end)
-    gdacs = collect_gdacs(start, end)
-    candidates: list[Candidate] = curated_repository_events(Path(args.curated))
+    state_geoms = load_adm1()
+    candidates = curated_repository_events(Path(args.curated)) + collect_gdacs(start, end, state_geoms)
 
-    for event in gdacs:
-        # If GDACS metadata does not identify a state, corroborating reports near the event may.
-        nearby = [r for r in relief if abs((r["date"] - event["date"]).days) <= 21]
-        states = set(event["states"])
-        if not states:
-            for r in nearby:
-                states |= r["states"]
-        for state in sorted(states):
-            matches = [r for r in nearby if state in r["states"]]
-            publishers = sorted({s for r in matches for s in r["sources"] if s})
-            urls = sorted({r["url"] for r in matches if r["url"]})
-            independent = bool(publishers)
-            strong_publisher = any(any(k.lower() in p.lower() for k in INSTITUTIONAL_HINTS) for p in publishers)
-            grade = "A" if independent and strong_publisher else "B" if independent else "C"
-            eligible = independent
-            props = event["raw"]
-            candidates.append(Candidate(
-                event_id=f"gdacs-{event['event_id']}-{state.lower().replace(' ','-')}",
-                state=state, event_date=event["date"].isoformat(), event_end_date=event["end"].isoformat(),
-                discovery_source="GDACS / EC-JRC", source_url=f"https://www.gdacs.org/resources.aspx?eventid={event['event_id']}&eventtype=FL",
-                corroborating_sources=" | ".join(publishers), corroborating_urls=" | ".join(urls),
-                confidence_grade=grade, headline_eligible=eligible,
-                evidence_summary=str(props.get("name") or props.get("description") or "GDACS flood event with independent report cross-check"),
-                date_basis="GDACS-event-start",
-            ))
-
-    # Exact duplicate protection; curated beats auto-discovered for same state/date.
-    priority = {"observed-date-curated": 2, "GDACS-event-start": 1}
+    priority = {"observed-date-curated": 3, "GDACS-event-start-spatial": 2, "GDACS-event-start": 1}
     dedup: dict[tuple[str,str], Candidate] = {}
     for c in candidates:
         key = (c.state, c.event_date)
-        if key not in dedup or priority.get(c.date_basis,0) > priority.get(dedup[key].date_basis,0):
+        if key not in dedup or priority.get(c.date_basis, 0) > priority.get(dedup[key].date_basis, 0):
             dedup[key] = c
-
     rows = sorted(dedup.values(), key=lambda x: (x.event_date, x.state))
-    out = Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(asdict(rows[0]).keys()) if rows else list(Candidate.__annotations__))
-        writer.writeheader(); writer.writerows(asdict(r) for r in rows)
 
+    out = Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
+    fields = list(Candidate.__annotations__)
+    with out.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fields); writer.writeheader(); writer.writerows(asdict(r) for r in rows)
+
+    eligible = [r for r in rows if r.headline_eligible and r.state != "UNASSIGNED"]
+    all_jurisdictions = sorted(state_geoms)
+    covered = sorted({r.state for r in eligible})
     summary = {
         "generated_at": datetime.utcnow().isoformat()+"Z",
+        "registered_adm1_geometries": len(state_geoms),
         "total_candidates": len(rows),
-        "headline_eligible": sum(r.headline_eligible for r in rows),
-        "jurisdictions_with_eligible_events": len({r.state for r in rows if r.headline_eligible}),
+        "headline_eligible": len(eligible),
+        "jurisdictions_with_eligible_events": len(covered),
+        "covered_jurisdictions": covered,
+        "jurisdictions_without_eligible_events": sorted(set(all_jurisdictions)-set(covered)),
         "grade_counts": {g: sum(r.confidence_grade == g for r in rows) for g in ["A","B","C"]},
-        "rule": "Headline-eligible requires repository-curated event evidence or GDACS plus independent ReliefWeb publisher corroboration.",
+        "rule": "Automatic headline eligibility requires EC-JRC/GDACS flood geometry intersecting a Nigeria ADM1 polygon; curated independent institutional/remote-sensing events remain eligible.",
+        "label_independence": "Automatic flood labels are EC-JRC/GDACS observed/event geometry and are not derived from ERA5-Land rainfall predictor thresholds.",
     }
     Path(out.with_suffix(".summary.json")).write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))
