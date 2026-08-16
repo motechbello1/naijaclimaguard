@@ -1,139 +1,150 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
-import { Volume2, VolumeX } from "lucide-react";
+import { createContext, useContext, useMemo, useRef, useState } from "react";
+import { Headphones, Square } from "lucide-react";
 import { useLanguage } from "./LanguageProvider";
-
-const AUTO_READ_KEY = "naijaclimaguard:auto-read";
-
-const SPEECH_LANG: Record<string, string> = {
-  en: "en-NG",
-  pcm: "en-NG",
-  ha: "ha-NG",
-  yo: "yo-NG",
-  ig: "ig-NG",
-};
 
 type SpeechContextValue = {
   supported: boolean;
   speaking: boolean;
-  autoRead: boolean;
-  voiceLabel: string;
-  usingFallbackVoice: boolean;
-  setAutoRead: (value: boolean) => void;
-  speak: (text: string) => void;
+  loading: boolean;
+  activeTarget: string | null;
+  error: string | null;
+  speak: (text: string, targetId?: string) => Promise<void>;
+  speakTarget: (targetId: string) => Promise<void>;
   stop: () => void;
 };
 
 const SpeechContext = createContext<SpeechContextValue | null>(null);
 
-function visiblePageSummary() {
-  const main = document.querySelector("main");
-  if (!main) return "";
-
-  const preferred = Array.from(main.querySelectorAll<HTMLElement>("[data-read-aloud]"))
-    .filter((el) => el.offsetParent !== null)
-    .map((el) => el.innerText.trim())
-    .filter(Boolean);
-  if (preferred.length) return preferred.slice(0, 6).join(". ").slice(0, 1800);
-
-  const items = Array.from(main.querySelectorAll<HTMLElement>("h1, h2, h3, p, li"))
-    .filter((el) => el.offsetParent !== null)
-    .map((el) => el.innerText.trim())
-    .filter((text) => text.length > 3);
-
-  return items.slice(0, 8).join(". ").slice(0, 1800);
+function cleanReadableText(root: HTMLElement) {
+  const clone = root.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll("button,select,input,textarea,[aria-hidden='true'],[data-ncg-skip-read='true']").forEach((el) => el.remove());
+  return (clone.innerText || clone.textContent || "")
+    .replace(/\s+/g, " ")
+    .replace(/\bhttps?:\/\/\S+/gi, "")
+    .trim()
+    .slice(0, 2200);
 }
 
-function scoreVoice(voice: SpeechSynthesisVoice, wanted: string) {
-  const lang = voice.lang.toLowerCase();
-  const wantedLower = wanted.toLowerCase();
-  const family = wantedLower.split("-")[0];
-  const name = voice.name.toLowerCase();
-  let score = 0;
-  if (lang === wantedLower) score += 100;
-  if (lang.startsWith(`${family}-`)) score += 45;
-  if (lang.endsWith("-ng")) score += 35;
-  if (name.includes("nigeria") || name.includes("nigerian")) score += 30;
-  if (voice.localService) score += 8;
-  if (voice.default) score += 2;
-  return score;
-}
-
-function chooseVoice(voices: SpeechSynthesisVoice[], wanted: string) {
-  const ranked = [...voices]
-    .map((voice) => ({ voice, score: scoreVoice(voice, wanted) }))
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score);
-  return ranked[0]?.voice || null;
-}
+const unavailableByLocale: Record<string, string> = {
+  en: "The NaijaClimaGuard neural voice service is not connected on this preview yet.",
+  pcm: "NaijaClimaGuard Nigerian voice never connect for this preview yet.",
+  ha: "Ba a haɗa sabis ɗin muryar NaijaClimaGuard a wannan gwajin ba tukuna.",
+  yo: "A kò tíì so iṣẹ́ ohùn NaijaClimaGuard pọ̀ mọ́ àwòrán ìdánwò yìí.",
+  ig: "Ejikọbeghị ọrụ olu NaijaClimaGuard na preview a.",
+};
 
 export function SpeechProvider({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const { locale } = useLanguage();
-  const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
-  const [autoRead, setAutoReadState] = useState(false);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [activeTarget, setActiveTarget] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    const available = typeof window !== "undefined" && "speechSynthesis" in window;
-    setSupported(available);
-    setAutoReadState(window.localStorage.getItem(AUTO_READ_KEY) === "true");
-    if (!available) return;
-    const load = () => setVoices(window.speechSynthesis.getVoices());
-    load();
-    window.speechSynthesis.addEventListener?.("voiceschanged", load);
-    return () => window.speechSynthesis.removeEventListener?.("voiceschanged", load);
-  }, []);
-
-  const wanted = SPEECH_LANG[locale] || "en-NG";
-  const selectedVoice = useMemo(() => chooseVoice(voices, wanted), [voices, wanted]);
-  const usingFallbackVoice = Boolean(selectedVoice && selectedVoice.lang.toLowerCase() !== wanted.toLowerCase());
-  const voiceLabel = selectedVoice ? `${selectedVoice.name} · ${selectedVoice.lang}` : wanted;
+  const cleanupAudio = () => {
+    requestRef.current?.abort();
+    requestRef.current = null;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+  };
 
   const stop = () => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+    cleanupAudio();
     setSpeaking(false);
+    setLoading(false);
+    setActiveTarget(null);
+    setError(null);
   };
 
-  const speak = (text: string) => {
-    if (!text.trim() || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text.replace(/\s+/g, " ").trim());
-    utterance.lang = wanted;
-    if (selectedVoice) utterance.voice = selectedVoice;
-    utterance.rate = locale === "pcm" ? 0.92 : 0.94;
-    utterance.pitch = 1;
-    utterance.onstart = () => setSpeaking(true);
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    window.speechSynthesis.speak(utterance);
+  const speak = async (text: string, targetId?: string) => {
+    const clean = text.replace(/\s+/g, " ").trim();
+    if (!clean) return;
+
+    cleanupAudio();
+    setActiveTarget(targetId || "manual");
+    setError(null);
+    setSpeaking(false);
+    setLoading(true);
+
+    const controller = new AbortController();
+    requestRef.current = controller;
+    try {
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: clean, locale }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        let message = unavailableByLocale[locale] || unavailableByLocale.en;
+        try {
+          const data = await response.json();
+          if (response.status !== 503 && data?.error) message = data.error;
+        } catch { /* keep localised message */ }
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      objectUrlRef.current = url;
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.preload = "auto";
+      audio.onplay = () => { setLoading(false); setSpeaking(true); };
+      audio.onended = () => {
+        setSpeaking(false);
+        setLoading(false);
+        setActiveTarget(null);
+        cleanupAudio();
+      };
+      audio.onerror = () => {
+        setSpeaking(false);
+        setLoading(false);
+        setError("Audio could not play on this device.");
+        cleanupAudio();
+      };
+      await audio.play();
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
+      setLoading(false);
+      setSpeaking(false);
+      setError(err?.message || unavailableByLocale[locale] || unavailableByLocale.en);
+    }
   };
 
-  const setAutoRead = (value: boolean) => {
-    setAutoReadState(value);
-    window.localStorage.setItem(AUTO_READ_KEY, String(value));
-    if (!value) stop();
+  const speakTarget = async (targetId: string) => {
+    const target = document.getElementById(targetId);
+    if (!target) {
+      setActiveTarget(targetId);
+      setError("This section is not available to read.");
+      return;
+    }
+    await speak(cleanReadableText(target), targetId);
   };
 
-  useEffect(() => {
-    if (!autoRead || !supported) return;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      const summary = visiblePageSummary();
-      if (summary) speak(summary);
-    }, 700);
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, locale, autoRead, supported, selectedVoice]);
+  const value = useMemo(() => ({
+    supported: true,
+    speaking,
+    loading,
+    activeTarget,
+    error,
+    speak,
+    speakTarget,
+    stop,
+  }), [speaking, loading, activeTarget, error, locale]);
 
-  const value = useMemo(() => ({ supported, speaking, autoRead, voiceLabel, usingFallbackVoice, setAutoRead, speak, stop }), [supported, speaking, autoRead, voiceLabel, usingFallbackVoice]);
   return <SpeechContext.Provider value={value}>{children}</SpeechContext.Provider>;
 }
 
@@ -144,37 +155,36 @@ export function useSpeech() {
 }
 
 export function ReadAloudControl({ compact = false }: { compact?: boolean }) {
-  const { supported, speaking, autoRead, voiceLabel, usingFallbackVoice, setAutoRead, speak, stop } = useSpeech();
+  const { speaking, loading, stop } = useSpeech();
   const { locale } = useLanguage();
 
-  if (!supported) return null;
+  const label = locale === "pcm" ? "Listen to section"
+    : locale === "ha" ? "Saurari sashe"
+    : locale === "yo" ? "Gbọ́ apá kan"
+    : locale === "ig" ? "Gee akụkụ"
+    : "Listen to a section";
+  const hint = locale === "pcm" ? "Use the headphone button beside the part wey you want hear."
+    : locale === "ha" ? "Yi amfani da maɓallin lasifika kusa da sashen da kake son ji."
+    : locale === "yo" ? "Lo bọ́tìnì agbekọ́rí lẹ́gbẹ̀ẹ́ apá tí o fẹ́ gbọ́."
+    : locale === "ig" ? "Jiri bọtịnụ ekweisi n'akụkụ ebe ịchọrọ ịnụ."
+    : "Use the headphone button beside the part you want to hear.";
 
-  const readLabel = locale === "pcm" ? "Read am" : locale === "ha" ? "Karanta" : locale === "yo" ? "Kà á" : locale === "ig" ? "Gụọ ya" : "Read aloud";
-  const autoLabel = locale === "pcm" ? "Read page by itself" : locale === "ha" ? "Karanta shafi kai tsaye" : locale === "yo" ? "Kà ojúewé laifọwọyi" : locale === "ig" ? "Gụọ ibe na-akpaghị aka" : "Auto-read pages";
-  const voiceNote = usingFallbackVoice
-    ? (locale === "pcm" ? "Your phone no get the exact Nigerian voice, so we dey use the closest voice available." : "Your device does not expose the exact Nigerian voice, so the closest available voice is being used.")
-    : (locale === "pcm" ? "Nigerian voice selected where your phone support am." : "Nigerian locale voice selected where your device supports it.");
+  if (compact) {
+    return (
+      <button type="button" onClick={speaking || loading ? stop : undefined} className="flex min-h-10 items-center gap-2 rounded-lg px-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300" title={hint}>
+        {speaking || loading ? <Square className="h-3.5 w-3.5 fill-current text-radar" /> : <Headphones className="h-4 w-4 text-radar" />}
+      </button>
+    );
+  }
 
   return (
-    <div className={`${compact ? "" : "rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 dark:border-midnight-border dark:bg-midnight-light/80"}`}>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => speaking ? stop() : speak(visiblePageSummary())}
-          className="flex min-h-10 items-center gap-2 rounded-xl px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          aria-label={speaking ? "Stop reading" : readLabel}
-        >
-          {speaking ? <VolumeX className="h-4 w-4 text-radar" /> : <Volume2 className="h-4 w-4 text-radar" />}
-          {!compact && <span>{speaking ? "Stop" : readLabel}</span>}
-        </button>
-        {!compact && (
-          <label className="flex cursor-pointer items-center gap-2 border-l border-slate-200 pl-2 text-[11px] text-slate-500 dark:border-midnight-border dark:text-slate-400">
-            <input type="checkbox" checked={autoRead} onChange={(e) => setAutoRead(e.target.checked)} className="accent-emerald-500" />
-            <span>{autoLabel}</span>
-          </label>
-        )}
+    <div className="rounded-[16px] border border-slate-200 bg-white/80 p-3 dark:border-midnight-border dark:bg-midnight-light/80">
+      <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
+        <Headphones className="h-4 w-4 text-radar" />
+        <span>{label}</span>
+        {(speaking || loading) && <button type="button" onClick={stop} className="ml-auto rounded-full border border-slate-200 px-2 py-1 text-[10px] dark:border-white/10">Stop</button>}
       </div>
-      {!compact && <p className="mt-2 text-[10px] leading-4 text-slate-400" title={voiceLabel}>{voiceNote}</p>}
+      <p className="mt-1.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">{hint}</p>
     </div>
   );
 }
