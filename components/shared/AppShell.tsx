@@ -62,6 +62,8 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
 
 const PRODUCT_LINKS = [
   { href: "/tools", label: "All tools", icon: Compass },
+  { href: "/live-floods", label: "Live Flood Intelligence", icon: Radar },
+  { href: "/safe-route", label: "Safe Route", icon: Map },
   { href: "/impact", label: "Economic Impact", icon: CircleDollarSign },
   { href: "/revenue", label: "Revenue Engine", icon: WalletCards },
   { href: "/investor-readiness", label: "Investor + TRL 6", icon: ShieldAlert },
