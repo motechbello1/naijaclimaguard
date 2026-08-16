@@ -5,9 +5,9 @@ export interface NigeriaSentinel {
   longitude: number;
 }
 
-// One urban sentinel per state/FCT for national screening. A sentinel measures
-// rainfall conditions around the listed capital; it must not be interpreted as
-// proof that the entire state shares the same conditions.
+// Capital/metro anchor for every state + FCT. Each anchor is expanded into a
+// compact 5-point urban grid at runtime so a local cloudburst several kilometres
+// away from the city centre is less likely to be missed by a single weather-model point.
 export const NIGERIA_SENTINELS: NigeriaSentinel[] = [
   { state: "Abia", city: "Umuahia", latitude: 5.5249, longitude: 7.4946 },
   { state: "Adamawa", city: "Yola", latitude: 9.2035, longitude: 12.4954 },
@@ -47,3 +47,31 @@ export const NIGERIA_SENTINELS: NigeriaSentinel[] = [
   { state: "Yobe", city: "Damaturu", latitude: 11.7470, longitude: 11.9608 },
   { state: "Zamfara", city: "Gusau", latitude: 12.1704, longitude: 6.6641 },
 ];
+
+export interface ExpandedNigeriaSentinel extends NigeriaSentinel {
+  id: string;
+  pointLabel: string;
+  anchorCity: string;
+}
+
+export function expandNigeriaSentinels(radiusKm = 9): ExpandedNigeriaSentinel[] {
+  const latitudeDelta = radiusKm / 111;
+  return NIGERIA_SENTINELS.flatMap((anchor) => {
+    const longitudeDelta = radiusKm / (111 * Math.max(0.25, Math.cos(anchor.latitude * Math.PI / 180)));
+    const points = [
+      { suffix: "C", label: "centre", lat: anchor.latitude, lon: anchor.longitude },
+      { suffix: "N", label: "north", lat: anchor.latitude + latitudeDelta, lon: anchor.longitude },
+      { suffix: "S", label: "south", lat: anchor.latitude - latitudeDelta, lon: anchor.longitude },
+      { suffix: "E", label: "east", lat: anchor.latitude, lon: anchor.longitude + longitudeDelta },
+      { suffix: "W", label: "west", lat: anchor.latitude, lon: anchor.longitude - longitudeDelta },
+    ];
+    return points.map((point) => ({
+      ...anchor,
+      id: `${anchor.state}-${point.suffix}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      pointLabel: point.label,
+      anchorCity: anchor.city,
+      latitude: Number(point.lat.toFixed(5)),
+      longitude: Number(point.lon.toFixed(5)),
+    }));
+  });
+}
