@@ -1,41 +1,33 @@
 "use client";
 
-/**
- * Layer 1: Predict — transparent live-data demo.
- *  · Chart: Open-Meteo daily precipitation (10 days past + 4 forecast).
- *  · Risk score: the canonical public derived-v2 endpoint only.
- *  · If the risk endpoint is unavailable, no alternate score is substituted.
- *  · Riverine Watch v1 is a separate 14-day shadow model for Lokoja + Makurdi;
- *    its evidence is shown here without replacing the canonical live score.
- *  · Scenario dropdown: clearly labeled simulation.
- */
-
 import AppShell from "@/components/shared/AppShell";
 import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
-import { useState, useEffect, useCallback } from "react";
-import { AlertTriangle, Droplets, Waves, CloudRain, Wifi, WifiOff, FlaskConical } from "lucide-react";
+import { useNationalArea } from "@/components/shared/NationalArea";
+import Link from "next/link";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { AlertTriangle, Droplets, Waves, CloudRain, Wifi, WifiOff, FlaskConical, MapPin, Plus } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { getRiskLevel } from "@/lib/data";
 
-const LOKOJA = { lat: 7.8023, lon: 6.7333 };
-
+type SavedLocation = { id: string; name: string; state: string; latitude: number; longitude: number };
 interface DayPoint { day: string; precip: number; isForecast: boolean; simulated?: number; }
 
 function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload as DayPoint;
   return (
-    <div className="glass-card rounded-lg p-3 text-sm">
-      <p className="text-xs text-slate-400 mb-1">{d.day}{d.isForecast ? " · forecast" : ""}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-xl dark:border-slate-700 dark:bg-slate-900">
+      <p className="mb-1 text-xs text-slate-400">{d.day}{d.isForecast ? " · forecast" : ""}</p>
       <p>Precipitation: <strong>{d.precip} mm</strong></p>
-      {typeof d.simulated === "number" && (
-        <p className="text-amber">Simulated: <strong>{d.simulated} mm</strong></p>
-      )}
+      {typeof d.simulated === "number" && <p className="text-amber">Simulated: <strong>{d.simulated} mm</strong></p>}
     </div>
   );
 }
 
 export default function PredictPage() {
+  const { area } = useNationalArea();
+  const [locations, setLocations] = useState<SavedLocation[]>([]);
+  const [selectedId, setSelectedId] = useState("");
   const [scenario, setScenario] = useState("");
   const [series, setSeries] = useState<DayPoint[]>([]);
   const [dataState, setDataState] = useState<"loading" | "live" | "error">("loading");
@@ -43,8 +35,22 @@ export default function PredictPage() {
   const [riskLevel, setRiskLevel] = useState("");
   const [riskSource, setRiskSource] = useState<"api" | "unavailable" | null>(null);
   const [factors, setFactors] = useState({ rainfall: 0, burst: 0, wetness: 0 });
+  const selected = useMemo(() => locations.find((item) => item.id === selectedId) ?? locations[0], [locations, selectedId]);
+
+  useEffect(() => {
+    fetch("/api/locations", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        const list: SavedLocation[] = data.locations ?? [];
+        setLocations(list);
+        const inWorkingArea = list.find((item) => item.state === area.name);
+        setSelectedId((inWorkingArea ?? list[0])?.id ?? "");
+      })
+      .catch(() => setLocations([]));
+  }, [area.name]);
 
   const load = useCallback(async () => {
+    if (!selected) return;
     setDataState("loading");
     setRiskSource(null);
     setRiskScore(null);
@@ -52,33 +58,26 @@ export default function PredictPage() {
     setFactors({ rainfall: 0, burst: 0, wetness: 0 });
 
     try {
-      const weatherUrl =
-        `https://api.open-meteo.com/v1/forecast?latitude=${LOKOJA.lat}&longitude=${LOKOJA.lon}` +
-        `&daily=precipitation_sum,et0_fao_evapotranspiration&past_days=10&forecast_days=4&timezone=Africa%2FLagos`;
-      const res = await fetch(weatherUrl, { cache: "no-store" });
-      if (!res.ok) throw new Error("weather fetch failed");
-      const json = await res.json();
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${selected.latitude}&longitude=${selected.longitude}&daily=precipitation_sum,et0_fao_evapotranspiration&past_days=10&forecast_days=4&timezone=Africa%2FLagos`;
+      const response = await fetch(weatherUrl, { cache: "no-store" });
+      if (!response.ok) throw new Error("weather fetch failed");
+      const json = await response.json();
       const daily = json.daily;
       const todayIdx = daily.time.length - 5;
-      const pts: DayPoint[] = daily.time.map((t: string, i: number) => ({
-        day: new Date(t).toLocaleDateString([], { month: "short", day: "numeric" }),
-        precip: Math.round((daily.precipitation_sum[i] ?? 0) * 10) / 10,
-        isForecast: i > todayIdx,
-      }));
-      setSeries(pts);
+      setSeries(daily.time.map((time: string, index: number) => ({
+        day: new Date(time).toLocaleDateString([], { month: "short", day: "numeric" }),
+        precip: Math.round((daily.precipitation_sum[index] ?? 0) * 10) / 10,
+        isForecast: index > todayIdx,
+      })));
       setDataState("live");
 
       try {
-        const risk = await fetch(`/api/v1/risk?latitude=${LOKOJA.lat}&longitude=${LOKOJA.lon}`, { cache: "no-store" });
+        const risk = await fetch(`/api/v1/risk?latitude=${selected.latitude}&longitude=${selected.longitude}`, { cache: "no-store" });
         if (!risk.ok) throw new Error("risk API unavailable");
-        const d = await risk.json();
-        setRiskScore(d.risk.score);
-        setRiskLevel(d.risk.level);
-        setFactors({
-          rainfall: d.factors.rainfall_7d,
-          burst: d.factors.burst_intensity,
-          wetness: d.factors.soil_saturation,
-        });
+        const data = await risk.json();
+        setRiskScore(data.risk.score);
+        setRiskLevel(data.risk.level);
+        setFactors({ rainfall: data.factors.rainfall_7d, burst: data.factors.burst_intensity, wetness: data.factors.soil_saturation });
         setRiskSource("api");
       } catch {
         setRiskSource("unavailable");
@@ -87,160 +86,94 @@ export default function PredictPage() {
       setDataState("error");
       setRiskSource("unavailable");
     }
-  }, []);
+  }, [selected]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (selected) load(); }, [selected, load]);
 
-  useEffect(() => {
-    setSeries((prev) =>
-      prev.map((p) => {
-        if (!scenario || !p.isForecast) return { ...p, simulated: undefined };
-        const mult = scenario === "monsoon" ? 2.4 : 1.8;
-        return { ...p, simulated: Math.round(p.precip * mult * 10) / 10 + (scenario === "dam" ? 25 : 15) };
-      })
-    );
-  }, [scenario]);
+  const chartSeries = useMemo(() => series.map((point) => {
+    if (!scenario || !point.isForecast) return { ...point, simulated: undefined };
+    const mult = scenario === "monsoon" ? 2.4 : 1.8;
+    return { ...point, simulated: Math.round(point.precip * mult * 10) / 10 + (scenario === "dam" ? 25 : 15) };
+  }), [series, scenario]);
 
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="font-display text-2xl font-bold">Layer 1: Predict</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Lokoja · live precipitation and current risk index</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border ${
-              riskSource === "api"
-                ? "text-radar border-radar/20 bg-radar/5"
-                : riskSource === "unavailable"
-                ? "text-amber border-amber/20 bg-amber/5"
-                : "text-slate-400 border-slate-200 dark:border-midnight-border"
-            }`}>
-              {riskSource === "api" ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {riskSource === "api" ? "Derived-v2 API: Live" : riskSource === "unavailable" ? "Risk API unavailable" : "Connecting…"}
-            </div>
-            <select
-              value={scenario}
-              onChange={(e) => setScenario(e.target.value)}
-              className="rounded-lg border border-slate-200 dark:border-midnight-border bg-white dark:bg-midnight-light px-4 py-2 text-sm focus:border-radar focus:outline-none"
-            >
-              <option value="">Live conditions</option>
-              <option value="monsoon">Simulate: Monsoon surge</option>
-              <option value="dam">Simulate: Dam release</option>
-            </select>
-          </div>
-        </div>
-
-        <RiverineWatchEvidence compact />
-
-        {scenario && (
-          <div className="rounded-xl border-2 border-amber/50 bg-amber/5 dark:bg-amber/10 p-4 flex items-center gap-3 animate-slide-up">
-            <FlaskConical className="h-5 w-5 text-amber shrink-0" />
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              <strong className="text-amber">Simulation mode.</strong> The dashed overlay is an illustrative
-              {scenario === "monsoon" ? " monsoon-surge" : " dam-release"} scenario — not live data. Live
-              weather values remain the solid series.
-            </p>
-          </div>
-        )}
-
-        {riskScore !== null && (
-          <div className="glass-card rounded-xl p-5 flex items-center justify-between">
+        <section className="overflow-hidden rounded-[2rem] bg-[#071713] p-6 text-white sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs text-slate-400">Current public risk index — Lokoja, Kogi State</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                From the canonical derived-v2 live API. Riverine Watch v1 is a separate shadow model and does not rewrite this score.
-              </p>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#d9ff57]">National location analysis</p>
+              <h1 className="mt-3 max-w-3xl font-display text-3xl font-black tracking-tight sm:text-5xl">Analyse the exact place you care about, anywhere in Nigeria.</h1>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/60">The public risk engine uses the coordinates of your saved place. State names organise the national experience; they do not fabricate a state-wide forecast.</p>
             </div>
-            <div className="text-right">
-              <span className="text-3xl font-display font-bold" style={{ color: getRiskLevel(riskScore).color }}>
-                {riskScore}/100
-              </span>
-              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: getRiskLevel(riskScore).color }}>
-                {riskLevel}
-              </p>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4 lg:min-w-[320px]">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">Working area</p>
+              <p className="mt-1 text-lg font-black">{area.name}</p>
+              <p className="mt-1 text-xs text-white/45">36 states + FCT supported for saved-place organisation</p>
             </div>
           </div>
-        )}
+        </section>
 
-        {riskSource === "unavailable" && dataState === "live" && (
-          <div className="glass-card rounded-xl p-5 flex items-start gap-3 border border-amber/20">
-            <AlertTriangle className="h-5 w-5 text-amber shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold">Risk score temporarily unavailable</p>
-              <p className="mt-1 text-xs text-slate-500">
-                The precipitation chart remains live, but NaijaClimaGuard will not substitute a different fallback formula. Retry to restore the canonical derived-v2 score.
-              </p>
-            </div>
+        {locations.length === 0 ? (
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
+            <MapPin className="mx-auto h-8 w-8 text-emerald-700 dark:text-radar" />
+            <h2 className="mt-4 text-xl font-black">Add a place before running location analysis</h2>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">Save your home, farm, business, road or community with its real coordinates. That lets NaijaClimaGuard analyse locations across Nigeria without inventing one representative point for an entire state.</p>
+            <Link href="/dashboard" className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#071713] px-5 py-3 text-sm font-black text-white dark:bg-radar dark:text-slate-950"><Plus className="h-4 w-4" /> Add a saved place</Link>
           </div>
-        )}
-
-        {riskScore !== null && (
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { icon: CloudRain, label: "Rainfall load (7d)", value: factors.rainfall, color: "text-cyan" },
-              { icon: Waves, label: "Rainfall burst", value: factors.burst, color: "text-radar" },
-              { icon: Droplets, label: "Wetness proxy", value: factors.wetness, color: "text-amber" },
-            ].map((stat) => (
-              <div key={stat.label} className="glass-card rounded-xl p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                  <span className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</span>
+        ) : (
+          <>
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-center md:justify-between">
+              <label className="flex min-w-0 items-center gap-3">
+                <MapPin className="h-5 w-5 shrink-0 text-emerald-700 dark:text-radar" />
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400">Analyse</span>
+                <select value={selected?.id ?? ""} onChange={(event) => setSelectedId(event.target.value)} className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black dark:border-slate-700 dark:bg-slate-950">
+                  {locations.map((location) => <option key={location.id} value={location.id}>{location.name} · {location.state}</option>)}
+                </select>
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-bold ${riskSource === "api" ? "border-radar/20 bg-radar/5 text-radar" : "border-amber/20 bg-amber/5 text-amber"}`}>
+                  {riskSource === "api" ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}{riskSource === "api" ? "Live risk API" : "Risk API checking"}
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 mr-3 overflow-hidden">
-                    <div className="h-full rounded-full bg-radar transition-all duration-700" style={{ width: `${Math.round(stat.value * 100)}%` }} />
-                  </div>
-                  <span className="text-sm font-bold font-mono">{Math.round(stat.value * 100)}%</span>
+                <select value={scenario} onChange={(event) => setScenario(event.target.value)} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold dark:border-slate-700 dark:bg-slate-950">
+                  <option value="">Live conditions</option><option value="monsoon">Scenario: rainfall surge</option><option value="dam">Scenario: added water release</option>
+                </select>
+              </div>
+            </div>
+
+            {scenario && <div className="flex items-start gap-3 rounded-2xl border border-amber/30 bg-amber/5 p-4"><FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-amber" /><p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-amber">Scenario only.</strong> The dashed overlay is illustrative and is never presented as observed or forecast truth.</p></div>}
+
+            {riskScore !== null && selected && (
+              <div className="grid gap-4 lg:grid-cols-[1.4fr_.6fr]">
+                <div className="rounded-[2rem] bg-[#d9ff57] p-6 text-[#071713] sm:p-8">
+                  <p className="text-xs font-black uppercase tracking-[0.18em]">Current public risk index</p>
+                  <h2 className="mt-2 text-3xl font-black">{selected.name}, {selected.state}</h2>
+                  <p className="mt-3 max-w-2xl text-sm text-[#071713]/65">Canonical derived-v2 live API for this exact coordinate. Riverine Watch v1 remains a separate pilot evidence stream for Lokoja and Makurdi only.</p>
+                </div>
+                <div className="flex items-center justify-between rounded-[2rem] bg-[#071713] p-6 text-white lg:flex-col lg:items-start lg:justify-center">
+                  <span className="text-5xl font-black" style={{ color: getRiskLevel(riskScore).color }}>{riskScore}</span>
+                  <div><p className="text-xs text-white/40">out of 100</p><p className="mt-1 text-sm font-black uppercase" style={{ color: getRiskLevel(riskScore).color }}>{riskLevel}</p></div>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+
+            {riskSource === "unavailable" && dataState === "live" && <div className="flex items-start gap-3 rounded-2xl border border-amber/20 bg-white p-5 dark:bg-slate-900"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber" /><div><p className="font-bold">Risk score temporarily unavailable</p><p className="mt-1 text-xs text-slate-500">The weather chart can remain live, but no fallback risk formula is substituted.</p></div></div>}
+
+            {riskScore !== null && <div className="grid gap-4 sm:grid-cols-3">{[
+              { icon: CloudRain, label: "Rainfall load (7d)", value: factors.rainfall },
+              { icon: Waves, label: "Rainfall burst", value: factors.burst },
+              { icon: Droplets, label: "Wetness proxy", value: factors.wetness },
+            ].map((stat) => <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><div className="flex items-center gap-3"><stat.icon className="h-5 w-5 text-emerald-700 dark:text-radar" /><span className="text-sm font-bold">{stat.label}</span></div><p className="mt-5 text-3xl font-black">{Math.round(stat.value * 100)}%</p></div>)}</div>}
+
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 sm:p-7">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-lg font-black">Daily precipitation · {selected?.name}</h2><p className="mt-1 text-xs text-slate-500">10 past days + 4 forecast days at the saved coordinate</p></div><span className="text-xs font-mono text-slate-400">{dataState === "live" ? "Open-Meteo · Live" : dataState === "loading" ? "Syncing…" : "Feed offline"}</span></div>
+              {dataState === "error" ? <div className="flex h-[300px] flex-col items-center justify-center gap-3"><AlertTriangle className="h-8 w-8 text-slate-400" /><p className="text-sm text-slate-500">Weather feed unreachable.</p><button onClick={load} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-bold">Retry</button></div> : <div className="h-[300px]"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartSeries}><defs><linearGradient id="precipGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#06B6D4" stopOpacity={0.3} /><stop offset="100%" stopColor="#06B6D4" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#334155" strokeOpacity={0.25} vertical={false} /><XAxis dataKey="day" tick={{ fill: "#94a3b8", fontSize: 11 }} tickLine={false} /><YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} tickLine={false} unit="mm" /><Tooltip content={<CustomTooltip />} /><Area type="monotone" dataKey="precip" stroke="#06B6D4" strokeWidth={2} fill="url(#precipGrad)" dot={false} />{scenario && <Area type="monotone" dataKey="simulated" stroke="#F59E0B" strokeWidth={2} strokeDasharray="6 4" fill="none" dot={false} />}</AreaChart></ResponsiveContainer></div>}
+              <p className="mt-3 border-l-2 border-slate-200 pl-3 text-[11px] leading-relaxed text-slate-500 dark:border-slate-700">This chart is coordinate-specific. NaijaClimaGuard does not infer a whole-state flood forecast from a state name.</p>
+            </div>
+          </>
         )}
 
-        <div className="glass-card rounded-xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display text-base font-bold">Daily Precipitation — Lokoja (10 days past · 4 days forecast)</h2>
-            <span className="text-xs text-slate-400 font-mono">
-              {dataState === "live" ? "Source: Open-Meteo · Live" : dataState === "loading" ? "Syncing…" : "Feed offline"}
-            </span>
-          </div>
-          {dataState === "error" ? (
-            <div className="h-[300px] flex flex-col items-center justify-center gap-3">
-              <AlertTriangle className="h-8 w-8 text-slate-400" />
-              <p className="text-sm text-slate-500">Weather feed unreachable. Live data will return on retry.</p>
-              <button onClick={load} className="rounded-lg border border-slate-200 dark:border-midnight-border px-4 py-2 text-sm font-medium hover:border-radar/40 transition-all">
-                Retry
-              </button>
-            </div>
-          ) : (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={series}>
-                  <defs>
-                    <linearGradient id="precipGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#06B6D4" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" strokeOpacity={0.3} vertical={false} />
-                  <XAxis dataKey="day" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={{ stroke: "#334155" }} tickLine={false} />
-                  <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} unit="mm" />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="precip" stroke="#06B6D4" strokeWidth={2} fill="url(#precipGrad)" dot={false} name="Measured / forecast" />
-                  {scenario && (
-                    <Area type="monotone" dataKey="simulated" stroke="#F59E0B" strokeWidth={2} strokeDasharray="6 4" fill="none" dot={false} name="Simulated scenario" />
-                  )}
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          <p className="mt-3 text-[11px] text-slate-500 border-l-2 border-slate-200 dark:border-midnight-border pl-3 leading-relaxed">
-            Solid series: Open-Meteo measurements and forecast values for this coordinate. No universal flood or
-            heavy-rain threshold is asserted on this chart. Simulated overlays are always dashed, amber, and labeled.
-          </p>
-        </div>
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><RiverineWatchEvidence compact /></div>
       </div>
     </AppShell>
   );
