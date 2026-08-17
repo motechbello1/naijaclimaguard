@@ -26,6 +26,10 @@ type RouteResult = {
 };
 
 export default function SafeRoutePage() {
+  return <AppShell><SafeRouteContent /></AppShell>;
+}
+
+function SafeRouteContent() {
   const { mode } = useExplanationMode();
   const simple = mode === "simple";
   const [originText, setOriginText] = useState("");
@@ -67,42 +71,40 @@ export default function SafeRoutePage() {
   const clear = result?.decision === "NO_KNOWN_HAZARDS";
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-4xl space-y-6">
-        <header>
-          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-radar"><Navigation className="h-4 w-4" /> {simple ? "Safer travel check" : "Flood-aware travel beta"}</div>
-          <h1 className="ncg-simple-heading font-display text-3xl font-bold">{simple ? "Check your route before you travel" : "Find a lower-exposure route"}</h1>
-          <p className="ncg-simple-copy mt-2 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">{simple ? "Tell NaijaClimaGuard where you are starting and where you are going. It will check the available route choices against recent flood evidence and tell you if extra caution is needed." : <>NaijaClimaGuard compares driving alternatives against recent <strong>verified geotagged reports</strong> and <strong>corroborated news-reported neighbourhood flood zones</strong>. A news zone is treated as caution, not as proof that every road inside it is closed.</>}</p>
-        </header>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <header>
+        <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-radar"><Navigation className="h-4 w-4" /> {simple ? "Safer travel check" : "Flood-aware travel beta"}</div>
+        <h1 className="ncg-simple-heading font-display text-3xl font-bold">{simple ? "Check your route before you travel" : "Find a lower-exposure route"}</h1>
+        <p className="ncg-simple-copy mt-2 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">{simple ? "Tell NaijaClimaGuard where you are starting and where you are going. It will check the available route choices against recent flood evidence and tell you if extra caution is needed." : <>NaijaClimaGuard compares driving alternatives against recent <strong>verified geotagged reports</strong> and <strong>corroborated news-reported neighbourhood flood zones</strong>. A news zone is treated as caution, not as proof that every road inside it is closed.</>}</p>
+      </header>
 
-        <section className="glass-card rounded-2xl p-5 sm:p-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-bold">Starting point</label>
-              <div className="flex gap-2"><input value={originText} onChange={(e) => { setOriginText(e.target.value); if (current) setCurrent(null); }} placeholder="e.g. Maitama, Abuja" className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-radar dark:border-midnight-border dark:bg-midnight" /><button onClick={useMyLocation} type="button" title="Use my location" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-radar/20 bg-radar/5 text-radar"><LocateFixed className={`h-5 w-5 ${locating ? "animate-pulse" : ""}`} /></button></div>
-              {current ? <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-radar"><MapPin className="h-3.5 w-3.5" /> {simple ? "Your current location is ready" : "Live location captured"}</p> : null}
-            </div>
-            <div><label className="mb-2 block text-sm font-bold">Destination</label><input value={destinationText} onChange={(e) => setDestinationText(e.target.value)} placeholder="e.g. Garki Area 1, Abuja" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-radar dark:border-midnight-border dark:bg-midnight" /></div>
+      <section className="glass-card rounded-2xl p-5 sm:p-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-bold">Starting point</label>
+            <div className="flex gap-2"><input value={originText} onChange={(e) => { setOriginText(e.target.value); if (current) setCurrent(null); }} placeholder="e.g. Maitama, Abuja" className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-radar dark:border-midnight-border dark:bg-midnight" /><button onClick={useMyLocation} type="button" title="Use my location" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-radar/20 bg-radar/5 text-radar"><LocateFixed className={`h-5 w-5 ${locating ? "animate-pulse" : ""}`} /></button></div>
+            {current ? <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-radar"><MapPin className="h-3.5 w-3.5" /> {simple ? "Your current location is ready" : "Live location captured"}</p> : null}
           </div>
-          <button onClick={plan} disabled={loading} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-radar px-5 py-3.5 text-sm font-bold text-white disabled:opacity-50"><Route className="h-4 w-4" /> {loading ? (simple ? "Checking your route…" : "Checking routes against live flood evidence…") : (simple ? "Check this route" : "Check lower-exposure routes")}</button>
-          {error ? <div className="mt-4 rounded-xl border border-crimson/20 bg-crimson/5 p-3 text-sm text-crimson">{error}</div> : null}
+          <div><label className="mb-2 block text-sm font-bold">Destination</label><input value={destinationText} onChange={(e) => setDestinationText(e.target.value)} placeholder="e.g. Garki Area 1, Abuja" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-radar dark:border-midnight-border dark:bg-midnight" /></div>
+        </div>
+        <button onClick={plan} disabled={loading} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-radar px-5 py-3.5 text-sm font-bold text-white disabled:opacity-50"><Route className="h-4 w-4" /> {loading ? (simple ? "Checking your route…" : "Checking routes against live flood evidence…") : (simple ? "Check this route" : "Check lower-exposure routes")}</button>
+        {error ? <div className="mt-4 rounded-xl border border-crimson/20 bg-crimson/5 p-3 text-sm text-crimson">{error}</div> : null}
+      </section>
+
+      {result ? (
+        <section className={`rounded-2xl border p-5 sm:p-6 ${danger ? "border-crimson/30 bg-crimson/5" : positive || clear ? "border-radar/30 bg-radar/5" : "border-amber/30 bg-amber/5"}`}>
+          <div className="flex items-start gap-3">{danger ? <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-crimson" /> : positive || clear ? <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-radar" /> : <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-amber" />}<div className="min-w-0 flex-1"><h2 className="font-display text-xl font-bold">{danger ? (simple ? "Do not use the returned routes" : "Avoid travel on the returned routes") : areaDanger ? "Routes cross a reported flood area" : positive ? "Lower-exposure route found" : clear ? (simple ? "No known flood hazard found on these routes" : "No known geolocated hazard on the candidates") : "Use caution"}</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{result.safetyMessage}</p></div></div>
+
+          {result.bestRoute ? <div className={`mt-5 grid gap-3 ${simple ? "sm:grid-cols-3" : "sm:grid-cols-5"}`}><Stat label="Drive time" value={`${result.bestRoute.durationMinutes} min`} /><Stat label="Distance" value={`${result.bestRoute.distanceKm} km`} /><Stat label={simple ? "Flood concerns" : "Hazard zones"} value={result.bestRoute.hazardIntersections} />{!simple ? <Stat label="Verified reports" value={result.verifiedHazardsConsidered} /> : null}{!simple ? <Stat label="News zones" value={result.corroboratedNewsZonesConsidered} /> : null}</div> : null}
+
+          {result.bestRoute?.roadNames?.length ? <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">{simple ? "Main roads on this route" : "Main roads on suggested candidate"}</p><p className="mt-2 text-sm leading-6">{result.bestRoute.roadNames.join(" → ")}</p></div> : null}
+          {result.bestRoute?.hazardAreas?.length ? <div className="mt-4 rounded-xl border border-amber/20 bg-white/50 p-3 text-sm dark:bg-midnight/40"><strong>{simple ? "Flood concern near this route:" : "Flood evidence near this candidate:"}</strong> {result.bestRoute.hazardAreas.join(", ")}</div> : null}
+          {result.bestRoute?.navigationUrl && !danger && !areaDanger ? <a href={result.bestRoute.navigationUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white dark:bg-white dark:text-slate-950"><Car className="h-4 w-4" /> {simple ? "Open this route in Google Maps" : "Open candidate in Google Maps"} <ExternalLink className="h-3.5 w-3.5" /></a> : null}
         </section>
+      ) : null}
 
-        {result ? (
-          <section className={`rounded-2xl border p-5 sm:p-6 ${danger ? "border-crimson/30 bg-crimson/5" : positive || clear ? "border-radar/30 bg-radar/5" : "border-amber/30 bg-amber/5"}`}>
-            <div className="flex items-start gap-3">{danger ? <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-crimson" /> : positive || clear ? <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-radar" /> : <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-amber" />}<div className="min-w-0 flex-1"><h2 className="font-display text-xl font-bold">{danger ? (simple ? "Do not use the returned routes" : "Avoid travel on the returned routes") : areaDanger ? "Routes cross a reported flood area" : positive ? "Lower-exposure route found" : clear ? (simple ? "No known flood hazard found on these routes" : "No known geolocated hazard on the candidates") : "Use caution"}</h2><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{result.safetyMessage}</p></div></div>
-
-            {result.bestRoute ? <div className={`mt-5 grid gap-3 ${simple ? "sm:grid-cols-3" : "sm:grid-cols-5"}`}><Stat label="Drive time" value={`${result.bestRoute.durationMinutes} min`} /><Stat label="Distance" value={`${result.bestRoute.distanceKm} km`} /><Stat label={simple ? "Flood concerns" : "Hazard zones"} value={result.bestRoute.hazardIntersections} />{!simple ? <Stat label="Verified reports" value={result.verifiedHazardsConsidered} /> : null}{!simple ? <Stat label="News zones" value={result.corroboratedNewsZonesConsidered} /> : null}</div> : null}
-
-            {result.bestRoute?.roadNames?.length ? <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">{simple ? "Main roads on this route" : "Main roads on suggested candidate"}</p><p className="mt-2 text-sm leading-6">{result.bestRoute.roadNames.join(" → ")}</p></div> : null}
-            {result.bestRoute?.hazardAreas?.length ? <div className="mt-4 rounded-xl border border-amber/20 bg-white/50 p-3 text-sm dark:bg-midnight/40"><strong>{simple ? "Flood concern near this route:" : "Flood evidence near this candidate:"}</strong> {result.bestRoute.hazardAreas.join(", ")}</div> : null}
-            {result.bestRoute?.navigationUrl && !danger && !areaDanger ? <a href={result.bestRoute.navigationUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white dark:bg-white dark:text-slate-950"><Car className="h-4 w-4" /> {simple ? "Open this route in Google Maps" : "Open candidate in Google Maps"} <ExternalLink className="h-3.5 w-3.5" /></a> : null}
-          </section>
-        ) : null}
-
-        <section className="rounded-2xl border border-slate-200 p-4 text-xs leading-5 text-slate-500 dark:border-midnight-border"><strong>Safety rule:</strong> {simple ? "This tool helps you make a safer choice, but it cannot guarantee a road is passable. Never drive into visible floodwater, even if the app shows a route." : "this is decision support, not a guarantee that a road is passable. Never drive into visible floodwater. Verified coordinates can influence a route directly. News only creates a broad neighbourhood caution zone when a specific area is named and the incident is corroborated. The public OSRM/OpenStreetMap router is a beta dependency and should be replaced by a contracted routing provider before national-scale production."}</section>
-      </div>
-    </AppShell>
+      <section className="rounded-2xl border border-slate-200 p-4 text-xs leading-5 text-slate-500 dark:border-midnight-border"><strong>Safety rule:</strong> {simple ? "This tool helps you make a safer choice, but it cannot guarantee a road is passable. Never drive into visible floodwater, even if the app shows a route." : "this is decision support, not a guarantee that a road is passable. Never drive into visible floodwater. Verified coordinates can influence a route directly. News only creates a broad neighbourhood caution zone when a specific area is named and the incident is corroborated. The public OSRM/OpenStreetMap router is a beta dependency and should be replaced by a contracted routing provider before national-scale production."}</section>
+    </div>
   );
 }
 
