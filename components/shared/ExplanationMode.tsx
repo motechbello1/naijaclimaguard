@@ -39,6 +39,36 @@ const GUIDES: Record<string, PageGuide> = {
     standard: "Review saved locations, current risk conditions and recent monitoring activity from one overview.",
     technical: "Review account-level monitoring state and location outputs generated from the platform's canonical live risk endpoint.",
   },
+  "/live-floods": {
+    simple: "See where flooding is being reported and where rainfall signals need closer attention across Nigeria.",
+    standard: "Review nationwide rainfall screening, incident reports and the learning loop that compares early signals with what was later observed.",
+    technical: "Inspect 774-LGA screening, multi-point urban nowcasts, incident reconciliation and pre-event forecast replay while keeping prediction and confirmation as separate evidence layers.",
+  },
+  "/safe-route": {
+    simple: "Enter where you are and where you are going to check whether a lower-exposure route is available.",
+    standard: "Compare route candidates against recent verified flood evidence and corroborated reported flood areas.",
+    technical: "Inspect route decisions against geolocated verified hazards, corroborated news zones and the current routing dependency without treating broad reports as road-closure proof.",
+  },
+  "/tools": {
+    simple: "Find the NaijaClimaGuard tool you need without knowing a hidden web address.",
+    standard: "Browse the platform's risk, action, evidence, routing and intelligence tools.",
+    technical: "Browse operational, validation, commercial and model-evidence surfaces exposed by the unified application.",
+  },
+  "/impact": {
+    simple: "See what flood exposure could mean for people, assets and operations.",
+    standard: "Translate risk signals into potential operational and economic consequences.",
+    technical: "Inspect the assumptions and evidence used to translate physical flood exposure into operational impact estimates.",
+  },
+  "/model-evidence": {
+    simple: "See what the live system uses today and what is still being tested before it can be trusted.",
+    standard: "Compare the live risk engine with shadow-model evidence and validation limits.",
+    technical: "Inspect production-versus-shadow separation, validation metrics, model cards, evidence constraints and promotion rules.",
+  },
+  "/command": {
+    simple: "See the most important situations that may need action first.",
+    standard: "Prioritise operational intelligence and move cases into an agency response workflow.",
+    technical: "Inspect prioritised intelligence, operational evidence and command-state transitions for agency users.",
+  },
   "/intelligence": {
     simple: "See why the system thinks flood risk is rising or falling.",
     standard: "Explore the weather and hydrology signals behind the current risk assessment.",
@@ -108,35 +138,30 @@ export function Explain({ simple, standard, technical }: ExplainableText) {
 
 export function ExplanationModeControl() {
   const { mode, setMode } = useExplanationMode();
-  const index = MODES.indexOf(mode);
 
   return (
     <div
-      className="flex items-center gap-2 sm:gap-3 rounded-xl border border-slate-200 dark:border-midnight-border bg-white/70 dark:bg-midnight-light/70 px-2 sm:px-3 py-2"
+      className="ncg-detail-control flex h-10 items-center gap-1 rounded-full border border-slate-200 bg-white/75 p-1 shadow-sm dark:border-white/10 dark:bg-white/[.055]"
       aria-label="Explanation detail level"
-      title="Choose how much technical detail you want to see"
+      title="Choose how much detail you want to see"
     >
-      <SlidersHorizontal className="hidden sm:block h-4 w-4 text-radar shrink-0" />
-      <div className="w-[118px] sm:w-[160px]">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-wider text-slate-400">Detail</span>
-          <span className="text-[11px] sm:text-xs font-semibold text-radar">{MODE_LABELS[mode]}</span>
-        </div>
-        <input
-          aria-label="Detail level: Simple, Standard, or Technical"
-          aria-valuetext={MODE_LABELS[mode]}
-          type="range"
-          min={0}
-          max={2}
-          step={1}
-          value={index}
-          onChange={(event) => setMode(MODES[Number(event.target.value)])}
-          className="w-full accent-emerald-500 cursor-pointer"
-        />
-        <div className="flex justify-between text-[8px] sm:text-[9px] text-slate-400 leading-none mt-0.5" aria-hidden="true">
-          <span>Simple</span><span>More</span><span>Technical</span>
-        </div>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-radar" aria-hidden="true">
+        <SlidersHorizontal className="h-4 w-4" />
       </div>
+      {MODES.map((item) => {
+        const active = item === mode;
+        return (
+          <button
+            key={item}
+            type="button"
+            onClick={() => setMode(item)}
+            aria-pressed={active}
+            className={`h-8 rounded-full px-3 text-[11px] font-bold transition-all ${active ? "bg-[#071713] text-white shadow-sm dark:bg-[#d9ff57] dark:text-[#071713]" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-white/55 dark:hover:bg-white/[.07] dark:hover:text-white"}`}
+          >
+            {MODE_LABELS[item]}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -147,16 +172,16 @@ export function PageExplanation({ pathname }: { pathname: string }) {
   if (!guide || mode === "simple") return null;
 
   return (
-    <div className="mb-5 flex items-start gap-3 rounded-xl border border-radar/15 bg-radar/[0.04] px-4 py-3" role="note">
+    <div className="mb-5 flex items-start gap-3 rounded-2xl border border-radar/15 bg-radar/[0.04] px-4 py-3" role="note">
       <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-radar/10">
         {mode === "technical" ? <Gauge className="h-4 w-4 text-radar" /> : <BookOpen className="h-4 w-4 text-radar" />}
       </div>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">About this page</p>
-          <span className="text-[10px] uppercase tracking-wider text-radar font-semibold">{MODE_LABELS[mode]}</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-radar">{MODE_LABELS[mode]}</span>
         </div>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{guide[mode]}</p>
+        <p className="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{guide[mode]}</p>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { Providers } from "./providers";
 import ServiceWorkerRegister from "@/components/shared/ServiceWorkerRegister";
 import "./globals.css";
 import "./dark-contrast.css";
+import "./platform-polish.css";
 
 export const metadata: Metadata = {
   title: "NaijaClimaGuard — Nigeria Flood Risk Intelligence",
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7f2" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#071713" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101b18" />
       </head>
       <body className="min-h-screen bg-cloud dark:bg-midnight text-slate-900 dark:text-slate-200 font-body antialiased transition-colors duration-[350ms]">
         <Providers>

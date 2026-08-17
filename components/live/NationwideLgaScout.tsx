@@ -2,6 +2,7 @@
 
 import { CloudLightning, MapPinned, RefreshCw, ScanSearch } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useExplanationMode } from "@/components/shared/ExplanationMode";
 
 type Hotspot = {
   lga: string;
@@ -15,11 +16,7 @@ type Hotspot = {
   next6hMm: number;
   maxHourlyMm: number;
   capeMaxJkg: number;
-  deepRisk?: {
-    score: number;
-    level: string;
-    drivers: string[];
-  };
+  deepRisk?: { score: number; level: string; drivers: string[] };
 };
 
 type ScoutPayload = {
@@ -42,7 +39,16 @@ const levelClass: Record<string, string> = {
   QUIET: "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800",
 };
 
+function plainLevel(level: string) {
+  if (level === "CRITICAL") return "Needs urgent attention";
+  if (level === "HIGH") return "Needs close attention";
+  if (level === "ELEVATED") return "Keep an eye on this area";
+  return "No strong rainfall signal";
+}
+
 export default function NationwideLgaScout() {
+  const { mode } = useExplanationMode();
+  const simple = mode === "simple";
   const [data, setData] = useState<ScoutPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -70,34 +76,47 @@ export default function NationwideLgaScout() {
   }, []);
 
   const states = useMemo(() => ["ALL", ...Array.from(new Set((data?.hotspots || []).map((item) => item.state))).sort()], [data]);
-  const hotspots = useMemo(() => (data?.hotspots || []).filter((item) => state === "ALL" || item.state === state).slice(0, 18), [data, state]);
+  const hotspots = useMemo(() => (data?.hotspots || []).filter((item) => state === "ALL" || item.state === state).slice(0, simple ? 8 : 18), [data, state, simple]);
+  const needsAttention = Math.max(data?.elevated || 0, data?.high || 0, data?.critical || 0);
 
   return (
     <section className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-radar"><ScanSearch className="h-4 w-4" /> Nationwide early scout</div>
-          <h2 className="mt-1 font-display text-xl font-bold">All-LGA rainfall screening</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">NaijaClimaGuard now checks one geographic point for every Nigerian LGA, then automatically performs a deeper 7-day rainfall scan only where the lightweight screen looks suspicious. This catches risk outside state capitals without pretending an LGA centroid is street-level sensing.</p>
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-radar"><ScanSearch className="h-4 w-4" /> {simple ? "Nigeria-wide early check" : "Nationwide early scout"}</div>
+          <h2 className="mt-1 font-display text-xl font-bold">{simple ? "Places needing closer attention" : "All-LGA rainfall screening"}</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+            {simple
+              ? "NaijaClimaGuard checks every Nigerian LGA for unusual rainfall. Areas with stronger signals are checked more closely so you can quickly see where attention may be needed."
+              : "NaijaClimaGuard checks one geographic point for every Nigerian LGA, then automatically performs a deeper 7-day rainfall scan only where the lightweight screen looks suspicious. This catches risk outside state capitals without pretending an LGA centroid is street-level sensing."}
+          </p>
         </div>
         <div className="flex gap-2">
           <select value={state} onChange={(e) => setState(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold dark:border-midnight-border dark:bg-midnight-light">
             {states.map((item) => <option key={item} value={item}>{item === "ALL" ? "All hotspot states" : item}</option>)}
           </select>
-          <button onClick={() => load()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold dark:border-midnight-border dark:bg-midnight-light"><RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Re-scan</button>
+          <button onClick={() => load()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold dark:border-midnight-border dark:bg-midnight-light"><RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> {simple ? "Check again" : "Re-scan"}</button>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Metric label="LGA registry" value={data?.coverage || "—"} detail="Nationwide geographic points" />
-        <Metric label="Weather online" value={data?.available || "—"} detail="Points successfully screened" />
-        <Metric label="Elevated+" value={data?.elevated ?? "—"} detail="Needs closer attention" />
-        <Metric label="High+" value={data?.high ?? "—"} detail="Strong rainfall signal" warning />
-        <Metric label="Critical" value={data?.critical ?? "—"} detail="Highest screening tier" danger />
-      </div>
+      {simple ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Metric label="LGAs checked" value={data?.available || "—"} detail="Across Nigeria" />
+          <Metric label="Need attention" value={needsAttention || 0} detail="Areas with a stronger rainfall signal" warning={needsAttention > 0} />
+          <Metric label="Highest alert" value={data?.critical ? "Urgent" : data?.high ? "High" : data?.elevated ? "Watch" : "Normal"} detail="Strongest signal in this scan" danger={Boolean(data?.critical)} warning={Boolean(!data?.critical && data?.high)} />
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <Metric label="LGA registry" value={data?.coverage || "—"} detail="Nationwide geographic points" />
+          <Metric label="Weather online" value={data?.available || "—"} detail="Points successfully screened" />
+          <Metric label="Elevated+" value={data?.elevated ?? "—"} detail="Needs closer attention" />
+          <Metric label="High+" value={data?.high ?? "—"} detail="Strong rainfall signal" warning />
+          <Metric label="Critical" value={data?.critical ?? "—"} detail="Highest screening tier" danger />
+        </div>
+      )}
 
       {error ? <div className="rounded-xl border border-crimson/20 bg-crimson/5 p-4 text-sm text-crimson">{error}</div> : null}
-      {loading && !data ? <div className="glass-card rounded-2xl p-8 text-center text-sm text-slate-500">Scanning Nigerian LGAs in weather batches…</div> : null}
+      {loading && !data ? <div className="glass-card rounded-2xl p-8 text-center text-sm text-slate-500">{simple ? "Checking rainfall across Nigeria…" : "Scanning Nigerian LGAs in weather batches…"}</div> : null}
 
       {hotspots.length ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -105,21 +124,25 @@ export default function NationwideLgaScout() {
             const effectiveScore = Math.max(item.scoutScore, item.deepRisk?.score ?? 0);
             const effectiveLevel = item.deepRisk?.level || item.scoutLevel;
             return (
-              <article key={`${item.state}-${item.lga}`} className="glass-card rounded-2xl p-4">
+              <article key={`${item.state}-${item.lga}`} className="glass-card ncg-simple-card rounded-2xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{item.state}</p><h3 className="truncate text-base font-bold">{item.lga} LGA</h3></div>
-                  <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${levelClass[effectiveLevel] || levelClass[item.scoutLevel]}`}>{effectiveLevel} · {effectiveScore}</span>
+                  <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${levelClass[effectiveLevel] || levelClass[item.scoutLevel]}`}>{simple ? plainLevel(effectiveLevel) : `${effectiveLevel} · ${effectiveScore}`}</span>
                 </div>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-center"><Rain label="Recent 3h" value={item.recent3hMm} /><Rain label="Next 3h" value={item.next3hMm} /><Rain label="Next 6h" value={item.next6hMm} /></div>
-                <div className="mt-3 flex items-center gap-2 text-xs text-slate-500"><CloudLightning className="h-3.5 w-3.5 text-radar" /><span>Peak hour {item.maxHourlyMm.toFixed(1)} mm · CAPE {item.capeMaxJkg.toLocaleString()} J/kg</span></div>
-                {item.deepRisk ? <p className="mt-2 text-[11px] leading-5 text-slate-500">Deep scan: {item.deepRisk.drivers?.[0] || "Antecedent rainfall check completed."}</p> : <p className="mt-2 text-[11px] leading-5 text-slate-400">Lightweight scout only. Deeper history is triggered for the strongest candidates.</p>}
+                <div className={`mt-4 grid gap-2 text-center ${simple ? "grid-cols-2" : "grid-cols-3"}`}>
+                  <Rain label={simple ? "Rain in last 3h" : "Recent 3h"} value={item.recent3hMm} />
+                  {!simple ? <Rain label="Next 3h" value={item.next3hMm} /> : null}
+                  <Rain label={simple ? "Rain expected next 6h" : "Next 6h"} value={item.next6hMm} />
+                </div>
+                {!simple ? <div className="mt-3 flex items-center gap-2 text-xs text-slate-500"><CloudLightning className="h-3.5 w-3.5 text-radar" /><span>Peak hour {item.maxHourlyMm.toFixed(1)} mm · CAPE {item.capeMaxJkg.toLocaleString()} J/kg</span></div> : null}
+                {!simple ? (item.deepRisk ? <p className="mt-2 text-[11px] leading-5 text-slate-500">Deep scan: {item.deepRisk.drivers?.[0] || "Antecedent rainfall check completed."}</p> : <p className="mt-2 text-[11px] leading-5 text-slate-400">Lightweight scout only. Deeper history is triggered for the strongest candidates.</p>) : null}
               </article>
             );
           })}
         </div>
-      ) : data && !loading ? <div className="rounded-2xl border border-slate-200 p-5 text-sm text-slate-500 dark:border-midnight-border">No LGA crossed the current elevated screening threshold in this scan.</div> : null}
+      ) : data && !loading ? <div className="rounded-2xl border border-slate-200 p-5 text-sm text-slate-500 dark:border-midnight-border">{simple ? "No area currently has a strong enough rainfall signal to appear in this attention list." : "No LGA crossed the current elevated screening threshold in this scan."}</div> : null}
 
-      <div className="flex gap-2 rounded-xl border border-slate-200 p-3 text-xs leading-5 text-slate-500 dark:border-midnight-border"><MapPinned className="mt-0.5 h-4 w-4 shrink-0 text-radar" /><span>{data?.limitation || "LGA-centroid screening improves national coverage but does not replace local radar, drainage sensors, terrain data or verified street-level reports."}</span></div>
+      <div className="flex gap-2 rounded-xl border border-slate-200 p-3 text-xs leading-5 text-slate-500 dark:border-midnight-border"><MapPinned className="mt-0.5 h-4 w-4 shrink-0 text-radar" /><span>{simple ? "This is an early warning screen. A whole LGA can contain many different local conditions, so use it as a signal to pay attention rather than proof that a particular street is flooded." : data?.limitation || "LGA-centroid screening improves national coverage but does not replace local radar, drainage sensors, terrain data or verified street-level reports."}</span></div>
     </section>
   );
 }

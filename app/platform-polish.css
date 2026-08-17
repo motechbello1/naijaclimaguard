@@ -1,0 +1,101 @@
+/* Platform-wide experience unification.
+ * Loaded after the base and contrast layers so old and new product surfaces
+ * share the same header rhythm, dark palette and explanation-mode behaviour.
+ */
+
+:root {
+  --ncg-dark-page: #101b18;
+  --ncg-dark-shell: #13231f;
+  --ncg-dark-card: #172b25;
+  --ncg-dark-raised: #1b332c;
+  --ncg-dark-line: rgba(226, 232, 240, .11);
+}
+
+/* Cleaner top command bar. */
+.ncg-app header {
+  box-shadow: 0 10px 32px rgba(21, 46, 38, .055);
+}
+.ncg-app header > div {
+  min-height: 72px;
+}
+.ncg-app header .ncg-detail-control {
+  flex-shrink: 0;
+}
+
+@media (min-width: 1536px) {
+  .ncg-app header > div {
+    gap: .65rem;
+  }
+}
+
+/* Softer, unified dark mode. Avoid the near-black/old-midnight mix. */
+.dark body,
+.dark .ncg-app {
+  background: var(--ncg-dark-page) !important;
+}
+.dark .ncg-app > div > header {
+  background: rgba(16, 27, 24, .91) !important;
+  border-color: var(--ncg-dark-line) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .15);
+}
+.dark .ncg-app aside,
+.dark nav[aria-label="Primary navigation"] {
+  background: var(--ncg-dark-shell) !important;
+  border-color: var(--ncg-dark-line) !important;
+}
+.dark .glass-card {
+  background: rgba(23, 43, 37, .86) !important;
+  border-color: var(--ncg-dark-line) !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .12) !important;
+}
+.dark [class*="dark:bg-midnight-light"],
+.dark [class*="dark:bg-midnight/"],
+.dark [class*="dark:bg-midnight\/"] {
+  background-color: var(--ncg-dark-card) !important;
+}
+.dark [class*="dark:bg-midnight"]:not([class*="dark:bg-midnight-light"]) {
+  background-color: var(--ncg-dark-page) !important;
+}
+.dark [class*="dark:bg-[#071713]"] {
+  background-color: var(--ncg-dark-shell) !important;
+}
+.dark [class*="dark:bg-[#07110e]"] {
+  background-color: var(--ncg-dark-page) !important;
+}
+.dark [class*="dark:border-midnight-border"] {
+  border-color: var(--ncg-dark-line) !important;
+}
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgba(27, 51, 44, .78) !important;
+  border-color: rgba(226, 232, 240, .13) !important;
+}
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  background-color: var(--ncg-dark-raised) !important;
+}
+
+/* New pages can opt into the same global detail system without duplicating CSS. */
+.ncg-simple-only { display: none; }
+html[data-explanation-mode="simple"] .ncg-simple-only { display: block; }
+html[data-explanation-mode="simple"] .ncg-standard-detail,
+html[data-explanation-mode="simple"] .ncg-technical-density { display: none !important; }
+html[data-explanation-mode="standard"] .ncg-technical-only { display: none !important; }
+html[data-explanation-mode="simple"] .ncg-technical-only { display: none !important; }
+
+html[data-explanation-mode="simple"] .ncg-simple-heading {
+  letter-spacing: -.045em;
+}
+html[data-explanation-mode="simple"] .ncg-simple-copy {
+  font-size: 1rem;
+  line-height: 1.75;
+}
+html[data-explanation-mode="simple"] .ncg-simple-card {
+  border-radius: 1.5rem;
+}
+
+@media (max-width: 767px) {
+  .ncg-app header > div { min-height: 64px; }
+}
