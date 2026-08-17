@@ -44,7 +44,7 @@ export default function AppMotionFrame({ children }: { children: React.ReactNode
       <AnimatePresence mode="wait" initial>
         <motion.div
           key={`${pathname}:${splashReady ? "ready" : "waiting"}`}
-          className="app-route-frame"
+          className="app-route-motion-frame min-h-[100dvh]"
           initial={initial}
           animate={animate}
           exit={exit}
