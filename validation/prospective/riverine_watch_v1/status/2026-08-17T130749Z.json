@@ -1,0 +1,15 @@
+{
+  "eligible_for_live_shadow_metrics": false,
+  "missing_rainfall_dates": [
+    "2026-08-10"
+  ],
+  "model_id": "riverine-watch-v1",
+  "operational_run_date": "2026-08-17",
+  "public_action_authorized": false,
+  "reason": "NASA IMERG Early does not contain 30 consecutive prior days for Lokoja; missing=['2026-08-10']",
+  "recorded_at_utc": "2026-08-17T13:17:17.132664+00:00",
+  "selected_glofas_issue_date": "2026-08-17",
+  "selected_glofas_source_age_days": 0,
+  "status": "nasa_source_incomplete_no_model_issue",
+  "watch_episode_emitted": false
+}
