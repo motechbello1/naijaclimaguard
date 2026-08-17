@@ -11,15 +11,62 @@
   --ncg-dark-line: rgba(226, 232, 240, .11);
 }
 
-/* Cleaner top command bar. */
+/* Cleaner top command bar: one calm capsule instead of a row of competing boxes. */
 .ncg-app header {
   box-shadow: 0 10px 32px rgba(21, 46, 38, .055);
 }
 .ncg-app header > div {
   min-height: 72px;
 }
+.ncg-app header > div > .ml-auto {
+  gap: .35rem;
+  border: 1px solid rgba(13, 31, 25, .075);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .48);
+  padding: .25rem;
+  box-shadow: 0 8px 24px rgba(20, 45, 35, .045);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.dark .ncg-app header > div > .ml-auto {
+  border-color: rgba(255, 255, 255, .08);
+  background: rgba(255, 255, 255, .035);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .10);
+}
 .ncg-app header .ncg-detail-control {
   flex-shrink: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.ncg-app header .ncg-detail-control button {
+  padding-left: .62rem;
+  padding-right: .62rem;
+}
+
+/* The weather feed remains visible, but no longer consumes a quarter of the bar. */
+.ncg-app header [title*="weather" i] {
+  position: relative;
+  width: 2.5rem;
+  height: 2.5rem;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  border-radius: 999px;
+}
+.ncg-app header [title*="weather" i] > span:last-child {
+  display: none;
+}
+.ncg-app header [title*="weather" i] > span:first-child {
+  position: absolute;
+  right: .32rem;
+  top: .32rem;
+  transform: scale(.7);
+  transform-origin: center;
+}
+.ncg-app header [title*="weather" i] > svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 @media (min-width: 1536px) {
@@ -62,7 +109,18 @@
 .dark [class*="dark:bg-[#07110e]"] {
   background-color: var(--ncg-dark-page) !important;
 }
-.dark [class*="dark:border-midnight-border"] {
+.dark [class*="dark:bg-slate-950"] {
+  background-color: var(--ncg-dark-page) !important;
+}
+.dark [class*="dark:bg-slate-900"] {
+  background-color: var(--ncg-dark-card) !important;
+}
+.dark [class*="dark:bg-slate-800"] {
+  background-color: var(--ncg-dark-raised) !important;
+}
+.dark [class*="dark:border-midnight-border"],
+.dark [class*="dark:border-slate-800"],
+.dark [class*="dark:border-slate-700"] {
   border-color: var(--ncg-dark-line) !important;
 }
 .dark input,
@@ -98,4 +156,10 @@ html[data-explanation-mode="simple"] .ncg-simple-card {
 
 @media (max-width: 767px) {
   .ncg-app header > div { min-height: 64px; }
+  .ncg-app header > div > .ml-auto {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+  }
 }
