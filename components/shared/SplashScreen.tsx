@@ -7,66 +7,76 @@ export default function SplashScreen() {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    // Check if already shown this session
+    const announceComplete = () => {
+      window.sessionStorage.setItem("ncg-splash-shown", "1");
+      window.dispatchEvent(new Event("ncg:splash-complete"));
+    };
+
     if (sessionStorage.getItem("ncg-splash-shown")) {
       setVisible(false);
+      window.requestAnimationFrame(() => window.dispatchEvent(new Event("ncg:splash-complete")));
       return;
     }
 
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setFadeOut(true);
-      setTimeout(() => {
+      window.setTimeout(() => {
         setVisible(false);
-        sessionStorage.setItem("ncg-splash-shown", "1");
-      }, 500);
-    }, 1800);
+        announceComplete();
+      }, 520);
+    }, 1450);
 
-    return () => clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, []);
 
   if (!visible) return null;
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-cloud dark:bg-midnight transition-opacity duration-500 ease-out ${
-        fadeOut ? "opacity-0" : "opacity-100"
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden bg-cloud dark:bg-midnight transition-all duration-500 ease-out ${
+        fadeOut ? "scale-[1.015] opacity-0 blur-[4px]" : "scale-100 opacity-100 blur-0"
       }`}
     >
-      {/* Wordmark */}
-      <div className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-radar/8 blur-3xl dark:bg-[#d9ff57]/[.045]" />
+      </div>
+
+      <div
+        className="relative font-display text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl"
+        style={{ animation: "splashWordmark .72s cubic-bezier(.16,1,.3,1) both" }}
+      >
         NaijaClima<span className="text-radar">Guard</span>
       </div>
 
-      {/* Waterline — draws beneath wordmark */}
-      <div className="mt-3 w-[180px] h-[2px] overflow-hidden">
+      <div className="relative mt-3 h-[2px] w-[180px] overflow-hidden rounded-full bg-black/5 dark:bg-white/8">
         <div
-          className="h-full bg-radar"
-          style={{
-            animation: "splashDraw 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both",
-          }}
+          className="h-full bg-radar shadow-[0_0_14px_rgba(22,135,96,.45)] dark:bg-[#d9ff57] dark:shadow-[0_0_16px_rgba(217,255,87,.5)]"
+          style={{ animation: "splashDraw 1s cubic-bezier(.16,1,.3,1) .18s both" }}
         />
       </div>
 
-      {/* Tagline */}
       <p
-        className="mt-4 text-xs tracking-[0.14em] uppercase text-slate-400 dark:text-slate-500"
-        style={{
-          animation: "splashFade 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.8s both",
-        }}
+        className="relative mt-4 text-xs uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500"
+        style={{ animation: "splashFade .62s cubic-bezier(.16,1,.3,1) .62s both" }}
       >
         Physical risk intelligence
       </p>
 
       <style jsx>{`
+        @keyframes splashWordmark {
+          from { opacity: 0; transform: translateY(12px) scale(.965); filter: blur(5px); }
+          to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
         @keyframes splashDraw {
           from { transform: scaleX(0); transform-origin: left; }
           to { transform: scaleX(1); transform-origin: left; }
         }
         @keyframes splashFade {
-          from { opacity: 0; transform: translateY(4px); }
+          from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
         }
         @media (prefers-reduced-motion: reduce) {
+          @keyframes splashWordmark { from, to { opacity: 1; transform: none; filter: none; } }
           @keyframes splashDraw { from, to { transform: scaleX(1); } }
           @keyframes splashFade { from, to { opacity: 1; transform: none; } }
         }
