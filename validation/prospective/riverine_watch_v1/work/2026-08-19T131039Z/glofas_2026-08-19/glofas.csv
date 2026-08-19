@@ -1,0 +1,7 @@
+issue_date,valid_time,lead_time_hours,location,latitude_requested,longitude_requested,forecast_discharge_m3s,product_type,system_version_request,hydrological_model,source
+2026-08-19,2026-08-20T00:00:00,24,Lokoja,7.8023,6.7333,0.3671875,control_forecast,operational,lisflood,Copernicus CEMS GloFAS operational forecast via EWDS
+2026-08-19,2026-08-21T00:00:00,48,Lokoja,7.8023,6.7333,0.375,control_forecast,operational,lisflood,Copernicus CEMS GloFAS operational forecast via EWDS
+2026-08-19,2026-08-22T00:00:00,72,Lokoja,7.8023,6.7333,0.4296875,control_forecast,operational,lisflood,Copernicus CEMS GloFAS operational forecast via EWDS
+2026-08-19,2026-08-20T00:00:00,24,Makurdi,7.7322,8.5391,4301.875,control_forecast,operational,lisflood,Copernicus CEMS GloFAS operational forecast via EWDS
+2026-08-19,2026-08-21T00:00:00,48,Makurdi,7.7322,8.5391,4456.28125,control_forecast,operational,lisflood,Copernicus CEMS GloFAS operational forecast via EWDS
+2026-08-19,2026-08-22T00:00:00,72,Makurdi,7.7322,8.5391,4403.28125,control_forecast,operational,lisflood,Copernicus CEMS GloFAS operational forecast via EWDS
