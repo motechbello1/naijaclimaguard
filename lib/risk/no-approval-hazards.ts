@@ -14,19 +14,12 @@ export interface HazardSignal {
 }
 
 export interface NoApprovalHazardForecast {
-  location: {
-    name: string | null;
-    latitude: number;
-    longitude: number;
-  };
+  location: { name: string | null; latitude: number; longitude: number };
   status: "CLEAR" | "DEVELOPING";
   headline: string;
   primary_hazard: HazardSignal | null;
   hazards: HazardSignal[];
-  next_7_days: {
-    highest_risk_day: string | null;
-    highest_risk_score: number;
-  };
+  next_7_days: { highest_risk_day: string | null; highest_risk_score: number };
   source_status: {
     core_weather: "LIVE";
     ecmwf_detail: "LIVE" | "UNAVAILABLE_OPTIONAL";
@@ -35,34 +28,6 @@ export interface NoApprovalHazardForecast {
   generated_at: string;
   limitations: string[];
 }
-
-type GenericHourly = {
-  time?: string[];
-  apparent_temperature?: number[];
-  precipitation_probability?: number[];
-  precipitation?: number[];
-  weather_code?: number[];
-  wind_gusts_10m?: number[];
-  soil_moisture_0_to_1cm?: number[];
-  soil_moisture_1_to_3cm?: number[];
-};
-
-type GenericDaily = {
-  time?: string[];
-  apparent_temperature_max?: number[];
-  precipitation_sum?: number[];
-  precipitation_probability_max?: number[];
-  wind_gusts_10m_max?: number[];
-  et0_fao_evapotranspiration?: number[];
-};
-
-type EcmwfHourly = {
-  time?: string[];
-  runoff?: number[];
-  cape?: number[];
-  soil_moisture_0_to_7cm?: number[];
-  soil_moisture_7_to_28cm?: number[];
-};
 
 const HOUR_MS = 3_600_000;
 const NIGERIA_OFFSET = "+01:00";
@@ -92,23 +57,28 @@ function severityFor(score: number): HazardSeverity {
 }
 
 function localEpoch(value: string) {
-  const date = new Date(`${value}${NIGERIA_OFFSET}`);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+  const parsed = new Date(`${value}${NIGERIA_OFFSET}`);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
 }
 
 function futureIndices(times: string[], hours: number) {
-  const now = Date.now() - HOUR_MS;
+  const start = Date.now() - HOUR_MS;
   const end = Date.now() + hours * HOUR_MS;
   return times
     .map((time, index) => ({ index, epoch: localEpoch(time) }))
-    .filter((point) => point.epoch >= now && point.epoch <= end)
+    .filter((point) => point.epoch >= start && point.epoch <= end)
     .map((point) => point.index);
 }
 
-function rollingMax(values: number[], size: number) {
+function valuesAt(values: number[] | undefined, indices: number[]) {
+  const source = values ?? [];
+  return indices.map((index) => finite(source[index]));
+}
+
+function rollingMax(values: number[], window: number) {
   let best = 0;
   for (let i = 0; i < values.length; i++) {
-    best = Math.max(best, sum(values.slice(i, i + size)));
+    best = Math.max(best, sum(values.slice(i, i + window)));
   }
   return best;
 }
@@ -124,18 +94,13 @@ function firstMatchingTime(
 
 function humanWhen(startsAt: string | null, fallback: string) {
   if (!startsAt) return fallback;
-  const start = localEpoch(startsAt);
-  if (!start) return fallback;
-  const hours = Math.max(0, Math.round((start - Date.now()) / HOUR_MS));
+  const epoch = localEpoch(startsAt);
+  if (!epoch) return fallback;
+  const hours = Math.max(0, Math.round((epoch - Date.now()) / HOUR_MS));
   if (hours <= 1) return "within about an hour";
   if (hours < 24) return `in about ${hours} hours`;
   const days = Math.round(hours / 24);
   return `in about ${days} day${days === 1 ? "" : "s"}`;
-}
-
-function valuesAt(values: number[] | undefined, indices: number[]) {
-  const source = values ?? [];
-  return indices.map((index) => finite(source[index]));
 }
 
 async function fetchJson(url: string, timeoutMs = 9000) {
@@ -161,29 +126,26 @@ export async function fetchNoApprovalHazardForecast(
   }
 
   const common = `latitude=${latitude}&longitude=${longitude}&timezone=Africa%2FLagos`;
-  const genericUrl =
+  const coreUrl =
     `https://api.open-meteo.com/v1/forecast?${common}` +
     `&hourly=apparent_temperature,precipitation_probability,precipitation,weather_code,wind_gusts_10m,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm` +
     `&daily=apparent_temperature_max,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max,et0_fao_evapotranspiration` +
     `&past_days=7&forecast_days=7`;
-
-  // ECMWF detail is deliberately optional. The product still works if this
-  // request fails, so a second source can improve the answer without becoming
-  // another single point of failure.
   const ecmwfUrl =
     `https://api.open-meteo.com/v1/ecmwf?${common}` +
-    `&hourly=runoff,cape,soil_moisture_0_to_7cm,soil_moisture_7_to_28cm` +
-    `&forecast_days=7`;
+    `&hourly=runoff,cape,soil_moisture_0_to_7cm,soil_moisture_7_to_28cm&forecast_days=7`;
 
-  const [generic, ecmwfResult] = await Promise.all([
-    fetchJson(genericUrl),
-    fetchJson(ecmwfUrl).then((data) => ({ ok: true as const, data })).catch(() => ({ ok: false as const, data: null })),
+  const [core, ecmwfResult] = await Promise.all([
+    fetchJson(coreUrl),
+    fetchJson(ecmwfUrl)
+      .then((data) => ({ ok: true as const, data }))
+      .catch(() => ({ ok: false as const, data: null })),
   ]);
 
-  const hourly: GenericHourly = generic?.hourly ?? {};
-  const daily: GenericDaily = generic?.daily ?? {};
-  const ecmwf: EcmwfHourly = ecmwfResult.ok ? (ecmwfResult.data?.hourly ?? {}) : {};
-  const times = hourly.time ?? [];
+  const hourly = core?.hourly ?? {};
+  const daily = core?.daily ?? {};
+  const ecmwf = ecmwfResult.ok ? (ecmwfResult.data?.hourly ?? {}) : {};
+  const times: string[] = hourly.time ?? [];
   if (!times.length) throw new Error("core forecast returned no hourly timeline");
 
   const next24 = futureIndices(times, 24);
@@ -195,18 +157,18 @@ export async function fetchNoApprovalHazardForecast(
   const apparent72 = valuesAt(hourly.apparent_temperature, next72);
   const codes72 = valuesAt(hourly.weather_code, next72);
 
-  const recentIndices = times
+  const recent = times
     .map((time, index) => ({ index, epoch: localEpoch(time) }))
     .filter((point) => point.epoch >= Date.now() - 7 * 24 * HOUR_MS && point.epoch < Date.now())
     .map((point) => point.index);
-  const recentRain7d = sum(valuesAt(hourly.precipitation, recentIndices));
 
-  const max1h = max(precip72);
-  const max3h = rollingMax(precip72, 3);
+  const recentRain7d = sum(valuesAt(hourly.precipitation, recent));
   const rain72 = sum(precip72);
   const rain7Forecast = sum(precip168);
+  const max1h = max(precip72);
+  const max3h = rollingMax(precip72, 3);
 
-  const ecmwfTimes = ecmwf.time ?? [];
+  const ecmwfTimes: string[] = ecmwf.time ?? [];
   const ecmwf72 = futureIndices(ecmwfTimes, 72);
   const runoff72 = sum(valuesAt(ecmwf.runoff, ecmwf72));
   const maxCape72 = max(valuesAt(ecmwf.cape, ecmwf72));
@@ -225,8 +187,7 @@ export async function fetchNoApprovalHazardForecast(
     clamp01(recentRain7d / 150) * 0.10
   ));
   const floodStart = firstMatchingTime(times, next72, (index) =>
-    finite(hourly.precipitation?.[index]) >= 8 ||
-    finite(hourly.precipitation_probability?.[index]) >= 75
+    finite(hourly.precipitation?.[index]) >= 8 || finite(hourly.precipitation_probability?.[index]) >= 75
   );
 
   const maxFeels = max(apparent72);
@@ -236,30 +197,32 @@ export async function fetchNoApprovalHazardForecast(
   );
 
   const maxGust = max(gust72);
-  const hasThunderCode = codes72.some((code) => code >= 95);
   const stormScore = Math.round(100 * (
     clamp01((maxGust - 30) / 70) * 0.45 +
     clamp01(maxCape72 / 2500) * 0.30 +
     clamp01(max1h / 25) * 0.20 +
-    (hasThunderCode ? 0.05 : 0)
+    (codes72.some((code) => code >= 95) ? 0.05 : 0)
   ));
   const stormStart = firstMatchingTime(times, next72, (index) =>
-    finite(hourly.wind_gusts_10m?.[index]) >= 55 ||
-    finite(hourly.weather_code?.[index]) >= 95
+    finite(hourly.wind_gusts_10m?.[index]) >= 55 || finite(hourly.weather_code?.[index]) >= 95
   );
 
-  const futureDailyTimes = daily.time ?? [];
-  const today = new Date().toISOString().slice(0, 10);
-  const dailyFuture = futureDailyTimes
+  const dailyTimes: string[] = daily.time ?? [];
+  const todayNigeria = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const nextDays = dailyTimes
     .map((date, index) => ({ date, index }))
-    .filter((point) => point.date >= today)
+    .filter((point) => point.date >= todayNigeria)
     .slice(0, 7);
-  const futureRainDaily = dailyFuture.map((point) => finite(daily.precipitation_sum?.[point.index]));
-  const futureEt0 = dailyFuture.map((point) => finite(daily.et0_fao_evapotranspiration?.[point.index]));
-  const dryGap = Math.max(0, sum(futureEt0) - sum(futureRainDaily));
+  const rainDaily = nextDays.map((point) => finite(daily.precipitation_sum?.[point.index]));
+  const et0Daily = nextDays.map((point) => finite(daily.et0_fao_evapotranspiration?.[point.index]));
+  const dryGap = Math.max(0, sum(et0Daily) - sum(rainDaily));
   const dryScore = Math.round(100 * (
-    clamp01(dryGap / 35) * 0.65 +
-    clamp01((0.25 - soilNow) / 0.15) * 0.35
+    clamp01(dryGap / 35) * 0.65 + clamp01((0.25 - soilNow) / 0.15) * 0.35
   ));
 
   const hazards: HazardSignal[] = [
@@ -336,20 +299,22 @@ export async function fetchNoApprovalHazardForecast(
         soil_moisture_proxy: soilNow ? +soilNow.toFixed(3) : null,
       },
     },
-  ].sort((a, b) => b.score - a.score);
+  ];
+  hazards.sort((a, b) => b.score - a.score);
 
   const primary = hazards[0]?.score >= 30 ? hazards[0] : null;
-
-  const dailyScores = dailyFuture.map((point) => {
+  const dailyScores = nextDays.map((point) => {
     const rain = finite(daily.precipitation_sum?.[point.index]);
     const gust = finite(daily.wind_gusts_10m_max?.[point.index]);
     const feels = finite(daily.apparent_temperature_max?.[point.index]);
-    const score = Math.round(100 * Math.max(
-      clamp01(rain / 60),
-      clamp01((gust - 30) / 70),
-      clamp01((feels - 32) / 13)
-    ));
-    return { date: point.date, score };
+    return {
+      date: point.date,
+      score: Math.round(100 * Math.max(
+        clamp01(rain / 60),
+        clamp01((gust - 30) / 70),
+        clamp01((feels - 32) / 13)
+      )),
+    };
   });
   const highestDay = [...dailyScores].sort((a, b) => b.score - a.score)[0] ?? null;
 
