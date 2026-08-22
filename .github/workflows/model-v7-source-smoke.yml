@@ -1,0 +1,29 @@
+name: Model V7 Source Smoke
+
+on:
+  push:
+    branches: [competition-model-v7-no-approval]
+    paths:
+      - "validation/model_v7_source_smoke.py"
+      - "validation/MODEL_V7_COMPETITION_PROTOCOL.md"
+      - ".github/workflows/model-v7-source-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-v7-source-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify historical and fixed-lead forecast sources
+        run: python validation/model_v7_source_smoke.py
