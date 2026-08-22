@@ -6,10 +6,12 @@ on:
     paths:
       - "validation/model_v7_source_smoke.py"
       - "validation/model_v7_history_coverage_probe.py"
+      - "validation/model_v7_feature_availability_probe.py"
       - "validation/model_v7_rainfall_baseline.py"
       - "validation/model_v7_rainfall_baseline_robust.py"
       - "validation/model_v7_event_registry_candidates.csv"
       - "validation/model_v7_event_location_adjudication.csv"
+      - "validation/model_v7_final_holdout_candidates_2026.csv"
       - "validation/MODEL_V7_COMPETITION_PROTOCOL.md"
       - ".github/workflows/model-v7-source-smoke.yml"
   pull_request:
@@ -17,10 +19,12 @@ on:
     paths:
       - "validation/model_v7_source_smoke.py"
       - "validation/model_v7_history_coverage_probe.py"
+      - "validation/model_v7_feature_availability_probe.py"
       - "validation/model_v7_rainfall_baseline.py"
       - "validation/model_v7_rainfall_baseline_robust.py"
       - "validation/model_v7_event_registry_candidates.csv"
       - "validation/model_v7_event_location_adjudication.csv"
+      - "validation/model_v7_final_holdout_candidates_2026.csv"
       - "validation/MODEL_V7_COMPETITION_PROTOCOL.md"
       - ".github/workflows/model-v7-source-smoke.yml"
   workflow_dispatch:
@@ -35,7 +39,7 @@ concurrency:
 jobs:
   source-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -45,5 +49,7 @@ jobs:
         run: python validation/model_v7_source_smoke.py
       - name: Probe fixed-lead archive coverage
         run: python validation/model_v7_history_coverage_probe.py
+      - name: Probe richer development-only features
+        run: python validation/model_v7_feature_availability_probe.py
       - name: Run rainfall-only baseline benchmark
         run: python validation/model_v7_rainfall_baseline_robust.py
