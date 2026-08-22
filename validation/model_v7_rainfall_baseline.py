@@ -16,8 +16,9 @@ from __future__ import annotations
 import csv
 import datetime as dt
 import json
-import math
 import pathlib
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections import defaultdict
@@ -26,7 +27,13 @@ from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parent
 API = "https://previous-runs-api.open-meteo.com/v1/forecast"
-TIMEOUT = 45
+TIMEOUT = 30
+MAX_ATTEMPTS = 4
+VARIABLES = [
+    "precipitation_previous_day1",
+    "precipitation_previous_day2",
+    "precipitation_previous_day3",
+]
 
 
 @dataclass(frozen=True)
@@ -83,75 +90,85 @@ def evaluation_events_2025() -> list[Event]:
         date = parse_date(row["event_date"])
         lat = float(anchor["latitude"])
         lon = float(anchor["longitude"])
-        # Deliberately keep distinct anchors distinct even inside one metro area.
         location_key = f"{anchor['anchor_name'].strip().lower()}@{lat:.4f},{lon:.4f}"
         events.append(Event(event_id, date, date, lat, lon, location_key))
     return events
 
 
-def fetch_hourly(lat: float, lon: float, year: int) -> dict[str, Any]:
-    start = dt.date(year, 1, 2)
-    end = dt.date(year + 1, 1, 3)
-    variables = [
-        "precipitation_previous_day1",
-        "precipitation_previous_day2",
-        "precipitation_previous_day3",
+def quarter_ranges(year: int) -> list[tuple[dt.date, dt.date]]:
+    return [
+        (dt.date(year, 1, 2), dt.date(year, 3, 31)),
+        (dt.date(year, 4, 1), dt.date(year, 6, 30)),
+        (dt.date(year, 7, 1), dt.date(year, 9, 30)),
+        (dt.date(year, 10, 1), dt.date(year + 1, 1, 3)),
     ]
+
+
+def fetch_period(lat: float, lon: float, start: dt.date, end: dt.date) -> dict[str, Any]:
     params = {
         "latitude": lat,
         "longitude": lon,
         "start_date": start.isoformat(),
         "end_date": end.isoformat(),
-        "hourly": variables,
+        "hourly": VARIABLES,
         "timezone": "Africa/Lagos",
     }
     url = f"{API}?{urllib.parse.urlencode(params, doseq=True)}"
     req = urllib.request.Request(
         url,
-        headers={"Accept": "application/json", "User-Agent": "NaijaClimaGuard-V7-RainBaseline/1.0"},
+        headers={"Accept": "application/json", "User-Agent": "NaijaClimaGuard-V7-RainBaseline/1.1"},
     )
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-    if payload.get("error"):
-        raise RuntimeError(str(payload))
-    return payload
+    last_error: Exception | None = None
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            if payload.get("error"):
+                raise RuntimeError(str(payload))
+            return payload
+        except urllib.error.HTTPError as exc:
+            if 400 <= exc.code < 500 and exc.code != 429:
+                body = exc.read().decode("utf-8", errors="replace")[:1000]
+                raise RuntimeError(f"archive request rejected with HTTP {exc.code}: {body}") from exc
+            last_error = exc
+        except (urllib.error.URLError, TimeoutError) as exc:
+            last_error = exc
+        if attempt < MAX_ATTEMPTS:
+            time.sleep(attempt * 2)
+    raise RuntimeError(
+        f"archive request failed after {MAX_ATTEMPTS} attempts for {start}..{end} at {lat},{lon}: {last_error!r}"
+    )
 
 
 def build_issue_rows(lat: float, lon: float, year: int) -> dict[dt.date, dict[str, float]]:
-    payload = fetch_hourly(lat, lon, year)
-    hourly = payload["hourly"]
-    times = [dt.datetime.fromisoformat(value).date() for value in hourly["time"]]
-    keys = [
-        "precipitation_previous_day1",
-        "precipitation_previous_day2",
-        "precipitation_previous_day3",
-    ]
+    daily_sum: dict[str, dict[dt.date, float]] = {key: defaultdict(float) for key in VARIABLES}
+    daily_max: dict[str, dict[dt.date, float]] = {key: defaultdict(float) for key in VARIABLES}
+    daily_count: dict[str, dict[dt.date, int]] = {key: defaultdict(int) for key in VARIABLES}
 
-    daily_sum: dict[str, dict[dt.date, float]] = {key: defaultdict(float) for key in keys}
-    daily_max: dict[str, dict[dt.date, float]] = {key: defaultdict(float) for key in keys}
-    daily_count: dict[str, dict[dt.date, int]] = {key: defaultdict(int) for key in keys}
-
-    for idx, valid_date in enumerate(times):
-        for key in keys:
-            value = hourly[key][idx]
-            if value is None:
-                continue
-            number = float(value)
-            daily_sum[key][valid_date] += number
-            daily_max[key][valid_date] = max(daily_max[key][valid_date], number)
-            daily_count[key][valid_date] += 1
+    for start, end in quarter_ranges(year):
+        payload = fetch_period(lat, lon, start, end)
+        hourly = payload.get("hourly") or {}
+        raw_times = hourly.get("time") or []
+        for idx, raw_time in enumerate(raw_times):
+            valid_date = dt.datetime.fromisoformat(raw_time).date()
+            for key in VARIABLES:
+                values = hourly.get(key) or []
+                if idx >= len(values):
+                    continue
+                value = values[idx]
+                if value is None:
+                    continue
+                number = float(value)
+                daily_sum[key][valid_date] += number
+                daily_max[key][valid_date] = max(daily_max[key][valid_date], number)
+                daily_count[key][valid_date] += 1
 
     rows: dict[dt.date, dict[str, float]] = {}
     issue = dt.date(year, 1, 1)
     last_issue = dt.date(year, 12, 31)
     while issue <= last_issue:
         d1, d2, d3 = issue + dt.timedelta(days=1), issue + dt.timedelta(days=2), issue + dt.timedelta(days=3)
-        required = [
-            (keys[0], d1),
-            (keys[1], d2),
-            (keys[2], d3),
-        ]
-        # Require at least 20 populated hours in every lead-day field.
+        required = [(VARIABLES[0], d1), (VARIABLES[1], d2), (VARIABLES[2], d3)]
         if all(daily_count[key][day] >= 20 for key, day in required):
             totals = [daily_sum[key][day] for key, day in required]
             peaks = [daily_max[key][day] for key, day in required]
@@ -218,9 +235,7 @@ def evaluate(
                 for event_id, event in matched.items():
                     if event_id not in detected:
                         qualifying_issues = [
-                            issue
-                            for issue in episode
-                            if issue < event.start and 1 <= (event.start - issue).days <= 3
+                            issue for issue in episode if issue < event.start and 1 <= (event.start - issue).days <= 3
                         ]
                         if qualifying_issues:
                             first = min(qualifying_issues)
@@ -251,9 +266,6 @@ def evaluate(
 
 
 def selection_key(result: dict[str, Any]) -> tuple[float, float, float, float]:
-    # Frozen simple-baseline selection: maximize event detection first, then
-    # minimize false episode burden, then maximize precision, then choose the
-    # higher threshold. 2025 never influences this choice.
     return (
         result["event_detection_rate"],
         -result["false_alert_episodes_per_location_year"],
@@ -270,22 +282,19 @@ def main() -> None:
     if not test_events:
         raise RuntimeError("no 2025 evaluation events")
 
-    dev_coords: dict[str, tuple[float, float]] = {}
-    for event in dev_events:
-        dev_coords[event.location_key] = (event.lat, event.lon)
-    test_coords: dict[str, tuple[float, float]] = {}
-    for event in test_events:
-        test_coords[event.location_key] = (event.lat, event.lon)
+    dev_coords = {event.location_key: (event.lat, event.lon) for event in dev_events}
+    test_coords = {event.location_key: (event.lat, event.lon) for event in test_events}
 
     dev_rows = {key: build_issue_rows(lat, lon, 2024) for key, (lat, lon) in dev_coords.items()}
     test_rows = {key: build_issue_rows(lat, lon, 2025) for key, (lat, lon) in test_coords.items()}
 
     score_names = ["total_72", "max_day", "max_hour", "front_loaded"]
     thresholds = [float(value) for value in range(1, 201)]
-    candidates: list[dict[str, Any]] = []
-    for score_name in score_names:
-        for threshold in thresholds:
-            candidates.append(evaluate(score_name, threshold, dev_rows, dev_events))
+    candidates = [
+        evaluate(score_name, threshold, dev_rows, dev_events)
+        for score_name in score_names
+        for threshold in thresholds
+    ]
 
     winner = max(candidates, key=selection_key)
     test = evaluate(winner["score"], winner["threshold"], test_rows, test_events)
@@ -295,6 +304,7 @@ def main() -> None:
         "claim_boundary": "rainfall-only development baseline; not Model V7 and not a competition result",
         "source": API,
         "threshold_selection_used_2025": False,
+        "archive_fetch": {"chunking": "quarterly", "max_attempts": MAX_ATTEMPTS, "timeout_seconds": TIMEOUT},
         "development": {
             "year": 2024,
             "eligible_event_count": len(dev_events),
