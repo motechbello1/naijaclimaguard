@@ -7,13 +7,19 @@ on:
       - "validation/model_v7_source_smoke.py"
       - "validation/MODEL_V7_COMPETITION_PROTOCOL.md"
       - ".github/workflows/model-v7-source-smoke.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "validation/model_v7_source_smoke.py"
+      - "validation/MODEL_V7_COMPETITION_PROTOCOL.md"
+      - ".github/workflows/model-v7-source-smoke.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: model-v7-source-smoke-${{ github.ref }}
+  group: model-v7-source-smoke-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
