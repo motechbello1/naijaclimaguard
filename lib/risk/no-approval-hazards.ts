@@ -56,6 +56,31 @@ function severityFor(score: number): HazardSeverity {
   return "LOW";
 }
 
+function titleFor(kind: HazardKind, score: number) {
+  if (kind === "flood") {
+    if (score >= 75) return "Serious flood conditions are building";
+    if (score >= 50) return "Flood conditions are building";
+    if (score >= 30) return "Flood conditions need watching";
+    return "Flood risk is low";
+  }
+  if (kind === "heat") {
+    if (score >= 75) return "Dangerous heat is likely";
+    if (score >= 50) return "Very hot conditions may affect normal plans";
+    if (score >= 30) return "Hot conditions need watching";
+    return "Heat risk is low";
+  }
+  if (kind === "storm") {
+    if (score >= 75) return "Serious storm conditions may develop";
+    if (score >= 50) return "Strong storm conditions may develop";
+    if (score >= 30) return "Storm conditions need watching";
+    return "Severe storm risk is low";
+  }
+  if (score >= 75) return "Serious dry stress is building";
+  if (score >= 50) return "Dry conditions are building";
+  if (score >= 30) return "Dry conditions need watching";
+  return "Dry-stress risk is low";
+}
+
 function localEpoch(value: string) {
   const parsed = new Date(`${value}${NIGERIA_OFFSET}`);
   return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
@@ -186,14 +211,16 @@ export async function fetchNoApprovalHazardForecast(
     clamp01((soilNow - 0.15) / 0.30) * 0.14 +
     clamp01(recentRain7d / 150) * 0.10
   ));
-  const floodStart = firstMatchingTime(times, next72, (index) =>
-    finite(hourly.precipitation?.[index]) >= 8 || finite(hourly.precipitation_probability?.[index]) >= 75
-  );
+  const floodStart = firstMatchingTime(times, next72, (index) => {
+    const rain = finite(hourly.precipitation?.[index]);
+    const probability = finite(hourly.precipitation_probability?.[index]);
+    return rain >= 5 || (probability >= 80 && rain >= 2);
+  });
 
   const maxFeels = max(apparent72);
   const heatScore = Math.round(100 * clamp01((maxFeels - 32) / 13));
   const heatStart = firstMatchingTime(times, next168, (index) =>
-    finite(hourly.apparent_temperature?.[index]) >= 38
+    finite(hourly.apparent_temperature?.[index]) >= 36
   );
 
   const maxGust = max(gust72);
@@ -230,7 +257,7 @@ export async function fetchNoApprovalHazardForecast(
       kind: "flood",
       score: floodScore,
       severity: severityFor(floodScore),
-      title: floodScore >= 50 ? "Flood conditions are building" : "Flood risk is currently limited",
+      title: titleFor("flood", floodScore),
       when: humanWhen(floodStart, floodScore >= 30 ? "within the next 3 days" : "no strong onset signal in the next 3 days"),
       starts_at: floodStart,
       affects: ["low-lying roads", "poorly drained streets", "ground-floor spaces", "parked vehicles and exposed stock"],
@@ -251,7 +278,7 @@ export async function fetchNoApprovalHazardForecast(
       kind: "heat",
       score: heatScore,
       severity: severityFor(heatScore),
-      title: heatScore >= 50 ? "Dangerous heat may affect normal plans" : "Heat risk is currently limited",
+      title: titleFor("heat", heatScore),
       when: humanWhen(heatStart, heatScore >= 30 ? "during the hottest period in the next 7 days" : "no strong heat signal in the next 7 days"),
       starts_at: heatStart,
       affects: ["outdoor activity", "school and work journeys", "people sensitive to heat", "electricity and cooling demand"],
@@ -266,7 +293,7 @@ export async function fetchNoApprovalHazardForecast(
       kind: "storm",
       score: stormScore,
       severity: severityFor(stormScore),
-      title: stormScore >= 50 ? "Severe storm conditions may develop" : "Severe storm risk is currently limited",
+      title: titleFor("storm", stormScore),
       when: humanWhen(stormStart, stormScore >= 30 ? "within the next 3 days" : "no strong storm signal in the next 3 days"),
       starts_at: stormStart,
       affects: ["outdoor plans", "trees and lightweight structures", "road travel", "power and communications"],
@@ -284,7 +311,7 @@ export async function fetchNoApprovalHazardForecast(
       kind: "dry_stress",
       score: dryScore,
       severity: severityFor(dryScore),
-      title: dryScore >= 50 ? "Dry conditions are building" : "Dry-stress risk is currently limited",
+      title: titleFor("dry_stress", dryScore),
       when: dryScore >= 30 ? "building across the next 7 days" : "no strong dry-stress signal in the next 7 days",
       starts_at: null,
       affects: ["water-sensitive household activity", "gardens and crops", "water storage and supply planning"],
@@ -322,7 +349,7 @@ export async function fetchNoApprovalHazardForecast(
     location: { name, latitude, longitude },
     status: primary ? "DEVELOPING" : "CLEAR",
     headline: primary
-      ? `${primary.title}. ${primary.when}.`
+      ? `${primary.title}; ${primary.when}.`
       : "No major environmental danger is showing around this location in the next 7 days.",
     primary_hazard: primary,
     hazards,
