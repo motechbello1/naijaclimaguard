@@ -1,0 +1,2 @@
+Run the latest Model v5 synthetic end-to-end scoring preflight before real GloFAS source collection finishes.
+This is schema/runtime validation only and is not scientific evidence.

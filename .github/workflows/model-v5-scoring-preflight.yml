@@ -1,0 +1,155 @@
+name: Model v5 Scoring Preflight
+
+on:
+  push:
+    branches: [model-v5-operational-native]
+    paths:
+      - "validation/model_v5_scoring_preflight_trigger.txt"
+      - ".github/workflows/model-v5-scoring-preflight.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "validation/model_v5_operational_native.py"
+      - "validation/model_v5_operational_archive.py"
+      - "validation/freeze_model_v5_candidate.py"
+      - "validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md"
+      - ".github/workflows/model-v5-scoring-preflight.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  end-to-end:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install Model v5 runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+      - name: Build deterministic synthetic issue-time dataset using frozen events
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+
+          rng = np.random.default_rng(42)
+          events = pd.read_csv('validation/model_v4_event_registry.csv')
+          events = events[events['include_in_benchmark'].astype(str).str.lower().eq('true')].copy()
+          assert events['event_id'].nunique() == 35
+          events['observed_by_date'] = pd.to_datetime(events['observed_by_date'])
+          locations = ['Hadejia', 'Lokoja', 'Makurdi', 'Onitsha', 'Yenagoa']
+          rows = []
+          for date in pd.date_range('2021-05-26', '2024-12-31', freq='D'):
+              for li, location in enumerate(locations):
+                  e = events[
+                      events['location'].eq(location)
+                      & (events['observed_by_date'] > date)
+                      & (events['observed_by_date'] <= date + pd.Timedelta(days=3))
+                  ]
+                  label = int(not e.empty)
+                  ids = ';'.join(e['event_id'].astype(str).tolist())
+                  season = 1.0 + 0.6 * np.sin((date.dayofyear / 365.25) * 2 * np.pi)
+                  signal = 3.0 * label
+                  rain1 = max(0.0, 5.0 * season + signal * 8.0 + rng.normal(0, 2))
+                  rain3 = max(rain1, rain1 * 2.0 + signal * 10 + rng.normal(0, 3))
+                  rain7 = max(rain3, rain3 * 1.8 + rng.normal(0, 5))
+                  rain14 = max(rain7, rain7 * 1.5 + rng.normal(0, 8))
+                  rain30 = max(rain14, rain14 * 1.6 + rng.normal(0, 12))
+                  q24 = 300 + li * 80 + 30 * season + signal * 250 + rng.normal(0, 25)
+                  q48 = q24 + 10 + signal * 90 + rng.normal(0, 15)
+                  q72 = q48 + 10 + signal * 90 + rng.normal(0, 15)
+                  qmax = max(q24, q48, q72)
+                  rows.append({
+                      'issue_date': date.strftime('%Y-%m-%d'),
+                      'location': location,
+                      'label': label,
+                      'future_event_ids': ids,
+                      'rain_1d': rain1,
+                      'rain_3d': rain3,
+                      'rain_7d': rain7,
+                      'rain_14d': rain14,
+                      'rain_30d': rain30,
+                      'rain_accel_3d': rain3 - rain7 / 7 * 3,
+                      'rain_3_14_ratio': rain3 / max(rain14, 1e-6),
+                      'rain_7_30_ratio': rain7 / max(rain30, 1e-6),
+                      'wet_days_7d': int(min(7, 2 + label * 4 + (date.dayofyear % 3))),
+                      'wet_days_30d': int(min(30, 8 + label * 12 + (date.dayofyear % 7))),
+                      'q24': q24,
+                      'q48': q48,
+                      'q72': q72,
+                      'qmax_72': qmax,
+                      'q48_minus_q24': q48 - q24,
+                      'q72_minus_q24': q72 - q24,
+                      'q72_pct_rise': (q72 - q24) / max(abs(q24), 1e-6),
+                      'q_slope_per_day': (q72 - q24) / 2.0,
+                      'q_monotonic_rise': int(q24 <= q48 <= q72),
+                  })
+          df = pd.DataFrame(rows)
+          assert set(df['location']) == set(locations)
+          for year in [2021, 2022, 2023, 2024]:
+              part = df[pd.to_datetime(df['issue_date']).dt.year.eq(year)]
+              print(year, 'rows', len(part), 'positives', int(part['label'].sum()))
+          Path('validation/model_v5_synthetic_issue_dataset.csv').write_text(df.to_csv(index=False))
+          Path('validation/model_v5_synthetic_dataset_manifest.json').write_text(json.dumps({
+              'synthetic_preflight_only': True,
+              'rows': len(df),
+              'source_contract': 'schema-only preflight; not scientific evidence'
+          }, indent=2))
+          PY
+      - name: Run all preregistered candidates, ablations and threshold frontier
+        run: |
+          python validation/model_v5_operational_archive.py \
+            --dataset validation/model_v5_synthetic_issue_dataset.csv \
+            --events validation/model_v4_event_registry.csv \
+            --output validation/model_v5_synthetic_results.json \
+            --scored-output validation/model_v5_synthetic_oof.csv
+      - name: Run freeze serializer on synthetic decision
+        run: |
+          python validation/freeze_model_v5_candidate.py \
+            --dataset validation/model_v5_synthetic_issue_dataset.csv \
+            --dataset-manifest validation/model_v5_synthetic_dataset_manifest.json \
+            --events validation/model_v4_event_registry.csv \
+            --results validation/model_v5_synthetic_results.json \
+            --protocol validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md \
+            --model-out validation/model_v5_synthetic_freeze.joblib \
+            --manifest-out validation/model_v5_synthetic_freeze_manifest.json
+      - name: Validate final result schema and claim boundary
+        run: |
+          python - <<'PY'
+          import json
+          r = json.load(open('validation/model_v5_synthetic_results.json'))
+          f = json.load(open('validation/model_v5_synthetic_freeze_manifest.json'))
+          assert r['selected_candidate'] in {
+              'logistic_operational_native',
+              'random_forest_operational_native',
+              'xgboost_operational_native',
+          }
+          assert len(r['candidate_results']) == 3
+          assert set(r['ablations']) == {'rain_only', 'glofas_only'}
+          assert [x['validation_year'] for x in r['selected_candidate_metrics']['folds']] == [2022, 2023, 2024]
+          assert 'archived operational' in r['protocol'].lower()
+          assert 'reforecast' not in r['protocol'].lower()
+          assert r['replacement_authorized'] is False
+          assert f['replacement_authorized'] is False
+          assert f['production_engine_remains'] == 'derived-v2'
+          assert f['status'] in {'freeze_blocked', 'freeze_candidate_serialized_not_production_validated'}
+          print('SCORING PREFLIGHT PASS')
+          print('synthetic winner:', r['selected_candidate'])
+          print('synthetic freeze status:', f['status'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: model-v5-synthetic-scoring-preflight
+          retention-days: 7
+          path: |
+            validation/model_v5_synthetic_results.json
+            validation/model_v5_synthetic_freeze_manifest.json

@@ -1,0 +1,85 @@
+{
+  "status": "diagnostic_baseline_complete",
+  "claim_boundary": "rainfall-only development baseline; not Model V7 and not a competition result",
+  "workflow_run_id": 32598720252,
+  "workflow_job_id": 97093638977,
+  "threshold_selection_used_2025": false,
+  "source": "https://previous-runs-api.open-meteo.com/v1/forecast",
+  "fixed_lead_contract_hours": [24, 48, 72],
+  "development": {
+    "year": 2024,
+    "eligible_event_count": 9,
+    "location_count": 7,
+    "event_ids": [
+      "yenagoa-2024-07-08",
+      "kaduna-metropolis-2024-07-15",
+      "mainok-2024-07-15",
+      "makurdi-2024-07-19",
+      "argungu-2024-08-03",
+      "barkin-ladi-2024-08-30",
+      "yenagoa-2024-09-11",
+      "calabar-2024-09-21",
+      "makurdi-2024-10-14"
+    ],
+    "selected_rule": {
+      "score": "total_72",
+      "threshold_mm": 2.0,
+      "detected_events": 9,
+      "event_detection_rate": 1.0,
+      "alert_episode_precision": 0.10112359550561797,
+      "false_alert_episodes": 80,
+      "false_alert_episodes_per_location_year": 11.428571428571429,
+      "median_lead_hours": 72.0
+    }
+  },
+  "evaluation": {
+    "year": 2025,
+    "eligible_event_count": 8,
+    "location_anchor_count": 7,
+    "event_ids": [
+      "mokwa-2025-05-28",
+      "yola-south-2025-07-27",
+      "maiduguri-jere-2025-07-30",
+      "shendam-shimankar-2025-08-03",
+      "yola-north-2025-09-03",
+      "kwami-jurara-2025-09-04",
+      "kaduna-metropolis-2025-09-05",
+      "yola-north-south-2025-09-16"
+    ],
+    "result": {
+      "score": "total_72",
+      "threshold_mm": 2.0,
+      "detected_events": 8,
+      "event_detection_rate": 1.0,
+      "true_alert_episodes": 8,
+      "false_alert_episodes": 133,
+      "alert_episodes": 141,
+      "alert_episode_precision": 0.05673758865248227,
+      "false_alert_episodes_per_location_year": 19.0,
+      "median_lead_hours": 72.0,
+      "detected_event_ids": [
+        "kaduna-metropolis-2025-09-05",
+        "kwami-jurara-2025-09-04",
+        "maiduguri-jere-2025-07-30",
+        "mokwa-2025-05-28",
+        "shendam-shimankar-2025-08-03",
+        "yola-north-2025-09-03",
+        "yola-north-south-2025-09-16",
+        "yola-south-2025-07-27"
+      ]
+    }
+  },
+  "v7_must_beat": {
+    "event_detection_rate": 1.0,
+    "alert_episode_precision": 0.05673758865248227,
+    "false_alert_episodes_per_location_year": 19.0,
+    "median_lead_hours": 72.0
+  },
+  "interpretation": "The rainfall-only rule is highly sensitive but operationally unusable because it produces very low alert precision and excessive false-alert burden. Model V7 should preserve high event detection and useful lead time while sharply increasing precision and reducing false alerts.",
+  "limitations": [
+    "This is a simple rainfall-only diagnostic baseline, not a national accuracy estimate.",
+    "The baseline threshold was selected on 2024 only and applied unchanged to 2025.",
+    "Town and metropolitan anchors are neighbourhood centres unless an official source provided a field coordinate.",
+    "Unresolved multi-location events were excluded before scoring according to the frozen membership file."
+  ]
+}

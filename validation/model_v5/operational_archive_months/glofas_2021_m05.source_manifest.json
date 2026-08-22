@@ -1,0 +1,40 @@
+{
+  "coverage": 0.8333333333333334,
+  "expected_rows": 90,
+  "extracted_issue_dates": 5,
+  "final_scientific_coverage_gate_scope": "build_model_v5_dataset synchronized issue-time dataset core features",
+  "minimum_final_synchronized_coverage": 0.9,
+  "missing_issue_dates": [
+    "2021-05-30"
+  ],
+  "monthly_failures": {},
+  "months": [
+    5
+  ],
+  "output_rows": 75,
+  "pack_status": "partial_pack_pending_final_synchronized_coverage_qa",
+  "parse_failures": {},
+  "partial_pack_allowed": true,
+  "request_modes": {
+    "2021-05": "existing_validated_archives_only"
+  },
+  "request_strategy": "monthly_batch_with_verified_daily_fallback_and_resume",
+  "requested_issue_dates": 6,
+  "retrieval_failures": {
+    "2021-05-30": "not_available_in_validated_cache_existing_only"
+  },
+  "schema": "naijaclimaguard.model_v5_glofas_source_qa.v1",
+  "source_contract": {
+    "archive_start": "2021-05-26",
+    "dataset": "cems-glofas-forecast",
+    "hydrological_model": "lisflood",
+    "lead_hours": [
+      24,
+      48,
+      72
+    ],
+    "product_type": "control_forecast",
+    "system_version": "operational"
+  },
+  "year": 2021
+}

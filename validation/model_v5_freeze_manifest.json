@@ -1,0 +1,17 @@
+{
+  "status": "freeze_blocked",
+  "blockers": [
+    "Model v5 did not pass the preregistered development freeze gate.",
+    "No eligible operating threshold exists."
+  ],
+  "replacement_authorized": false,
+  "production_engine_remains": "derived-v2",
+  "model_v4_prospective_generation_unchanged": true,
+  "source_hashes": {
+    "dataset": "2d7ab7ba51e0004224a149ccfb22ba924ad0f72bd95fc0e0aa79413a125d0c14",
+    "dataset_manifest": "09e8a349d480ccadffd5b6e467f5301305cddf2df2b7f9de9ee9b03633b52b40",
+    "events": "107a761e693932ba27057cb3281b9b5e05493d5d3de3ded89982c7bd4ca7e5b0",
+    "results": "41042aeacf46bb018766e82f521c508f51f2bb19451afaf1b4676f7ea60b769c",
+    "protocol": "bad70981a8f7fba25c72f2f8aa4734690ee0351dcd55b9df5c238b0183d9b411"
+  }
+}
