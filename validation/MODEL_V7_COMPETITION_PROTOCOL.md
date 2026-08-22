@@ -25,6 +25,19 @@ Independent event labels:
 
 Optional static context that is known before issue time may include elevation, terrain/catchment context and location type. No future observations may be used as predictors.
 
+## Frozen archive coverage boundary
+
+A no-credential CI coverage probe was run before Model V7 training. It found that the Previous Runs API returns populated 24 h, 48 h and 72 h precipitation forecast fields for 2024 and 2025 across Lokoja, Makurdi, Onitsha, Yenagoa and Hadejia. The same fixed-lead fields were empty for the tested 2022 and 2023 dates.
+
+Therefore:
+- 2022 and 2023 may be used for historical climate context, antecedent-condition representation, event-registry development or pretraining only where the feature exists before issue time;
+- 2022 and 2023 may not be presented as 24 h, 48 h or 72 h fixed-lead forecast validation from this source;
+- fixed-lead competition validation begins in 2024;
+- exact ECMWF run reconstruction may be used from March 2024 onward;
+- 2025 and later independently documented events are to be added so unseen-time validation does not depend on the old 2022-2024 benchmark alone.
+
+This boundary is frozen before the first Model V7 score and may not be loosened after results are seen.
+
 ## Model formulation
 
 Model V7 is multi-horizon and event-aware.
@@ -80,13 +93,14 @@ Season/location context:
 Development and final evaluation must prevent temporal and geographic leakage.
 
 Development:
-- walk-forward temporal folds;
+- walk-forward temporal folds using only periods with the required feature contract;
 - grouped event handling so multiple issue rows for one flood cannot cross train/validation boundaries;
 - leave-location-out stress tests for geographic generalisation.
 
 Final competition holdout:
 - frozen before final model fitting;
 - contains dates and/or locations not used for candidate selection or threshold tuning;
+- uses only events for which the required pre-event forecast archive is demonstrably available;
 - evaluated once;
 - failures remain in the report.
 
