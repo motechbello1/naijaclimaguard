@@ -7,6 +7,7 @@ on:
       - "validation/model_v7_source_smoke.py"
       - "validation/model_v7_history_coverage_probe.py"
       - "validation/model_v7_rainfall_baseline.py"
+      - "validation/model_v7_rainfall_baseline_robust.py"
       - "validation/model_v7_event_registry_candidates.csv"
       - "validation/model_v7_event_location_adjudication.csv"
       - "validation/MODEL_V7_COMPETITION_PROTOCOL.md"
@@ -17,6 +18,7 @@ on:
       - "validation/model_v7_source_smoke.py"
       - "validation/model_v7_history_coverage_probe.py"
       - "validation/model_v7_rainfall_baseline.py"
+      - "validation/model_v7_rainfall_baseline_robust.py"
       - "validation/model_v7_event_registry_candidates.csv"
       - "validation/model_v7_event_location_adjudication.csv"
       - "validation/MODEL_V7_COMPETITION_PROTOCOL.md"
@@ -33,7 +35,7 @@ concurrency:
 jobs:
   source-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -44,4 +46,4 @@ jobs:
       - name: Probe fixed-lead archive coverage
         run: python validation/model_v7_history_coverage_probe.py
       - name: Run rainfall-only baseline benchmark
-        run: python validation/model_v7_rainfall_baseline.py
+        run: python validation/model_v7_rainfall_baseline_robust.py
