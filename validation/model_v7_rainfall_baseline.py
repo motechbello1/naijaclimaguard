@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """Model V7 rainfall-only baseline.
 
-Purpose
--------
-Build the simplest honest opponent that a competition ML model must beat.
-Threshold and score family are selected using 2024 development events only.
-The selected rule is then evaluated unchanged on independently sourced 2025
-candidate events whose dates and location anchors are suitable.
+Build the simplest honest opponent that Model V7 must beat. The rainfall score
+family and threshold are selected on 2024 development events only, including
+both the previously adjudicated pilot events and newly sourced official NEMA
+onsets that were added before the first successful baseline score. The selected
+rule is then evaluated unchanged on independently sourced 2025 events.
 
 This is a diagnostic baseline, not a Model V7 score and not a production alert.
 """
@@ -17,6 +16,7 @@ import csv
 import datetime as dt
 import json
 import pathlib
+import statistics
 import time
 import urllib.error
 import urllib.parse
@@ -27,8 +27,9 @@ from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parent
 API = "https://previous-runs-api.open-meteo.com/v1/forecast"
-TIMEOUT = 30
+TIMEOUT = 35
 MAX_ATTEMPTS = 4
+MAX_BATCH = 5
 VARIABLES = [
     "precipitation_previous_day1",
     "precipitation_previous_day2",
@@ -44,6 +45,7 @@ class Event:
     lat: float
     lon: float
     location_key: str
+    source_group: str
 
 
 def parse_date(value: str) -> dt.date:
@@ -55,44 +57,67 @@ def read_csv(name: str) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def candidate_events(year: int) -> list[Event]:
+    rows = {row["event_id"]: row for row in read_csv("model_v7_event_registry_candidates.csv")}
+    anchors = {row["event_id"]: row for row in read_csv("model_v7_event_location_adjudication.csv")}
+    events: list[Event] = []
+    prefix = f"{year}-"
+    for event_id, row in rows.items():
+        if not row.get("onset_lower", "").startswith(prefix):
+            continue
+        anchor = anchors.get(event_id)
+        if not anchor or anchor["location_forecast_suitable"].strip().lower() != "true":
+            continue
+        lat = float(anchor["latitude"])
+        lon = float(anchor["longitude"])
+        location_key = f"{anchor['anchor_name'].strip().lower()}@{lat:.5f},{lon:.5f}"
+        events.append(
+            Event(
+                event_id=event_id,
+                start=parse_date(row["onset_lower"]),
+                end=parse_date(row["onset_upper"]),
+                lat=lat,
+                lon=lon,
+                location_key=location_key,
+                source_group="v7_official_candidate",
+            )
+        )
+    return events
+
+
 def development_events_2024() -> list[Event]:
     registry = {row["event_id"]: row for row in read_csv("model_v4_event_registry.csv")}
     events: list[Event] = []
+    seen: set[str] = set()
+
     for row in read_csv("model_event_time_adjudication_2022_2024.csv"):
         if row["forecast_onset_suitable"].strip().lower() != "true":
             continue
         if not row["onset_lower"].startswith("2024-"):
             continue
         source = registry[row["event_id"]]
-        events.append(
-            Event(
-                event_id=row["event_id"],
-                start=parse_date(row["onset_lower"]),
-                end=parse_date(row["onset_upper"]),
-                lat=float(source["latitude"]),
-                lon=float(source["longitude"]),
-                location_key=source["location"].strip().lower(),
-            )
+        event = Event(
+            event_id=row["event_id"],
+            start=parse_date(row["onset_lower"]),
+            end=parse_date(row["onset_upper"]),
+            lat=float(source["latitude"]),
+            lon=float(source["longitude"]),
+            location_key=source["location"].strip().lower(),
+            source_group="legacy_adjudicated_onset",
         )
-    return events
+        events.append(event)
+        seen.add(event.event_id)
+
+    for event in candidate_events(2024):
+        if event.event_id not in seen:
+            events.append(event)
+            seen.add(event.event_id)
+
+    return sorted(events, key=lambda event: (event.start, event.event_id))
 
 
 def evaluation_events_2025() -> list[Event]:
-    candidates = {row["event_id"]: row for row in read_csv("model_v7_event_registry_candidates.csv")}
-    anchors = {row["event_id"]: row for row in read_csv("model_v7_event_location_adjudication.csv")}
-    events: list[Event] = []
-    for event_id, row in candidates.items():
-        anchor = anchors.get(event_id)
-        if not anchor or anchor["location_forecast_suitable"].strip().lower() != "true":
-            continue
-        if row["event_date_precision"] != "exact" or not row["event_date"].startswith("2025-"):
-            continue
-        date = parse_date(row["event_date"])
-        lat = float(anchor["latitude"])
-        lon = float(anchor["longitude"])
-        location_key = f"{anchor['anchor_name'].strip().lower()}@{lat:.4f},{lon:.4f}"
-        events.append(Event(event_id, date, date, lat, lon, location_key))
-    return events
+    return sorted(candidate_events(2025), key=lambda event: (event.start, event.event_id))
 
 
 def quarter_ranges(year: int) -> list[tuple[dt.date, dt.date]]:
@@ -104,10 +129,16 @@ def quarter_ranges(year: int) -> list[tuple[dt.date, dt.date]]:
     ]
 
 
-def fetch_period(lat: float, lon: float, start: dt.date, end: dt.date) -> dict[str, Any]:
+def chunks(values: list[Any], size: int) -> list[list[Any]]:
+    return [values[index : index + size] for index in range(0, len(values), size)]
+
+
+def fetch_period_batch(
+    locations: list[tuple[str, float, float]], start: dt.date, end: dt.date
+) -> list[dict[str, Any]]:
     params = {
-        "latitude": lat,
-        "longitude": lon,
+        "latitude": ",".join(str(lat) for _, lat, _ in locations),
+        "longitude": ",".join(str(lon) for _, _, lon in locations),
         "start_date": start.isoformat(),
         "end_date": end.isoformat(),
         "hourly": VARIABLES,
@@ -116,73 +147,97 @@ def fetch_period(lat: float, lon: float, start: dt.date, end: dt.date) -> dict[s
     url = f"{API}?{urllib.parse.urlencode(params, doseq=True)}"
     req = urllib.request.Request(
         url,
-        headers={"Accept": "application/json", "User-Agent": "NaijaClimaGuard-V7-RainBaseline/1.1"},
+        headers={"Accept": "application/json", "User-Agent": "NaijaClimaGuard-V7-RainBaseline/1.2"},
     )
     last_error: Exception | None = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-            if payload.get("error"):
-                raise RuntimeError(str(payload))
-            return payload
+            payloads = payload if isinstance(payload, list) else [payload]
+            if len(payloads) != len(locations):
+                raise RuntimeError(
+                    f"multi-location response mismatch: requested {len(locations)}, received {len(payloads)}"
+                )
+            for item in payloads:
+                if not isinstance(item, dict) or item.get("error"):
+                    raise RuntimeError(str(item))
+            return payloads
         except urllib.error.HTTPError as exc:
             if 400 <= exc.code < 500 and exc.code != 429:
                 body = exc.read().decode("utf-8", errors="replace")[:1000]
                 raise RuntimeError(f"archive request rejected with HTTP {exc.code}: {body}") from exc
             last_error = exc
-        except (urllib.error.URLError, TimeoutError) as exc:
+        except (urllib.error.URLError, TimeoutError, RuntimeError) as exc:
             last_error = exc
         if attempt < MAX_ATTEMPTS:
             time.sleep(attempt * 2)
     raise RuntimeError(
-        f"archive request failed after {MAX_ATTEMPTS} attempts for {start}..{end} at {lat},{lon}: {last_error!r}"
+        f"archive batch failed after {MAX_ATTEMPTS} attempts for {start}..{end}: {last_error!r}"
     )
 
 
-def build_issue_rows(lat: float, lon: float, year: int) -> dict[dt.date, dict[str, float]]:
-    daily_sum: dict[str, dict[dt.date, float]] = {key: defaultdict(float) for key in VARIABLES}
-    daily_max: dict[str, dict[dt.date, float]] = {key: defaultdict(float) for key in VARIABLES}
-    daily_count: dict[str, dict[dt.date, int]] = {key: defaultdict(int) for key in VARIABLES}
+def build_issue_rows_multi(
+    coords: dict[str, tuple[float, float]], year: int
+) -> dict[str, dict[dt.date, dict[str, float]]]:
+    daily_sum: dict[str, dict[str, dict[dt.date, float]]] = {
+        location_key: {key: defaultdict(float) for key in VARIABLES} for location_key in coords
+    }
+    daily_max: dict[str, dict[str, dict[dt.date, float]]] = {
+        location_key: {key: defaultdict(float) for key in VARIABLES} for location_key in coords
+    }
+    daily_count: dict[str, dict[str, dict[dt.date, int]]] = {
+        location_key: {key: defaultdict(int) for key in VARIABLES} for location_key in coords
+    }
 
+    ordered = [(key, lat, lon) for key, (lat, lon) in sorted(coords.items())]
     for start, end in quarter_ranges(year):
-        payload = fetch_period(lat, lon, start, end)
-        hourly = payload.get("hourly") or {}
-        raw_times = hourly.get("time") or []
-        for idx, raw_time in enumerate(raw_times):
-            valid_date = dt.datetime.fromisoformat(raw_time).date()
-            for key in VARIABLES:
-                values = hourly.get(key) or []
-                if idx >= len(values):
-                    continue
-                value = values[idx]
-                if value is None:
-                    continue
-                number = float(value)
-                daily_sum[key][valid_date] += number
-                daily_max[key][valid_date] = max(daily_max[key][valid_date], number)
-                daily_count[key][valid_date] += 1
+        for batch in chunks(ordered, MAX_BATCH):
+            payloads = fetch_period_batch(batch, start, end)
+            for (location_key, _, _), payload in zip(batch, payloads):
+                hourly = payload.get("hourly") or {}
+                raw_times = hourly.get("time") or []
+                for idx, raw_time in enumerate(raw_times):
+                    valid_date = dt.datetime.fromisoformat(raw_time).date()
+                    for key in VARIABLES:
+                        values = hourly.get(key) or []
+                        if idx >= len(values):
+                            continue
+                        value = values[idx]
+                        if value is None:
+                            continue
+                        number = float(value)
+                        daily_sum[location_key][key][valid_date] += number
+                        daily_max[location_key][key][valid_date] = max(
+                            daily_max[location_key][key][valid_date], number
+                        )
+                        daily_count[location_key][key][valid_date] += 1
 
-    rows: dict[dt.date, dict[str, float]] = {}
-    issue = dt.date(year, 1, 1)
-    last_issue = dt.date(year, 12, 31)
-    while issue <= last_issue:
-        d1, d2, d3 = issue + dt.timedelta(days=1), issue + dt.timedelta(days=2), issue + dt.timedelta(days=3)
-        required = [(VARIABLES[0], d1), (VARIABLES[1], d2), (VARIABLES[2], d3)]
-        if all(daily_count[key][day] >= 20 for key, day in required):
-            totals = [daily_sum[key][day] for key, day in required]
-            peaks = [daily_max[key][day] for key, day in required]
-            rows[issue] = {
-                "rain_24": totals[0],
-                "rain_48": totals[1],
-                "rain_72": totals[2],
-                "total_72": sum(totals),
-                "max_day": max(totals),
-                "max_hour": max(peaks),
-                "front_loaded": totals[0] + 0.6 * totals[1] + 0.3 * totals[2],
-            }
-        issue += dt.timedelta(days=1)
-    return rows
+    output: dict[str, dict[dt.date, dict[str, float]]] = {}
+    for location_key in coords:
+        rows: dict[dt.date, dict[str, float]] = {}
+        issue = dt.date(year, 1, 1)
+        last_issue = dt.date(year, 12, 31)
+        while issue <= last_issue:
+            d1 = issue + dt.timedelta(days=1)
+            d2 = issue + dt.timedelta(days=2)
+            d3 = issue + dt.timedelta(days=3)
+            required = [(VARIABLES[0], d1), (VARIABLES[1], d2), (VARIABLES[2], d3)]
+            if all(daily_count[location_key][key][day] >= 20 for key, day in required):
+                totals = [daily_sum[location_key][key][day] for key, day in required]
+                peaks = [daily_max[location_key][key][day] for key, day in required]
+                rows[issue] = {
+                    "rain_24": totals[0],
+                    "rain_48": totals[1],
+                    "rain_72": totals[2],
+                    "total_72": sum(totals),
+                    "max_day": max(totals),
+                    "max_hour": max(peaks),
+                    "front_loaded": totals[0] + 0.6 * totals[1] + 0.3 * totals[2],
+                }
+            issue += dt.timedelta(days=1)
+        output[location_key] = rows
+    return output
 
 
 def event_for_issue(issue: dt.date, events: list[Event], location_key: str) -> Event | None:
@@ -233,14 +288,15 @@ def evaluate(
             if matched:
                 true_episodes += 1
                 for event_id, event in matched.items():
-                    if event_id not in detected:
-                        qualifying_issues = [
-                            issue for issue in episode if issue < event.start and 1 <= (event.start - issue).days <= 3
-                        ]
-                        if qualifying_issues:
-                            first = min(qualifying_issues)
-                            detected.add(event_id)
-                            leads.append((event.start - first).days * 24)
+                    if event_id in detected:
+                        continue
+                    qualifying_issues = [
+                        issue for issue in episode if issue < event.start and 1 <= (event.start - issue).days <= 3
+                    ]
+                    if qualifying_issues:
+                        first = min(qualifying_issues)
+                        detected.add(event_id)
+                        leads.append((event.start - first).days * 24)
             else:
                 false_episodes += 1
 
@@ -258,7 +314,7 @@ def evaluate(
         "false_alert_episodes": false_episodes,
         "alert_episode_precision": (true_episodes / total_episodes) if total_episodes else 0.0,
         "false_alert_episodes_per_location_year": false_episodes / location_years,
-        "median_lead_hours": sorted(leads)[len(leads) // 2] if leads else None,
+        "median_lead_hours": statistics.median(leads) if leads else None,
         "lead_hours": leads,
         "alert_issue_rows": alerts_total,
         "detected_event_ids": sorted(detected),
@@ -274,6 +330,13 @@ def selection_key(result: dict[str, Any]) -> tuple[float, float, float, float]:
     )
 
 
+def source_counts(events: list[Event]) -> dict[str, int]:
+    counts: dict[str, int] = defaultdict(int)
+    for event in events:
+        counts[event.source_group] += 1
+    return dict(sorted(counts.items()))
+
+
 def main() -> None:
     dev_events = development_events_2024()
     test_events = evaluation_events_2025()
@@ -285,8 +348,8 @@ def main() -> None:
     dev_coords = {event.location_key: (event.lat, event.lon) for event in dev_events}
     test_coords = {event.location_key: (event.lat, event.lon) for event in test_events}
 
-    dev_rows = {key: build_issue_rows(lat, lon, 2024) for key, (lat, lon) in dev_coords.items()}
-    test_rows = {key: build_issue_rows(lat, lon, 2025) for key, (lat, lon) in test_coords.items()}
+    dev_rows = build_issue_rows_multi(dev_coords, 2024)
+    test_rows = build_issue_rows_multi(test_coords, 2025)
 
     score_names = ["total_72", "max_day", "max_hour", "front_loaded"]
     thresholds = [float(value) for value in range(1, 201)]
@@ -304,11 +367,17 @@ def main() -> None:
         "claim_boundary": "rainfall-only development baseline; not Model V7 and not a competition result",
         "source": API,
         "threshold_selection_used_2025": False,
-        "archive_fetch": {"chunking": "quarterly", "max_attempts": MAX_ATTEMPTS, "timeout_seconds": TIMEOUT},
+        "archive_fetch": {
+            "chunking": "quarterly",
+            "multi_location_batch_size": MAX_BATCH,
+            "max_attempts": MAX_ATTEMPTS,
+            "timeout_seconds": TIMEOUT,
+        },
         "development": {
             "year": 2024,
             "eligible_event_count": len(dev_events),
             "event_ids": [event.event_id for event in dev_events],
+            "source_counts": source_counts(dev_events),
             "location_count": len(dev_rows),
             "selected_rule": winner,
         },
@@ -326,9 +395,10 @@ def main() -> None:
             "median_lead_hours": test["median_lead_hours"],
         },
         "limitations": [
-            "2024 onset-suitable development events are few, so this is an intentionally weak/simple baseline rather than a stable national estimate.",
-            "2025 event locations include town/metropolitan anchors for multi-community floods; location precision is explicitly recorded in the adjudication file.",
-            "The unresolved Gurara Tofa/Lolitapi event is excluded until its spatial anchor is defensibly resolved.",
+            "This remains a simple rainfall-only baseline and is not a national accuracy estimate.",
+            "New 2024 NEMA events were added before the first successful baseline score; unresolved multi-LGA events remain excluded.",
+            "Town/metropolitan anchors are neighbourhood centres rather than claimed inundation centroids unless the source supplied field coordinates.",
+            "The unresolved Gurara Tofa/Lolitapi 2025 event remains excluded until its spatial anchor is defensibly resolved.",
         ],
     }
     print(json.dumps(report, indent=2, sort_keys=True))
