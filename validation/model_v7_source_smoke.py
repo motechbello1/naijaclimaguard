@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Any
@@ -23,12 +24,17 @@ TIMEOUT = 30
 
 def fetch(base: str, params: dict[str, Any]) -> dict[str, Any]:
     query = urllib.parse.urlencode(params, doseq=True)
+    url = f"{base}?{query}"
     req = urllib.request.Request(
-        f"{base}?{query}",
+        url,
         headers={"Accept": "application/json", "User-Agent": "NaijaClimaGuard-ModelV7-SourceSmoke/1.0"},
     )
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"{base} returned HTTP {exc.code}: {body[:1000]}") from exc
     if not isinstance(payload, dict):
         raise RuntimeError("unexpected non-object API response")
     if payload.get("error"):
@@ -72,11 +78,14 @@ def main() -> int:
         "last": historical["hourly"]["time"][-1],
     }
 
+    # Single Runs requires an explicit archived model identifier. ECMWF IFS is
+    # available for exact runs from March 2024, which covers this smoke date.
     single_run = fetch(
         "https://single-runs-api.open-meteo.com/v1/forecast",
         {
             "latitude": lat,
             "longitude": lon,
+            "models": "ecmwf_ifs",
             "run": "2024-08-01T00:00",
             "forecast_hours": 72,
             "hourly": ["precipitation", "wind_gusts_10m"],
@@ -86,6 +95,8 @@ def main() -> int:
     require_hourly(single_run, ["precipitation", "wind_gusts_10m"], "single_run")
     results["single_run"] = {
         "ok": True,
+        "model": "ecmwf_ifs",
+        "run": "2024-08-01T00:00Z",
         "rows": len(single_run["hourly"]["time"]),
         "first": single_run["hourly"]["time"][0],
         "last": single_run["hourly"]["time"][-1],
