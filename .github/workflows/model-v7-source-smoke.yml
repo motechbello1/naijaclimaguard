@@ -5,12 +5,14 @@ on:
     branches: [competition-model-v7-no-approval]
     paths:
       - "validation/model_v7_source_smoke.py"
+      - "validation/model_v7_history_coverage_probe.py"
       - "validation/MODEL_V7_COMPETITION_PROTOCOL.md"
       - ".github/workflows/model-v7-source-smoke.yml"
   pull_request:
     branches: [main]
     paths:
       - "validation/model_v7_source_smoke.py"
+      - "validation/model_v7_history_coverage_probe.py"
       - "validation/MODEL_V7_COMPETITION_PROTOCOL.md"
       - ".github/workflows/model-v7-source-smoke.yml"
   workflow_dispatch:
@@ -33,3 +35,5 @@ jobs:
           python-version: "3.11"
       - name: Verify historical and fixed-lead forecast sources
         run: python validation/model_v7_source_smoke.py
+      - name: Probe fixed-lead archive coverage
+        run: python validation/model_v7_history_coverage_probe.py
