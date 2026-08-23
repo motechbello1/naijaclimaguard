@@ -106,14 +106,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     document.body.style.overflow = moreOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [moreOpen]);
-
-  useEffect(() => {
-    const handlePopState = () => { if (!session) router.replace("/login"); };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [session, router]);
-
-  const handleLogout = async () => {
+const handleLogout = async () => {
     await signOut({ redirect: false });
     router.replace("/login");
   };
