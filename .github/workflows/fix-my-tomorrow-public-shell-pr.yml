@@ -1,0 +1,45 @@
+name: Fix My Tomorrow Public Shell PR
+
+on:
+  pull_request:
+    branches: [data-engine-no-approval-v1]
+    paths:
+      - ".github/workflows/fix-my-tomorrow-public-shell-pr.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch-public-shell:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'my-tomorrow-v2-prototype'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: my-tomorrow-v2-prototype
+          persist-credentials: true
+      - name: Remove obsolete unauthenticated browser-back redirect
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('components/shared/AppShell.tsx')
+          text = path.read_text(encoding='utf-8')
+          old = '''  useEffect(() => {
+            const handlePopState = () => { if (!session) router.replace("/login"); };
+            window.addEventListener("popstate", handlePopState);
+            return () => window.removeEventListener("popstate", handlePopState);
+          }, [session, router]);
+
+          '''
+          if old not in text:
+              raise SystemExit('Expected stale popstate redirect block not found; refusing broad edit.')
+          path.write_text(text.replace(old, '', 1), encoding='utf-8')
+          PY
+      - name: Remove one-shot workflow and commit fix
+        run: |
+          rm .github/workflows/fix-my-tomorrow-public-shell-pr.yml
+          git config user.name "NaijaClimaGuard CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add components/shared/AppShell.tsx .github/workflows/fix-my-tomorrow-public-shell-pr.yml
+          git commit -m "fix: keep public My Tomorrow navigation public"
+          git push origin HEAD:my-tomorrow-v2-prototype
