@@ -22,18 +22,21 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           path = Path('components/shared/AppShell.tsx')
           text = path.read_text(encoding='utf-8')
-          old = '''  useEffect(() => {
-            const handlePopState = () => { if (!session) router.replace("/login"); };
-            window.addEventListener("popstate", handlePopState);
-            return () => window.removeEventListener("popstate", handlePopState);
-          }, [session, router]);
-
-          '''
-          if old not in text:
-              raise SystemExit('Expected stale popstate redirect block not found; refusing broad edit.')
-          path.write_text(text.replace(old, '', 1), encoding='utf-8')
+          pattern = re.compile(
+              r'\n\s*useEffect\(\(\) => \{\s*'
+              r'const handlePopState = \(\) => \{ if \(!session\) router\.replace\("/login"\); \};\s*'
+              r'window\.addEventListener\("popstate", handlePopState\);\s*'
+              r'return \(\) => window\.removeEventListener\("popstate", handlePopState\);\s*'
+              r'\}, \[session, router\]\);\s*',
+              re.MULTILINE,
+          )
+          updated, count = pattern.subn('\n', text, count=1)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one stale popstate listener, matched {count}; refusing broad edit.')
+          path.write_text(updated, encoding='utf-8')
           PY
       - name: Remove one-shot workflow and commit fix
         run: |
