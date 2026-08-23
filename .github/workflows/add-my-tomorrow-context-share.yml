@@ -1,0 +1,116 @@
+name: Add My Tomorrow Context Share
+
+on:
+  pull_request:
+    branches: [data-engine-no-approval-v1]
+    paths:
+      - ".github/workflows/add-my-tomorrow-context-share.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch-share:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'my-tomorrow-v2-prototype'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: my-tomorrow-v2-prototype
+          persist-credentials: true
+      - name: Add context-preserving share flow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app/my-tomorrow/page.tsx')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              ('  Umbrella,\n} from "lucide-react";', '  Umbrella,\n  Share2,\n} from "lucide-react";'),
+              ('import { useMemo, useState } from "react";', 'import { useEffect, useMemo, useState } from "react";'),
+              ('  const [changeMessage, setChangeMessage] = useState("This is your first check for this place.");', '  const [changeMessage, setChangeMessage] = useState("This is your first check for this place.");\n  const [shareMessage, setShareMessage] = useState("");'),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'Expected share patch anchor not found: {old[:80]}')
+              text = text.replace(old, new, 1)
+
+          anchor = '  const topAction = primary?.actions?.[0] || "No special action is needed from the current forecast. Check again if conditions change.";\n\n'
+          insertion = '''  const topAction = primary?.actions?.[0] || "No special action is needed from the current forecast. Check again if conditions change.";
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const latitude = Number(params.get("latitude"));
+    const longitude = Number(params.get("longitude"));
+    const name = params.get("name")?.trim() || "Shared place";
+    if (Number.isFinite(latitude) && Number.isFinite(longitude) && params.has("latitude") && params.has("longitude")) {
+      check({ name, latitude, longitude });
+    }
+    // The shared-location bootstrap intentionally runs once on entry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function shareBriefing() {
+    if (!data || !place) return;
+    setShareMessage("");
+    const url = new URL(window.location.href);
+    url.pathname = "/my-tomorrow";
+    url.search = new URLSearchParams({
+      latitude: String(place.latitude),
+      longitude: String(place.longitude),
+      name: place.name,
+    }).toString();
+
+    const statusLine = primary
+      ? `${primary.title}. ${primary.when}.`
+      : "Nothing serious is showing around this place right now.";
+    const actionLine = primary?.actions?.[0]
+      ? `What to do: ${primary.actions[0]}`
+      : "No special action is showing from the current forecast.";
+    const textToShare = `NaijaClimaGuard — ${place.name}\n${statusLine}\n${actionLine}\nUpdated ${new Date(data.generated_at).toLocaleString()}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `My Tomorrow — ${place.name}`, text: textToShare, url: url.toString() });
+        setShareMessage("Briefing shared.");
+        return;
+      }
+      await navigator.clipboard.writeText(`${textToShare}\n${url.toString()}`);
+      setShareMessage("Briefing link copied.");
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === "AbortError") return;
+      setShareMessage("Could not share this briefing. Try again.");
+    }
+  }
+
+'''
+          if anchor not in text:
+              raise SystemExit('Top-action anchor not found; refusing broad edit.')
+          text = text.replace(anchor, insertion, 1)
+
+          change_section = '''            <section className="rounded-[1.8rem] border border-black/7 bg-white/68 p-5 dark:border-white/10 dark:bg-white/[.04]"><div className="flex gap-3"><History className="mt-0.5 h-5 w-5 shrink-0 text-emerald-800 dark:text-[#d9ff57]" /><div className="flex-1"><p className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400">{tr("What changed since your last check")}</p><p className="mt-2 text-base font-black">{tr(changeMessage)}</p><p className="mt-1 text-xs text-slate-500 dark:text-white/45">{tr("The answer changes as the forecast changes.")}</p></div><button onClick={() => place && check(place)} aria-label={tr("Refresh")} className="flex h-10 w-10 items-center justify-center rounded-full border border-black/8 dark:border-white/10"><RefreshCw className="h-4 w-4" /></button></div></section>
+
+'''
+          share_section = change_section + '''            <section className="rounded-[1.8rem] border border-black/7 bg-white/68 p-5 dark:border-white/10 dark:bg-white/[.04]">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex gap-3"><Share2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-800 dark:text-[#d9ff57]" /><div><p className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400">{tr("Share something useful")}</p><p className="mt-1 text-base font-black">{tr("Send this place its briefing")}</p><p className="mt-1 text-xs leading-5 text-slate-500 dark:text-white/45">{tr("The link opens this same place and shows the useful briefing before signup.")}</p></div></div>
+                <button onClick={shareBriefing} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#071713] px-5 text-sm font-black text-white dark:bg-[#d9ff57] dark:text-[#071713]"><Share2 className="h-4 w-4" /> {tr("Share briefing")}</button>
+              </div>
+              {shareMessage && <p className="mt-3 text-xs font-bold text-emerald-800 dark:text-[#d9ff57]">{tr(shareMessage)}</p>}
+            </section>
+
+'''
+          if change_section not in text:
+              raise SystemExit('Change-message section not found; refusing broad edit.')
+          text = text.replace(change_section, share_section, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Remove one-shot workflow and commit share flow
+        run: |
+          rm .github/workflows/add-my-tomorrow-context-share.yml
+          git config user.name "NaijaClimaGuard CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add app/my-tomorrow/page.tsx .github/workflows/add-my-tomorrow-context-share.yml
+          git commit -m "feat: share contextual My Tomorrow briefings"
+          git push origin HEAD:my-tomorrow-v2-prototype
