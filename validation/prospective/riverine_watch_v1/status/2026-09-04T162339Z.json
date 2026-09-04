@@ -1,0 +1,39 @@
+{
+  "glofas_attempts": [
+    {
+      "elapsed_seconds": 420.03,
+      "issue_date": "2026-09-04",
+      "ok": false,
+      "returncode": null,
+      "source_age_days": 0,
+      "stderr_tail": "2026-09-04 16:23:42,476 INFO [2024-02-01T00:00:00] Please note that accessing this dataset via CDS for time-critical operation is not advised or supported\n2026-09-04 16:23:42,476 INFO [2024-02-01T00:00:00] Please note we suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-04 16:23:42,476 INFO Request ID is 8048126a-edc6-4af8-88d0-50f5f5554158\n2026-09-04 16:23:42,681 INFO status has been updated to accepted\n2026-09-04 16:24:04,511 INFO status has been updated to running\n2026-09-04 16:24:16,062 INFO status has been updated to successful\n\r96c5dd2d08dcd7ed3f0ea0b16d2a0704.nc:   0%|          | 0.00/28.6k [00:00<?, ?B/s]\r96c5dd2d08dcd7ed3f0ea0b16d2a0704.nc: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 28.6k/28.6k [00:00<00:00, 42.8kB/s]\r                                                                                         \r2026-09-04 16:24:19,025 INFO [2024-02-01T00:00:00] Please note that accessing this dataset via CDS for time-critical operation is not advised or supported\n2026-09-04 16:24:19,025 INFO [2024-02-01T00:00:00] Please note we suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-04 16:24:19,025 INFO Request ID is dcb008ef-5c7e-43ab-9872-131810d5da9d\n2026-09-04 16:24:19,171 INFO status has been updated to accepted\n",
+      "stdout_tail": "",
+      "timed_out": true
+    },
+    {
+      "elapsed_seconds": 50.558,
+      "issue_date": "2026-09-03",
+      "ok": true,
+      "returncode": 0,
+      "source_age_days": 1,
+      "stderr_tail": " suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-04 16:30:41,989 INFO Request ID is 952a4459-1740-4d02-ab8d-6de09370df59\n2026-09-04 16:30:42,234 INFO status has been updated to accepted\n2026-09-04 16:30:56,528 INFO status has been updated to successful\n\ne1d52d7700f8348b119f2bf0986da7cc.nc:   0%|          | 0.00/28.6k [00:00<?, ?B/s]\ne1d52d7700f8348b119f2bf0986da7cc.nc: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 28.6k/28.6k [00:00<00:00, 40.9kB/s]\n                                                                                         \n2026-09-04 16:31:03,146 INFO [2024-02-01T00:00:00] Please note that accessing this dataset via CDS for time-critical operation is not advised or supported\n2026-09-04 16:31:03,146 INFO [2024-02-01T00:00:00] Please note we suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-04 16:31:03,146 INFO Request ID is 573a04b5-3770-49f4-bc83-7ac2f5024302\n2026-09-04 16:31:03,325 INFO status has been updated to accepted\n2026-09-04 16:31:27,754 INFO status has been updated to successful\n\ne8cf4b8ccf3e1e207af31ea6c2ec0c01.nc:   0%|          | 0.00/28.6k [00:00<?, ?B/s]\ne8cf4b8ccf3e1e207af31ea6c2ec0c01.nc: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 28.6k/28.6k [00:00<00:00, 42.9kB/s]\n                                                                                         \n",
+      "stdout_tail": "Wrote 6 Riverine Watch GloFAS rows for issue 2026-09-03 to validation/prospective/riverine_watch_v1/work/2026-09-04T162339Z/glofas_2026-09-03/glofas.csv\n",
+      "timed_out": false
+    }
+  ],
+  "glofas_csv_sha256": "cd255f560c693da107960a35a68d5af7725f4445644684824c16102ee4684a2d",
+  "max_live_emit_age_days": 1,
+  "max_source_age_days": 2,
+  "model_id": "riverine-watch-v1",
+  "nasa_csv_sha256": "d86af07c6875c6271f28080421860d12fb085fbb04e22b50b36ddfcf389186df",
+  "operational_run_date": "2026-09-04",
+  "public_action_authorized": false,
+  "recorded_at_utc": "2026-09-04T16:23:39.177741+00:00",
+  "selected_glofas_issue_date": "2026-09-03",
+  "selected_glofas_source_age_days": 1,
+  "status": "duplicate_source_issue_no_new_forecast",
+  "supported_locations": [
+    "Lokoja",
+    "Makurdi"
+  ]
+}
