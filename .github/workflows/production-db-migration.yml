@@ -1,0 +1,80 @@
+name: Production Database Migration Gate
+
+on:
+  push:
+    branches: [ops-production-migration-gate]
+    paths:
+      - "ops/production_migration_mode.txt"
+      - ".github/workflows/production-db-migration.yml"
+      - "prisma/schema.prisma"
+      - "prisma/migrations/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "ops/production_migration_mode.txt"
+      - ".github/workflows/production-db-migration.yml"
+      - "prisma/schema.prisma"
+      - "prisma/migrations/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: naijaclimaguard-production-db-migration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.DIRECT_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL || secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install pinned application dependencies
+        run: npm ci
+      - name: Verify database credentials are available without printing them
+        run: |
+          test -n "$DATABASE_URL" || (echo "DATABASE_URL/DIRECT_URL GitHub secret is not configured" && exit 2)
+          test -n "$DIRECT_URL" || (echo "DIRECT_URL/DATABASE_URL GitHub secret is not configured" && exit 2)
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Verify direct database connectivity
+        run: printf 'SELECT 1;\n' | npx prisma db execute --stdin --schema prisma/schema.prisma
+      - name: Inspect committed migration status
+        run: |
+          set +e
+          npx prisma migrate status
+          status=$?
+          set -e
+          echo "prisma_migrate_status_exit=$status"
+          # Prisma exits 1 when migrations are pending; that is expected in preflight.
+          if [ "$status" -gt 1 ]; then exit "$status"; fi
+      - name: Read migration mode
+        id: mode
+        run: |
+          mode="$(tr -d '[:space:]' < ops/production_migration_mode.txt)"
+          case "$mode" in
+            preflight|apply) ;;
+            *) echo "Mode must be preflight or apply"; exit 2 ;;
+          esac
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "$mode" != "preflight" ]; then
+            echo "Apply mode is forbidden on pull_request events"
+            exit 2
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "Migration gate mode: $mode"
+      - name: Stop safely after preflight
+        if: steps.mode.outputs.mode == 'preflight'
+        run: echo "Preflight complete. No production database mutation was performed."
+      - name: Apply committed Prisma migrations
+        if: github.event_name == 'push' && steps.mode.outputs.mode == 'apply'
+        run: npx prisma migrate deploy
+      - name: Verify migration status after apply
+        if: github.event_name == 'push' && steps.mode.outputs.mode == 'apply'
+        run: npx prisma migrate status
