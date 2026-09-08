@@ -1,0 +1,46 @@
+{
+  "glofas_attempts": [
+    {
+      "elapsed_seconds": 420.066,
+      "issue_date": "2026-09-08",
+      "ok": false,
+      "returncode": null,
+      "source_age_days": 0,
+      "stderr_tail": "2026-09-08 16:40:11,244 INFO [2024-02-01T00:00:00] Please note that accessing this dataset via CDS for time-critical operation is not advised or supported\n2026-09-08 16:40:11,244 INFO [2024-02-01T00:00:00] Please note we suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-08 16:40:11,244 INFO Request ID is 57d3f029-1a53-42df-8ef9-e12bec7dc43a\n2026-09-08 16:40:11,389 INFO status has been updated to accepted\n2026-09-08 16:40:44,971 INFO status has been updated to running\n",
+      "stdout_tail": "",
+      "timed_out": true
+    },
+    {
+      "elapsed_seconds": 420.007,
+      "issue_date": "2026-09-07",
+      "ok": false,
+      "returncode": null,
+      "source_age_days": 1,
+      "stderr_tail": "2026-09-08 16:47:08,713 INFO [2024-02-01T00:00:00] Please note that accessing this dataset via CDS for time-critical operation is not advised or supported\n2026-09-08 16:47:08,713 INFO [2024-02-01T00:00:00] Please note we suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-08 16:47:08,713 INFO Request ID is a4b8b7ee-f19a-4363-a342-3d30316447f9\n2026-09-08 16:47:08,857 INFO status has been updated to accepted\n",
+      "stdout_tail": "",
+      "timed_out": true
+    },
+    {
+      "elapsed_seconds": 420.009,
+      "issue_date": "2026-09-06",
+      "ok": false,
+      "returncode": null,
+      "source_age_days": 2,
+      "stderr_tail": "2026-09-08 16:54:09,787 INFO [2024-02-01T00:00:00] Please note that accessing this dataset via CDS for time-critical operation is not advised or supported\n2026-09-08 16:54:09,787 INFO [2024-02-01T00:00:00] Please note we suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-08 16:54:09,787 INFO Request ID is f5008045-a433-4789-a940-a4633da2f347\n2026-09-08 16:54:09,937 INFO status has been updated to accepted\n",
+      "stdout_tail": "",
+      "timed_out": true
+    }
+  ],
+  "max_live_emit_age_days": 1,
+  "max_source_age_days": 2,
+  "model_id": "riverine-watch-v1",
+  "operational_run_date": "2026-09-08",
+  "public_action_authorized": false,
+  "reason": "No complete GloFAS operational issue was available within the 0-2 day freshness window.",
+  "recorded_at_utc": "2026-09-08T16:40:06.686206+00:00",
+  "status": "source_delayed_no_model_issue",
+  "supported_locations": [
+    "Lokoja",
+    "Makurdi"
+  ]
+}
