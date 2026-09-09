@@ -1,0 +1,62 @@
+name: Model V7-E Expanded Development
+
+on:
+  push:
+    branches: [competition-model-v7-no-approval]
+    paths:
+      - "validation/model_v7_e_expanded_development.py"
+      - "validation/MODEL_V7_E_EXPANDED_PROTOCOL.md"
+      - "validation/model_v7_event_registry_candidates.csv"
+      - "validation/model_v7_event_location_adjudication.csv"
+      - ".github/workflows/model-v7-e-expanded-development.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "validation/model_v7_e_expanded_development.py"
+      - "validation/MODEL_V7_E_EXPANDED_PROTOCOL.md"
+      - "validation/model_v7_event_registry_candidates.csv"
+      - "validation/model_v7_event_location_adjudication.csv"
+      - ".github/workflows/model-v7-e-expanded-development.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-v7-e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  expanded-development:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install modelling dependencies
+        run: python -m pip install --disable-pip-version-check --quiet numpy scikit-learn xgboost
+      - name: Run V7-E expanded development experiment
+        run: python validation/model_v7_e_expanded_development.py
+      - name: Verify final holdout remained untouched
+        run: |
+          python - <<'PY'
+          import json
+          p='validation/model_v7_e_expanded_development_result.json'
+          r=json.load(open(p, encoding='utf-8'))
+          assert r['holdout_2026_queried'] is False
+          assert r['guardrails']['max_query_year'] == 2025
+          assert r['guardrails']['2026_holdout_queried'] is False
+          assert r['event_pool']['events_2024'] == 10
+          assert r['event_pool']['events_2025'] == 9
+          assert r['event_pool']['events_total'] == 19
+          print('V7-E passed event-membership and final-holdout guardrails.')
+          PY
+      - name: Upload V7-E development evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-v7-e-expanded-${{ github.run_id }}
+          path: validation/model_v7_e_expanded_development_result.json
+          retention-days: 90
+          if-no-files-found: error

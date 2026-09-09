@@ -1,0 +1,129 @@
+name: Model v6 Preserve Frozen Result
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [model-v5-operational-native]
+    paths:
+      - ".github/workflows/model-v6-preserve-frozen-result.yml"
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+  NASA_SOURCE_RUN_ID: "31292573245"
+
+concurrency:
+  group: model-v6-event-aware-development
+  cancel-in-progress: false
+
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: model-v5-operational-native
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install pinned runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+      - name: Verify no scientific change since first V6 score
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('validation/MODEL_V6_EVENT_AWARE_PROTOCOL.md').read_text()
+          assert 'FROZEN BEFORE FIRST MODEL V6 SCORE' in p
+          assert '>=75% independent eligible-event detection' in p
+          assert '>=10% precision' in p
+          assert '<=10 false-positive issue rows per 1,000 negatives' in p
+          assert 'n_estimators=500' in p and 'max_depth=2' in p and 'learning_rate=0.02' in p
+          v5=json.loads(Path('validation/model_v5_freeze_manifest.json').read_text())
+          assert v5['status']=='freeze_blocked'
+          print('Frozen V6 protocol unchanged; this run only reproduces/preserves the first score.')
+          PY
+      - name: Apply identical mechanical writable-array compatibility fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('validation/model_v6_event_aware.py')
+          s=p.read_text()
+          old='.dropna().to_numpy(float); a.sort()'
+          new='.dropna().to_numpy(dtype=float, copy=True); a.sort()'
+          count=s.count(old)
+          assert count == 3, f'Expected exactly 3 replacements, found {count}'
+          p.write_text(s.replace(old,new))
+          PY
+      - name: Reuse preserved NASA source artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.NASA_SOURCE_RUN_ID }}
+          pattern: model-v5-nasa-*
+          path: validation/model_v5/work/nasa
+          merge-multiple: true
+      - name: Rebuild identical synchronized dataset
+        run: |
+          python validation/build_model_v5_dataset.py \
+            --nasa 'validation/model_v5/work/nasa/*.csv' \
+            --glofas 'validation/model_v5/operational_archive_months/*.csv' \
+            --events validation/model_v4_event_registry.csv \
+            --start 2021-05-26 --end 2024-12-31 \
+            --out validation/model_v6_issue_dataset.csv \
+            --manifest validation/model_v6_dataset_manifest.json
+      - name: Reproduce identical frozen V6 score
+        run: |
+          python validation/model_v6_event_aware.py \
+            --dataset validation/model_v6_issue_dataset.csv \
+            --events validation/model_v4_event_registry.csv \
+            --output validation/model_v6_results.json \
+            --scored-output validation/model_v6_oof_scored.csv \
+            --manifest-out validation/model_v6_freeze_manifest.json \
+            --model-out validation/model_v6_freeze_candidate.joblib
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('validation/model_v6_results.json').read_text())
+          assert r['status']=='model_v6_development_failed_freeze_gate'
+          assert abs(r['mean_fold_pr_auc']-0.0458597062925348) < 1e-12
+          p=r['pooled_oof_metrics']
+          assert abs(p['pr_auc']-0.038191780416797085) < 1e-12
+          assert abs(p['roc_auc']-0.7186123745577936) < 1e-12
+          assert abs(p['brier_score']-0.017102281936467796) < 1e-12
+          assert r['threshold_policy']['chosen_threshold'] is None
+          print('Exact first V6 scientific result reproduced; preserving without modification.')
+          PY
+      - name: Restore mechanically patched source before commit
+        run: git restore validation/model_v6_event_aware.py
+      - name: Commit frozen V6 decision
+        run: |
+          git config user.name "naijaclimaguard-model-v6-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add validation/model_v6_results.json validation/model_v6_freeze_manifest.json validation/model_v6_dataset_manifest.json
+          git commit -m "model-v6: preserve frozen event-aware development decision 31537019550"
+          git pull --rebase origin model-v5-operational-native
+          git push origin HEAD:model-v5-operational-native
+      - name: Upload full frozen V6 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-v6-frozen-result-${{ github.run_id }}
+          retention-days: 90
+          if-no-files-found: warn
+          path: |
+            validation/model_v6_issue_dataset.csv
+            validation/model_v6_dataset_manifest.json
+            validation/model_v6_results.json
+            validation/model_v6_oof_scored.csv
+            validation/model_v6_freeze_manifest.json

@@ -1,0 +1,21 @@
+name: Model v5 Batched First Month
+
+on:
+  pull_request:
+    paths:
+      - "validation/model_v5_first_month_trigger.txt"
+      - ".github/workflows/model-v5-batched-first-month.yml"
+      - "validation/fetch_glofas_operational_archive_v5_batched.py"
+
+permissions:
+  contents: write
+
+# May 2021 is already preserved durably on model-v5-operational-native.
+# Keep this workflow as historical evidence, but never let it compete with the
+# definitive monthly closure for the shared EWDS source-access lane.
+jobs:
+  may-2021-retired:
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "May 2021 source pack is already durable; use Model v5 Monthly Durable Closure."

@@ -1,0 +1,65 @@
+name: Model V7-B Decision Policy
+
+on:
+  push:
+    branches: [competition-model-v7-no-approval]
+    paths:
+      - "validation/model_v7_development_candidate.py"
+      - "validation/model_v7_decision_policy_experiment.py"
+      - "validation/model_v7_event_registry_candidates.csv"
+      - "validation/model_v7_event_location_adjudication.csv"
+      - "validation/model_event_time_adjudication_2022_2024.csv"
+      - "validation/model_v4_event_registry.csv"
+      - "validation/model_v7_rainfall_baseline_result.json"
+      - ".github/workflows/model-v7-decision-policy.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "validation/model_v7_development_candidate.py"
+      - "validation/model_v7_decision_policy_experiment.py"
+      - "validation/model_v7_event_registry_candidates.csv"
+      - "validation/model_v7_event_location_adjudication.csv"
+      - "validation/model_event_time_adjudication_2022_2024.csv"
+      - "validation/model_v4_event_registry.csv"
+      - "validation/model_v7_rainfall_baseline_result.json"
+      - ".github/workflows/model-v7-decision-policy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-v7-decision-policy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  decision-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install modelling dependencies
+        run: python -m pip install --disable-pip-version-check --quiet numpy scikit-learn xgboost
+      - name: Run V7-B consensus persistence and cooldown search
+        run: python validation/model_v7_decision_policy_experiment.py
+      - name: Verify final holdout remained untouched
+        run: |
+          python - <<'PY'
+          import json
+          p='validation/model_v7_decision_policy_result.json'
+          r=json.load(open(p, encoding='utf-8'))
+          assert r['holdout_2026_queried'] is False
+          assert r['guardrails']['max_query_year'] == 2025
+          assert r['guardrails']['2026_holdout_queried'] is False
+          print('2026 final holdout remains untouched.')
+          PY
+      - name: Upload V7-B development evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-v7-b-decision-policy-${{ github.run_id }}
+          retention-days: 90
+          if-no-files-found: error
+          path: validation/model_v7_decision_policy_result.json
