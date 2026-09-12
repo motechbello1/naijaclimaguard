@@ -1,0 +1,16 @@
+Model v3 full development trigger — synchronized final protocol
+
+This trigger is intentionally the shared path for both:
+- Model v3 Development Protocol Check
+- Model v3 Full Development — 2018-2021 Only
+
+Pre-score safeguards already committed:
+- canonical Validation v2 evidence machine-verification;
+- frozen 16 development events / 12 OOF events;
+- scientific sanity review;
+- predeclared development threshold policy;
+- gated freeze-candidate serialization;
+- predeclared untouched/prospective acceptance policy;
+- one-shot untouched evaluator.
+
+Execute only 2018-01-01 through 2021-12-31 development data. Production remains derived-v2.
