@@ -1,0 +1,53 @@
+{
+  "eligible_for_live_shadow_metrics": true,
+  "glofas_attempts": [
+    {
+      "elapsed_seconds": 117.484,
+      "issue_date": "2026-09-15",
+      "ok": true,
+      "returncode": 0,
+      "source_age_days": 0,
+      "stderr_tail": "ere](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-15 17:01:58,194 INFO Request ID is e86ed085-4d87-453b-927a-2d97f8f5f865\n2026-09-15 17:01:58,404 INFO status has been updated to accepted\n2026-09-15 17:02:34,354 INFO status has been updated to running\n2026-09-15 17:02:53,652 INFO status has been updated to successful\n\n90d0e9a958b7fe71cc7db1c2e139b9fa.nc:   0%|          | 0.00/28.6k [00:00<?, ?B/s]\n90d0e9a958b7fe71cc7db1c2e139b9fa.nc: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 28.6k/28.6k [00:01<00:00, 24.9kB/s]\n                                                                                         \n2026-09-15 17:02:57,054 INFO [2024-02-01T00:00:00] Please note that accessing this dataset via CDS for time-critical operation is not advised or supported\n2026-09-15 17:02:57,054 INFO [2024-02-01T00:00:00] Please note we suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-15 17:02:57,055 INFO Request ID is 6ccb9835-4781-4c18-9088-2d1f13cbe5f1\n2026-09-15 17:02:57,247 INFO status has been updated to accepted\n2026-09-15 17:03:49,710 INFO status has been updated to successful\n\nc7a165bc27a6ef376476d44ddaba0d29.nc:   0%|          | 0.00/28.6k [00:00<?, ?B/s]\nc7a165bc27a6ef376476d44ddaba0d29.nc: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 28.6k/28.6k [00:01<00:00, 25.7kB/s]\n                                                                                         \n",
+      "stdout_tail": "Wrote 6 Riverine Watch GloFAS rows for issue 2026-09-15 to validation/prospective/riverine_watch_v1/work/2026-09-15T170155Z/glofas_2026-09-15/glofas.csv\n",
+      "timed_out": false
+    }
+  ],
+  "issuance_class": "fresh_live_shadow",
+  "issue_path": "validation/prospective/riverine_watch_v1/issues/riverine_watch_v1_2026-09-15.json",
+  "issue_sha256": "471004efaecdb0407660d512fc98cd24330f3d5e6db7837bd4198066d7074393",
+  "max_live_emit_age_days": 1,
+  "max_source_age_days": 2,
+  "model_id": "riverine-watch-v1",
+  "nasa_attempt": {
+    "elapsed_seconds": 119.083,
+    "ok": true,
+    "returncode": 0,
+    "stderr_tail": "",
+    "stdout_tail": "processed 10/30 daily IMERG Early granules\nprocessed 20/30 daily IMERG Early granules\nprocessed 30/30 daily IMERG Early granules\nWrote 150 NASA IMERG Early location-days to validation/prospective/riverine_watch_v1/work/2026-09-15T170155Z/nasa_30d_before_2026-09-15.csv; coverage=100.0%\n",
+    "timed_out": false
+  },
+  "operational_run_date": "2026-09-15",
+  "public_action_authorized": false,
+  "recorded_at_utc": "2026-09-15T17:01:55.062057+00:00",
+  "results": [
+    {
+      "emit_watch_episode": false,
+      "location": "Lokoja",
+      "probability": 0.09691558453133418,
+      "state": "NORMAL"
+    },
+    {
+      "emit_watch_episode": false,
+      "location": "Makurdi",
+      "probability": 0.2719876699823072,
+      "state": "NORMAL"
+    }
+  ],
+  "selected_glofas_issue_date": "2026-09-15",
+  "selected_glofas_source_age_days": 0,
+  "status": "riverine_watch_v1_issue_written",
+  "supported_locations": [
+    "Lokoja",
+    "Makurdi"
+  ]
+}
