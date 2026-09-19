@@ -1,0 +1,35 @@
+{
+  "glofas_attempts": [
+    {
+      "elapsed_seconds": 10.35,
+      "issue_date": "2026-09-19",
+      "ok": true,
+      "returncode": 0,
+      "source_age_days": 0,
+      "stderr_tail": " via CDS for time-critical operation is not advised or supported\n2026-09-19 15:54:18,562 INFO [2024-02-01T00:00:00] Please note we suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-19 15:54:18,562 INFO Request ID is bd658c68-47df-48fb-9a58-b7d784d8c25f\n2026-09-19 15:54:18,843 INFO status has been updated to successful\n\n6e2e87848c0b2345a3d80b00b448750c.nc:   0%|          | 0.00/28.6k [00:00<?, ?B/s]\n6e2e87848c0b2345a3d80b00b448750c.nc: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 28.6k/28.6k [00:00<00:00, 48.3kB/s]\n                                                                                         \n2026-09-19 15:54:20,949 INFO [2024-02-01T00:00:00] Please note that accessing this dataset via CDS for time-critical operation is not advised or supported\n2026-09-19 15:54:20,949 INFO [2024-02-01T00:00:00] Please note we suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-09-19 15:54:20,949 INFO Request ID is ba9719fb-dcec-45ab-be94-ffb2856f10aa\n2026-09-19 15:54:21,090 INFO status has been updated to successful\n\nef3abfdd329b7d518e71f82adb324dcc.nc:   0%|          | 0.00/28.6k [00:00<?, ?B/s]\nef3abfdd329b7d518e71f82adb324dcc.nc: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 28.6k/28.6k [00:00<00:00, 46.8kB/s]\n                                                                                         \n",
+      "stdout_tail": "Wrote 6 Riverine Watch GloFAS rows for issue 2026-09-19 to validation/prospective/riverine_watch_v1/work/2026-09-19T155413Z/glofas_2026-09-19/glofas.csv\n",
+      "timed_out": false
+    }
+  ],
+  "max_live_emit_age_days": 1,
+  "max_source_age_days": 2,
+  "model_id": "riverine-watch-v1",
+  "nasa_attempt": {
+    "elapsed_seconds": 600.059,
+    "ok": false,
+    "returncode": null,
+    "stderr_tail": "",
+    "stdout_tail": "",
+    "timed_out": true
+  },
+  "operational_run_date": "2026-09-19",
+  "public_action_authorized": false,
+  "recorded_at_utc": "2026-09-19T15:54:13.178933+00:00",
+  "selected_glofas_issue_date": "2026-09-19",
+  "selected_glofas_source_age_days": 0,
+  "status": "nasa_source_failure_no_model_issue",
+  "supported_locations": [
+    "Lokoja",
+    "Makurdi"
+  ]
+}
