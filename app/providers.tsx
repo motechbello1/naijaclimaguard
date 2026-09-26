@@ -27,6 +27,7 @@ function isFloodPassPath(pathname: string | null) {
 export function Providers({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const floodPass = isFloodPassPath(pathname);
+  const ownControls = pathname === "/login" || pathname === "/register" || pathname === "/my-area";
   return (
     <SessionProvider refetchOnWindowFocus refetchInterval={5 * 60}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} forcedTheme={floodPass ? "light" : undefined}>
@@ -40,8 +41,8 @@ export function Providers({ children }: { children: ReactNode }) {
               {pathname === "/" && <LandingIntro />}
               {floodPass ? null : <SplashScreen />}
               {floodPass ? children : <AppMotionFrame>{children}</AppMotionFrame>}
-              {floodPass ? null : <GlobalAccessibilityDock />}
-              {floodPass ? null : <FloodAssistant />}
+              {floodPass || ownControls ? null : <GlobalAccessibilityDock />}
+              {floodPass || ownControls ? null : <FloodAssistant />}
             </SpeechProvider>
           </LanguageProvider>
         </NationalAreaProvider>

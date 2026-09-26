@@ -178,7 +178,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
         <main className="ncg-workspace-main min-w-0 overflow-x-hidden px-4 pb-[calc(7.25rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 lg:px-8 lg:pb-10 lg:pt-8">
           <div className="mx-auto w-full max-w-[1680px]">
-            <div className="ncg-workspace-identity"><div><span>YOUR WORKSPACE / {area.name.toUpperCase()}</span><p>Choose what you protect.</p></div><div className="ncg-role-switch" aria-label="Choose dashboard view">
+            <div className="ncg-workspace-identity"><div><span>{tr("YOUR WORKSPACE")} / {area.name.toUpperCase()}</span><p>{tr("Choose what you protect.")}</p></div><div className="ncg-role-switch" aria-label={tr("Choose dashboard view")}>
               {(Object.keys(EXPERIENCE_LABELS) as ExperienceRole[]).map((item) => { const Icon = { HOUSEHOLD: House, FARMER: Sprout, BUSINESS: Building2, AGENCY: Landmark }[item]; return <button key={item} type="button" aria-pressed={role === item} onClick={() => setRole(item)}><Icon size={16} strokeWidth={1.8} /><span>{tr(EXPERIENCE_LABELS[item])}</span></button>; })}
             </div></div>
             <PageExplanation pathname={pathname} />{children}

@@ -4,6 +4,8 @@ import type { AppLocale } from "../config";
 export const WORKSPACE_V2_COPY: Record<AppLocale, Record<string, string>> = {
   en: {},
   pcm: {
+    "YOUR WORKSPACE": "YOUR WORKSPACE", "WORKSPACE": "WORKSPACE", "Choose dashboard view": "Choose dashboard view", "Know your": "Know your", "next step.": "next step.", "Check the rainfall signal where you are. Official warnings and visible conditions always take priority.": "Check rain signal for where you dey. Official warning and wetin you see for ground come first.",
+    "Farmer": "Farmer", "Business": "Business", "Agency": "Agency", "01 / THE PLACES WE PROTECT": "01 / PLACES WEY WE DEY PROTECT", "NAIJACLIMAGUARD / ACCOUNT": "NAIJACLIMAGUARD / ACCOUNT", "RETURNING": "YOU DON RETURN", "NEW ACCOUNT": "NEW ACCOUNT", "WELCOME BACK / YOUR WORKSPACE": "WELCOME BACK / YOUR WORKSPACE", "START FREE / ONE ACCOUNT": "START FREE / ONE ACCOUNT", "YOU HAVE REACHED THE END / KEEP EXPLORING": "YOU DON REACH END / CONTINUE TO EXPLORE",
     "Public site": "Public site", "The story": "The story", "continues": "dey continue", "here.": "for here.", "Start with": "Start with", "what": "wetin", "matters.": "matter.",
     "One place to understand the risk, decide what to do, and keep a record of what happened.": "One place to know the risk, decide wetin to do, and keep record of wetin happen.",
     "Know before. Act together. Prove after.": "Know before. Act together. Show proof after.", "Explore the evidence": "See the evidence",
@@ -21,6 +23,8 @@ export const WORKSPACE_V2_COPY: Record<AppLocale, Record<string, string>> = {
     "Every risk result belongs to an exact saved coordinate. The working area does not imply a state wide forecast.": "Every risk result na for one exact place wey you save. Working area no mean say na forecast for whole state.", "Back to top": "Go back up",
   },
   ha: {
+    "YOUR WORKSPACE": "WURIN AIKINKA", "WORKSPACE": "WURIN AIKI", "Choose dashboard view": "Zaɓi kallon wurin aiki", "Know your": "San mataki", "next step.": "na gaba.", "Check the rainfall signal where you are. Official warnings and visible conditions always take priority.": "Duba alamar ruwan sama a inda kake. Gargadin hukuma da abin da kake gani sun fi muhimmanci.",
+    "Farmer": "Manomi", "Business": "Kasuwanci", "Agency": "Hukuma", "01 / THE PLACES WE PROTECT": "01 / WURAREN DA MUKE KAREWA", "NAIJACLIMAGUARD / ACCOUNT": "NAIJACLIMAGUARD / ASUSU", "RETURNING": "DAWOWA", "NEW ACCOUNT": "SABON ASUSU", "WELCOME BACK / YOUR WORKSPACE": "BARKA DA DAWOWA / WURIN AIKINKA", "START FREE / ONE ACCOUNT": "FARA KYAUTA / ASUSU GUDA", "YOU HAVE REACHED THE END / KEEP EXPLORING": "AN KAI ƘARSHE / CI GABA DA DUBAWA",
     "Public site": "Shafin jama'a", "The story": "Labarin", "continues": "ya ci gaba", "here.": "a nan.", "Start with": "Fara da", "what": "abin da", "matters.": "ke da muhimmanci.",
     "One place to understand the risk, decide what to do, and keep a record of what happened.": "Wuri guda don fahimtar haɗari, yanke shawarar abin yi, da adana abin da ya faru.",
     "Know before. Act together. Prove after.": "Sani tun da wuri. Yi aiki tare. Nuna shaida daga baya.", "Explore the evidence": "Duba shaidar",
@@ -38,6 +42,8 @@ export const WORKSPACE_V2_COPY: Record<AppLocale, Record<string, string>> = {
     "Every risk result belongs to an exact saved coordinate. The working area does not imply a state wide forecast.": "Kowane sakamakon haɗari na takamaiman wurin da aka ajiye ne. Yankin aiki ba hasashe ne ga duk jihar ba.", "Back to top": "Koma sama",
   },
   yo: {
+    "YOUR WORKSPACE": "IBI IṢẸ́ RẸ", "WORKSPACE": "IBI IṢẸ́", "Choose dashboard view": "Yan ìwò ibi iṣẹ́", "Know your": "Mọ ìgbésẹ̀", "next step.": "tó tẹ̀lé.", "Check the rainfall signal where you are. Official warnings and visible conditions always take priority.": "Ṣàyẹ̀wò àmì òjò níbi tí o wà. Ìkìlọ̀ òfin àti ohun tí o rí níta ló yẹ kí o kọ́kọ́ tẹ̀lé.",
+    "Farmer": "Àgbẹ̀", "Business": "Iṣẹ́ ajé", "Agency": "Àjọ", "01 / THE PLACES WE PROTECT": "01 / ÀWỌN IBI TÍ A Ń DÁÀBÒ BÒ", "NAIJACLIMAGUARD / ACCOUNT": "NAIJACLIMAGUARD / ÀKỌỌLẸ̀", "RETURNING": "PADÀ WÁ", "NEW ACCOUNT": "ÀKỌỌLẸ̀ TUNTUN", "WELCOME BACK / YOUR WORKSPACE": "KÁÀBỌ̀ PADÀ / IBI IṢẸ́ RẸ", "START FREE / ONE ACCOUNT": "BẸ̀RẸ̀ LỌ́FẸ̀Ẹ́ / ÀKỌỌLẸ̀ KAN", "YOU HAVE REACHED THE END / KEEP EXPLORING": "O TI DÉ ÒPIN / MÁA WÒ SÍI",
     "Public site": "Ojúlé gbogbogbò", "The story": "Ìtàn náà", "continues": "ń tẹ̀síwájú", "here.": "níbí.", "Start with": "Bẹ̀rẹ̀ pẹ̀lú", "what": "ohun tó", "matters.": "ṣe pàtàkì.",
     "One place to understand the risk, decide what to do, and keep a record of what happened.": "Ibi kan láti lóye ewu, pinnu ohun tí a ó ṣe, kí a sì fi ohun tó ṣẹlẹ̀ pamọ́.",
     "Know before. Act together. Prove after.": "Mọ̀ ṣáájú. Ṣe papọ̀. Fi ẹ̀rí hàn lẹ́yìn náà.", "Explore the evidence": "Wo ẹ̀rí náà",
@@ -55,6 +61,8 @@ export const WORKSPACE_V2_COPY: Record<AppLocale, Record<string, string>> = {
     "Every risk result belongs to an exact saved coordinate. The working area does not imply a state wide forecast.": "Àbájáde ewu kọ̀ọ̀kan jẹ́ ti ibi pàtó tí a fi pamọ́. Agbègbè iṣẹ́ kì í ṣe àsọtẹ́lẹ̀ fún gbogbo ìpínlẹ̀.", "Back to top": "Padà sí òkè",
   },
   ig: {
+    "YOUR WORKSPACE": "EBE ỌRỤ GỊ", "WORKSPACE": "EBE ỌRỤ", "Choose dashboard view": "Họrọ echiche ebe ọrụ", "Know your": "Mara nzọụkwụ", "next step.": "gị ọzọ.", "Check the rainfall signal where you are. Official warnings and visible conditions always take priority.": "Lelee akara mmiri ozuzo ebe ị nọ. Ịdọ aka ná ntị gọọmenti na ihe ị hụrụ anya dị mkpa karịa.",
+    "Farmer": "Onye ọrụ ugbo", "Business": "Azụmahịa", "Agency": "Ụlọ ọrụ", "01 / THE PLACES WE PROTECT": "01 / EBE ANYỊ NA-ECHEBE", "NAIJACLIMAGUARD / ACCOUNT": "NAIJACLIMAGUARD / AKAỤNTỤ", "RETURNING": "LAGHACHIRI", "NEW ACCOUNT": "AKAỤNTỤ ỌHỤRỤ", "WELCOME BACK / YOUR WORKSPACE": "NNỌỌ ỌZỌ / EBE ỌRỤ GỊ", "START FREE / ONE ACCOUNT": "MALITE N'EFU / OTU AKAỤNTỤ", "YOU HAVE REACHED THE END / KEEP EXPLORING": "Ị RUOLA N'ỌGWỤGWỤ / NỌGIDE NA-ENYOCHA",
     "Public site": "Saịtị ọha", "The story": "Akụkọ a", "continues": "na-aga n'ihu", "here.": "ebe a.", "Start with": "Malite na", "what": "ihe", "matters.": "dị mkpa.",
     "One place to understand the risk, decide what to do, and keep a record of what happened.": "Otu ebe iji ghọta ihe egwu, kpebie ihe a ga-eme, ma debe ndekọ ihe mere.",
     "Know before. Act together. Prove after.": "Mara tupu oge eruo. Mee ihe ọnụ. Gosi ihe akaebe ma emechaa.", "Explore the evidence": "Lee ihe akaebe",

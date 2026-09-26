@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight, MapPin } from "lucide-react";
-import { useExperienceProfile, type ExperienceRole } from "@/components/shared/ExperienceProfile";
+import { EXPERIENCE_LABELS, useExperienceProfile, type ExperienceRole } from "@/components/shared/ExperienceProfile";
 import { useLanguage } from "@/components/shared/LanguageProvider";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
 
@@ -19,7 +19,7 @@ export default function DashboardHero({ areaName, areaZone }: { areaName: string
   const tr = (value: string) => translatePlatformText(locale, value);
   const view = VIEWS[role];
   return <section className="ncg-dashboard-hero" data-read-aloud aria-label={tr(`${view.label} workspace`)}>
-    <div className="ncg-dashboard-hero-copy"><div className="ncg-dashboard-hero-index"><span>{view.number} / {tr(view.label)} WORKSPACE</span><span className="ncg-dashboard-signal" /> </div>
+    <div className="ncg-dashboard-hero-copy"><div className="ncg-dashboard-hero-index"><span>{view.number} / {tr(EXPERIENCE_LABELS[role])} · {tr("WORKSPACE")}</span><span className="ncg-dashboard-signal" /> </div>
       <h1>{tr(view.first)}<br /><em>{tr(view.emphasis)}</em></h1><p>{tr(view.description)}</p>
       <Link href={view.href}>{tr(view.action)} <ArrowUpRight size={19} /></Link>
     </div>
