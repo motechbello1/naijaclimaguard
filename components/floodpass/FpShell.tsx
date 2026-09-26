@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck, House, Languages, Moon, Radio, Sun, Volume2, ArrowUpRight, LayoutDashboard } from "lucide-react";
+import { BadgeCheck, House, Languages, Moon, Radio, Sun, Volume2, LayoutDashboard, ChevronDown, LogOut, UserRound, UserPlus } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { APP_LANGUAGES, type AppLocale } from "@/lib/i18n/config";
 import { useLanguage } from "@/components/shared/LanguageProvider";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
@@ -60,7 +61,8 @@ const desktopNav = [
 
 export default function FpShell({ children, active }: { children: React.ReactNode; active?: Active }) {
   const { locale: lang, setLocale: setLang } = useLanguage();
-  const { status } = useSession();
+  const { status, data: session } = useSession();
+  const router = useRouter();
   const [night, setNight] = useState(false);
 
   useEffect(() => {
@@ -79,7 +81,8 @@ export default function FpShell({ children, active }: { children: React.ReactNod
   }, [lang]);
 
   const tr = useCallback((key: string) => translatePlatformText(lang, UI[key] ?? key), [lang]);
-  const accountHref = status === "authenticated" ? "/dashboard" : "/login?callbackUrl=%2Fdashboard";
+  const signedIn = status === "authenticated";
+  const logout = async () => { await signOut({ redirect: false }); router.replace("/"); };
 
   return (
     <Ctx.Provider value={{ lang, setLang, night, say, tr }}>
@@ -107,7 +110,13 @@ export default function FpShell({ children, active }: { children: React.ReactNod
               <button className="fp-control fp-theme-control" onClick={toggleNight} aria-label={night ? "Switch to day mode" : "Switch to night mode"} aria-pressed={night} title={night ? "Day mode" : "Night mode"}>
                 {night ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
               </button>
-              <Link href={accountHref} className="fp-header-report">{status === "authenticated" ? "My workspace" : "Log in"} <ArrowUpRight size={17} aria-hidden="true" /></Link>
+              <details className="fp-account-menu">
+                <summary><UserRound size={17} aria-hidden="true" /><span>{signedIn ? tr("Account") : tr("Log in / sign up")}</span><ChevronDown size={14} aria-hidden="true" /></summary>
+                <div className="fp-account-panel">
+                  {signedIn && <p className="fp-account-person">{session?.user?.name || session?.user?.email}</p>}
+                  {signedIn ? <><Link href="/dashboard"><LayoutDashboard size={17} /> {tr("My workspace")}</Link><Link href="/profile"><UserRound size={17} /> {tr("Profile and settings")}</Link><Link href="/register"><UserPlus size={17} /> {tr("Create another account")}</Link><button type="button" onClick={logout}><LogOut size={17} /> {tr("Sign out")}</button></> : <><Link href="/login?callbackUrl=%2Fdashboard"><UserRound size={17} /> {tr("Log in")}</Link><Link href="/register"><UserPlus size={17} /> {tr("Create free account")}</Link></>}
+                </div>
+              </details>
             </div>
           </div>
         </header>
@@ -115,7 +124,7 @@ export default function FpShell({ children, active }: { children: React.ReactNod
         <footer className="fp-footer">
           <div className="fp-wrap fp-footer-inner">
             <div><div className="fp-footer-lockup"><FpMark size={34} /><strong>NaijaClimaGuard</strong></div><p>Know before. Act together. Prove after.<br />FloodPass is our field evidence service.</p></div>
-            <div className="fp-footer-links"><Link href="/dashboard">My workspace · family, farm, business, agency</Link><Link href="/login">Log in</Link><Link href="/register">Create free account</Link><Link href="/floodpass/help">Flood guidance</Link><Link href="/partners">For organisations</Link><Link href="/floodpass/coverage">Coverage and sources</Link><Link href="/floodpass/plans">Membership and pilots</Link></div>
+            <div className="fp-footer-links"><Link href="/dashboard">My workspace · family, farm, business, agency</Link>{signedIn ? <Link href="/profile">Profile and settings</Link> : <><Link href="/login">Log in</Link><Link href="/register">Create free account</Link></>}<Link href="/floodpass/help">Flood guidance</Link><Link href="/partners">For organisations</Link><Link href="/floodpass/coverage">Coverage and sources</Link><Link href="/floodpass/plans">Membership and pilots</Link></div>
             <p className="fp-footer-note">Public warnings and reporting are free. Official warnings take priority. No warning does not mean no flood risk. In an emergency call 112.</p>
           </div>
         </footer>

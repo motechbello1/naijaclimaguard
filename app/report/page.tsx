@@ -2,13 +2,13 @@
 
 import AppShell from "@/components/shared/AppShell";
 import { useState, useEffect, useCallback } from "react";
-import { MapPin, CheckCircle2, AlertTriangle, Loader2, Megaphone, LocateFixed } from "lucide-react";
+import { MapPin, CheckCircle2, AlertTriangle, Loader2, Megaphone, LocateFixed, Waves, Ruler, MoveUp, Check, X } from "lucide-react";
 
 const LEVELS = [
-  { key: "ANKLE", emoji: "🦶", label: "Ankle deep", sub: "Water covers the road surface" },
-  { key: "KNEE", emoji: "🦵", label: "Knee deep", sub: "Hard to walk through" },
-  { key: "WAIST", emoji: "🧍", label: "Waist deep", sub: "Dangerous — avoid crossing" },
-  { key: "ABOVE_HEAD", emoji: "🌊", label: "Above head", sub: "Life-threatening flooding" },
+  { key: "ANKLE", icon: Ruler, label: "Ankle deep", sub: "Water covers the road surface" },
+  { key: "KNEE", icon: MoveUp, label: "Knee deep", sub: "Hard to walk through" },
+  { key: "WAIST", icon: Waves, label: "Waist deep", sub: "Dangerous — avoid crossing" },
+  { key: "ABOVE_HEAD", icon: AlertTriangle, label: "Above head", sub: "Life-threatening flooding" },
 ] as const;
 
 const levelBadge = (l: string) => l === "ANKLE" || l === "KNEE" ? "text-amber" : "text-crimson";
@@ -84,7 +84,7 @@ export default function ReportPage() {
 
         <section className="glass-card rounded-2xl p-6">
           <h2 className="text-base font-bold mb-4">2. How deep is the water?</h2>
-          <div className="grid grid-cols-2 gap-3">{LEVELS.map((l) => <button key={l.key} onClick={() => setLevel(l.key)} className={`rounded-xl border-2 p-4 text-left transition-all active:scale-[0.98] ${level === l.key ? "border-radar bg-radar/5" : "border-slate-200 dark:border-midnight-border hover:border-radar/40"}`}><span className="text-2xl">{l.emoji}</span><span className="mt-1 block font-semibold">{l.label}</span><span className="block text-xs text-slate-500">{l.sub}</span></button>)}</div>
+          <div className="grid grid-cols-2 gap-3">{LEVELS.map((l) => <button key={l.key} onClick={() => setLevel(l.key)} className={`rounded-xl border-2 p-4 text-left transition-all active:scale-[0.98] ${level === l.key ? "border-radar bg-radar/5" : "border-slate-200 dark:border-midnight-border hover:border-radar/40"}`}><l.icon className="h-6 w-6 text-radar" aria-hidden="true" /><span className="mt-2 block font-semibold">{l.label}</span><span className="block text-xs text-slate-500">{l.sub}</span></button>)}</div>
         </section>
 
         <section className="glass-card rounded-2xl p-6">
@@ -97,7 +97,7 @@ export default function ReportPage() {
 
         <section>
           <h2 className="mb-3 text-sm font-semibold text-slate-500">Recent reports from the community</h2>
-          {recent.length === 0 ? <p className="glass-card rounded-xl p-5 text-sm text-slate-500">No recent reports are available yet.</p> : <div className="space-y-2">{recent.slice(0, 8).map((r) => <div key={r.id} className="glass-card flex items-center justify-between gap-3 rounded-xl px-4 py-3"><div><p className="text-sm font-semibold flex items-center gap-2">{r.area}<span className={`standard-up font-mono text-[9px] uppercase rounded px-1.5 py-0.5 border ${r.status === "VERIFIED" ? "text-radar border-radar/30" : r.status === "REJECTED" ? "text-slate-400 border-slate-300" : "text-amber border-amber/30"}`}>{r.status}</span></p><p className="text-xs text-slate-500">{new Date(r.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}{r.description ? ` · ${r.description.slice(0, 60)}` : ""}</p></div><div className="flex items-center gap-3"><span className={`text-xs font-bold ${levelBadge(r.waterLevel)}`}>{r.waterLevel.replace("_", " ").toLowerCase()}</span>{isOperator && r.status === "PENDING" && <span className="flex gap-1"><button onClick={() => moderate(r.id, "VERIFIED")} title="Verify report" className="rounded border border-radar/40 px-2 py-1 text-[10px] font-bold text-radar">✓</button><button onClick={() => moderate(r.id, "REJECTED")} title="Reject report" className="rounded border border-crimson/40 px-2 py-1 text-[10px] font-bold text-crimson">✕</button></span>}</div></div>)}</div>}
+          {recent.length === 0 ? <p className="glass-card rounded-xl p-5 text-sm text-slate-500">No recent reports are available yet.</p> : <div className="space-y-2">{recent.slice(0, 8).map((r) => <div key={r.id} className="glass-card flex items-center justify-between gap-3 rounded-xl px-4 py-3"><div><p className="text-sm font-semibold flex items-center gap-2">{r.area}<span className={`standard-up font-mono text-[9px] uppercase rounded px-1.5 py-0.5 border ${r.status === "VERIFIED" ? "text-radar border-radar/30" : r.status === "REJECTED" ? "text-slate-400 border-slate-300" : "text-amber border-amber/30"}`}>{r.status}</span></p><p className="text-xs text-slate-500">{new Date(r.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}{r.description ? ` · ${r.description.slice(0, 60)}` : ""}</p></div><div className="flex items-center gap-3"><span className={`text-xs font-bold ${levelBadge(r.waterLevel)}`}>{r.waterLevel.replace("_", " ").toLowerCase()}</span>{isOperator && r.status === "PENDING" && <span className="flex gap-1"><button onClick={() => moderate(r.id, "VERIFIED")} title="Verify report" aria-label="Verify report" className="rounded border border-radar/40 px-2 py-1 text-radar"><Check size={15} /></button><button onClick={() => moderate(r.id, "REJECTED")} title="Reject report" aria-label="Reject report" className="rounded border border-crimson/40 px-2 py-1 text-crimson"><X size={15} /></button></span>}</div></div>)}</div>}
         </section>
       </div>
     </AppShell>

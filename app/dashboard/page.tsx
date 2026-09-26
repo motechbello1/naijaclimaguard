@@ -1,11 +1,9 @@
 "use client";
 
 import AppShell from "@/components/shared/AppShell";
-import RiverineWatchEvidence from "@/components/shared/RiverineWatchEvidence";
 import { useNationalArea } from "@/components/shared/NationalArea";
 import { useLanguage } from "@/components/shared/LanguageProvider";
 import AdaptiveDashboard, { LocationData, LiveRisk } from "@/components/dashboard/AdaptiveDashboard";
-import ActionOSBanner from "@/components/dashboard/ActionOSBanner";
 import DashboardCapabilityDock from "@/components/dashboard/DashboardCapabilityDock";
 import DashboardHero from "@/components/dashboard/DashboardHero";
 import { NIGERIA_ADMIN_AREAS } from "@/lib/nigeria-geography";
@@ -100,8 +98,6 @@ function DashboardContent() {
       <div className="ncg-motion-stack space-y-6" key={locale}>
         <DashboardHero areaName={area.name} areaZone={area.zone} />
         <AdaptiveDashboard userName={session.user?.name} paymentStatus={paymentStatus} locations={locations} risks={risks} limit={limit} plan={plan} showAdd={showAdd} setShowAdd={setShowAdd} newLoc={newLoc} setNewLoc={setNewLoc} addErr={addErr} addLocation={addLocation} deleteLocation={deleteLocation} fetchRisk={fetchRisk} />
-        <div className="standard-up"><ActionOSBanner /></div>
-        <div className="standard-up"><RiverineWatchEvidence compact /></div>
         <DashboardCapabilityDock />
       </div>
     </AppShell>

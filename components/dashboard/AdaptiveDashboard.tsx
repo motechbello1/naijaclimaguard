@@ -129,9 +129,9 @@ export default function AdaptiveDashboard(props: Props) {
 
       {(role === "BUSINESS" || role === "AGENCY") && mode !== "simple" && <MultiSourceIntelligencePanel technical={mode === "technical"} />}
 
-      {mode === "simple" ? (
+      {mode === "simple" && props.locations.length > 0 ? (
         <SimpleDashboardSummary role={role} locations={props.locations} risks={props.risks} />
-      ) : (
+      ) : mode !== "simple" ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="glass-card p-4">
             <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{tr("Highest saved-location index")}</p>
@@ -150,7 +150,7 @@ export default function AdaptiveDashboard(props: Props) {
             <p className="mt-1 flex items-center gap-1.5 font-mono text-sm font-bold text-radar"><Zap className="h-3.5 w-3.5" /> {tr("Manage rules →")}</p>
           </Link>
         </div>
-      )}
+      ) : null}
 
       <section className={mode === "simple" ? "pt-1" : "glass-card p-4 sm:p-6"}>
         <div className={`flex flex-wrap items-end justify-between gap-3 ${mode === "simple" ? "mb-5 border-b border-[#0d1f19]/10 pb-4 dark:border-white/10" : "mb-4"}`}>

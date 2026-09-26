@@ -4,7 +4,6 @@ import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import SplashScreen from "@/components/shared/SplashScreen";
 import { LanguageProvider } from "@/components/shared/LanguageProvider";
 import LanguagePreferenceSync from "@/components/shared/LanguagePreferenceSync";
 import PlatformTranslationBridge from "@/components/shared/PlatformTranslationBridge";
@@ -39,7 +38,6 @@ export function Providers({ children }: { children: ReactNode }) {
               <LanguagePreferenceSync />
               <PlatformTranslationBridge />
               {pathname === "/" && <LandingIntro />}
-              {floodPass ? null : <SplashScreen />}
               {floodPass ? children : <AppMotionFrame>{children}</AppMotionFrame>}
               {floodPass || ownControls ? null : <GlobalAccessibilityDock />}
               {floodPass || ownControls ? null : <FloodAssistant />}

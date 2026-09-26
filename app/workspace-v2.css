@@ -78,3 +78,31 @@
 @media (max-width: 760px) { .ncg-dashboard-hero { grid-template-columns: 1fr; }.ncg-dashboard-hero-copy { min-height: 390px; }.ncg-dashboard-hero h1 { margin-top: 62px; }.ncg-dashboard-hero-place { min-height: 220px; display: grid; grid-template-columns: 1fr auto; }.ncg-dashboard-hero-place > svg { margin: 0; }.ncg-dashboard-hero-place > div,.ncg-dashboard-hero-place > small { grid-column: 1/-1; }.ncg-dashboard-hero-place strong { font-size: 40px; } }
 @media (max-width: 510px) { .ncg-role-switch button { flex: 0 0 calc(50% - 2px); }.ncg-workspace-identity { margin-bottom: 27px; }.ncg-workspace-app .ncg-water-panel h1 { font-size: 57px; } }
 @media (prefers-reduced-motion: reduce) { .ncg-workspace-app .ncg-motion-stack { animation: none; }.ncg-role-switch button,.ncg-workspace-app .ncg-capability-card,.ncg-workspace-app .glass-card,.ncg-dashboard-hero-copy > a { transition: none; } }
+
+/* Account actions stay beside the workspace controls on every screen. */
+.ncg-account-menu { position: relative; flex: none; }
+.ncg-account-menu summary { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 9px 4px 4px; border: 1px solid var(--ws-line); border-radius: 999px; background: #fffefa; color: var(--ws-ink); font: 700 12px Manrope,sans-serif; cursor: pointer; list-style: none; }
+.ncg-account-menu summary::-webkit-details-marker { display: none; }
+.ncg-account-menu summary:focus-visible,.ncg-account-panel a:focus-visible,.ncg-account-panel button:focus-visible { outline: 2px solid #247b68; outline-offset: 2px; }
+.ncg-account-avatar { display: flex; align-items: center; justify-content: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: #0c3535; color: #daf18c; font: 800 12px Manrope,sans-serif; }
+.ncg-account-panel { position: absolute; z-index: 70; top: calc(100% + 11px); right: 0; width: min(285px,calc(100vw - 24px)); padding: 7px; border: 1px solid var(--ws-line); background: #fffefa; box-shadow: 0 18px 50px rgba(7,30,27,.18); }
+.ncg-account-person { padding: 11px 12px 13px; border-bottom: 1px solid var(--ws-line); overflow: hidden; }
+.ncg-account-person strong,.ncg-account-person span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ncg-account-person strong { font-size: 14px; }.ncg-account-person span { margin-top: 4px; color: #506b64; font-size: 11px; }
+.ncg-account-panel a,.ncg-account-panel button { display: flex; align-items: center; gap: 11px; width: 100%; min-height: 43px; padding: 9px 11px; color: #123c35; background: none; font: 700 12px Manrope,sans-serif; text-align: left; text-decoration: none; cursor: pointer; }
+.ncg-account-panel a:hover,.ncg-account-panel button:hover { background: #e5efd9; }.ncg-account-panel button { border-top: 1px solid var(--ws-line); color: #8b2d35; }
+.dark .ncg-account-menu summary,.dark .ncg-account-panel { background: #143239; color: #f3f8ec; }.dark .ncg-account-panel a { color: #f3f8ec; }.dark .ncg-account-panel button { color: #ffc3c9; }.dark .ncg-account-person span { color: #b9d0c7; }.dark .ncg-account-panel a:hover,.dark .ncg-account-panel button:hover { background: #23514d; }
+.ncg-workspace-app .ncg-workspace-main { padding-top: 23px; }
+.ncg-workspace-identity { align-items: center; justify-content: flex-start; gap: 22px; margin-bottom: 23px; padding-bottom: 15px; }
+.ncg-workspace-identity > span { flex: none; font: 700 11px Manrope,sans-serif; color: var(--ws-muted); }
+.ncg-role-switch button { min-height: 39px; padding: 8px 12px; font-weight: 700; }
+.ncg-dashboard-hero { min-height: 320px; grid-template-columns: minmax(0,1.7fr) minmax(240px,.65fr); }
+.ncg-dashboard-hero-copy { padding: clamp(24px,3vw,43px); }
+.ncg-dashboard-hero h1 { margin: 28px 0 16px; font-size: clamp(42px,4vw,63px); }
+.ncg-dashboard-hero-copy > a { margin-top: 21px; padding: 12px 15px; }
+.ncg-dashboard-hero-place { padding: clamp(24px,2.8vw,40px); gap: 15px; }
+.ncg-dashboard-hero-place strong { font-size: clamp(32px,3vw,47px); }
+.ncg-workspace-app .ncg-dashboard-hero + div { margin-top: 23px; }
+@media (max-width: 900px) { .ncg-workspace-identity { flex-direction: row; align-items: center; }.ncg-role-switch { width: auto; } }
+@media (max-width: 760px) { .ncg-dashboard-hero { grid-template-columns: 1fr; }.ncg-dashboard-hero-copy { min-height: 0; }.ncg-dashboard-hero h1 { margin: 30px 0 16px; }.ncg-dashboard-hero-place { min-height: 0; }.ncg-workspace-identity { align-items: flex-start; flex-direction: column; gap: 8px; }.ncg-role-switch { width: 100%; }.ncg-account-label { display: none; } }
+@media (max-width: 510px) { .ncg-account-menu summary { padding-right: 6px; }.ncg-role-switch button { flex: 1 0 calc(50% - 2px); }.ncg-workspace-header > div { gap: 7px; }.ncg-workspace-header .ncg-account-menu { margin-left: 0; } }

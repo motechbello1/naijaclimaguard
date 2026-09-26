@@ -5,13 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
-  BarChart3, Building2, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck,
+  BarChart3, Building2, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck,
   Compass, FileCheck2, Home, LayoutDashboard, LogOut, Map, MapPin, Megaphone,
   Menu, Presentation, Radar, Settings2, ShieldAlert, Sprout, House, Landmark, Telescope,
-  BadgeDollarSign, WalletCards, X, Zap,
+  BadgeDollarSign, UserRound, UserPlus, WalletCards, X, Zap,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
-import SatelliteStatus from "./SatelliteStatus";
 import { ExplanationModeControl, ExplanationModeProvider, PageExplanation } from "./ExplanationMode";
 import { EXPERIENCE_LABELS, ExperienceProfileProvider, ExperienceRoleControl, useExperienceProfile, type ExperienceRole } from "./ExperienceProfile";
 import { NationalAreaControl, useNationalArea } from "./NationalArea";
@@ -145,8 +144,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-emerald-300/28 blur-3xl dark:bg-[#1f5f49]/30" />
         <div className="relative flex h-[74px] items-center justify-between px-4"><Brand compact={collapsed} /><button onClick={() => setCollapsed((v) => !v)} className="flex h-8 w-8 items-center justify-center rounded-full border border-black/8 bg-white/75 text-emerald-900/65 hover:text-[#071713] dark:border-white/10 dark:bg-white/[.05] dark:text-white/55 dark:hover:text-white" aria-label={collapsed ? tr("Expand navigation") : tr("Collapse navigation")}>{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button></div>
 
-        {!collapsed && <div className="relative mx-3 rounded-[18px] border border-black/7 bg-white/72 p-4 dark:border-white/10 dark:bg-white/[.055]"><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.18em] text-emerald-800 dark:text-[#d9ff57]"><MapPin className="h-3.5 w-3.5" /> {tr("Working area")}</div><p className="mt-2 text-lg font-black tracking-tight">{area.name}</p><p className="mt-1 text-xs leading-5 text-slate-500 dark:text-white/55">{tr("National platform")} · 36 states + FCT</p></div>}
-
         <div className="relative flex-1 overflow-y-auto px-3 py-4">
           {!collapsed && <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[.18em] text-emerald-950/38 dark:text-white/35">{tr("Workspace")}</p>}
           <nav className="space-y-1">{nav.map(navLink)}</nav>
@@ -154,31 +151,34 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           <nav className="space-y-1">{productLinks.map((item) => { const active = pathname === item.href || (item.href === "/admin" && pathname.startsWith("/revenue/command")); const Icon = item.icon; return <Link key={item.href} href={item.href} className={`group flex min-h-11 items-center gap-3 rounded-[14px] px-3 text-sm font-semibold ${active ? "bg-[#071713] text-white dark:bg-white/[.11]" : "text-[#315045] hover:bg-black/[.045] hover:text-[#071713] dark:text-white/70 dark:hover:bg-white/[.06] dark:hover:text-white"}`}><Icon className={`h-[18px] w-[18px] ${active ? "text-[#d9ff57]" : "text-emerald-800/65 dark:text-white/55"}`} />{!collapsed && <span>{tr(item.label)}</span>}</Link>; })}</nav>
         </div>
 
-        <div className="relative m-3 rounded-[20px] border border-black/7 bg-white/72 p-2 dark:border-white/10 dark:bg-[#0b211a]">
-          <Link href="/profile" className="flex items-center gap-3 rounded-[14px] p-2.5 hover:bg-black/[.035] dark:hover:bg-white/[.05]"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#071713] text-sm font-black text-[#d9ff57] dark:bg-[#d9ff57] dark:text-[#071713]">{initial}</div>{!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{userName}</p><p className="mt-0.5 text-[10px] font-bold uppercase tracking-[.14em] text-slate-400 dark:text-white/45">{userPlan}</p></div>}</Link>
-          {!collapsed && <button onClick={handleLogout} className="mt-1 flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-xs font-semibold text-rose-700/75 hover:bg-rose-100 hover:text-rose-800 dark:text-rose-200/80 dark:hover:bg-rose-300/10 dark:hover:text-rose-100"><LogOut className="h-4 w-4" /> {t("signOut")}</button>}
-        </div>
       </aside>
 
       <div className={`min-w-0 flex-1 transition-[padding] duration-300 ${collapsed ? "lg:pl-[102px]" : "lg:pl-[296px]"}`}>
         <header className="ncg-workspace-header sticky top-0 z-30 border-b border-[#0d1f19]/7 bg-[#f3f4ee]/[.94] backdrop-blur-xl dark:border-white/8 dark:bg-[#07110e]/[.94]">
           <div className="mx-auto flex h-[68px] max-w-[1680px] items-center gap-3 px-4 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3 lg:hidden" data-ncg-no-translate="true"><BrandMark className="h-9 w-9 shrink-0 dark:hidden" /><BrandMark inverse className="hidden h-9 w-9 shrink-0 dark:block" /><div className="min-w-0"><p className="truncate text-[15px] font-black tracking-[-.03em]">NaijaClimaGuard</p><p className="truncate text-[10px] font-semibold text-slate-500 dark:text-white/48">{area.name}</p></div></div>
-            <div className="hidden lg:block"><SatelliteStatus /></div>
+            <span className="hidden text-[11px] font-semibold text-[#315045] dark:text-white/60 lg:block">{area.name}</span>
             <div className="ml-auto flex items-center gap-2">
               <div className="hidden md:block"><NationalAreaControl compact /></div>
               <div className="hidden sm:block"><LanguageSelector compact /></div>
               <div className="hidden 2xl:block"><ExplanationModeControl /></div>
-              <div className="hidden 2xl:block"><ExperienceRoleControl /></div>
               <ThemeToggle />
-              <Link href="/profile" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#071713] text-xs font-black text-[#d9ff57] lg:hidden" aria-label={tr("Profile")}>{initial}</Link>
+              <details className="ncg-account-menu">
+                <summary aria-label={tr("Account menu")}><span className="ncg-account-avatar">{initial}</span><span className="ncg-account-label">{tr("Account")}</span><ChevronDown size={14} aria-hidden="true" /></summary>
+                <div className="ncg-account-panel">
+                  <div className="ncg-account-person"><strong>{userName}</strong><span>{tr(userPlan)} · {session?.user?.email}</span></div>
+                  <Link href="/profile"><UserRound size={17} /> {tr("Profile and settings")}</Link>
+                  <Link href="/register"><UserPlus size={17} /> {tr("Create another account")}</Link>
+                  <button type="button" onClick={handleLogout}><LogOut size={17} /> {t("signOut")}</button>
+                </div>
+              </details>
             </div>
           </div>
         </header>
 
         <main className="ncg-workspace-main min-w-0 overflow-x-hidden px-4 pb-[calc(7.25rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 lg:px-8 lg:pb-10 lg:pt-8">
           <div className="mx-auto w-full max-w-[1680px]">
-            <div className="ncg-workspace-identity"><div><span>{tr("YOUR WORKSPACE")} / {area.name.toUpperCase()}</span><p>{tr("Choose what you protect.")}</p></div><div className="ncg-role-switch" aria-label={tr("Choose dashboard view")}>
+            <div className="ncg-workspace-identity"><span>{tr("View as")}</span><div className="ncg-role-switch" aria-label={tr("Choose dashboard view")}>
               {(Object.keys(EXPERIENCE_LABELS) as ExperienceRole[]).map((item) => { const Icon = { HOUSEHOLD: House, FARMER: Sprout, BUSINESS: Building2, AGENCY: Landmark }[item]; return <button key={item} type="button" aria-pressed={role === item} onClick={() => setRole(item)}><Icon size={16} strokeWidth={1.8} /><span>{tr(EXPERIENCE_LABELS[item])}</span></button>; })}
             </div></div>
             <PageExplanation pathname={pathname} />{children}
@@ -192,7 +192,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       </nav>
 
       {moreOpen && <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true" aria-label={tr("More navigation")}><button className="absolute inset-0 bg-[#03120d]/60 backdrop-blur-[3px]" onClick={() => setMoreOpen(false)} aria-label={tr("Close menu")} /><section className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-[32px] bg-[#f7f7f2] px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 text-[#0d1f19] shadow-2xl dark:bg-[#0b1814] dark:text-white"><div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-300 dark:bg-white/15" /><div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[.16em] text-emerald-700 dark:text-[#d9ff57]">{tr("Your NaijaClimaGuard")}</p><p className="mt-1 text-2xl font-black tracking-tight">{tr("Everything else")}</p></div><button onClick={() => setMoreOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/70 dark:bg-white/8" aria-label={tr("Close")}><X className="h-4 w-4" /></button></div>
-        <Link href="/tools" className="mt-5 flex items-center justify-between rounded-[20px] bg-[#071713] px-5 py-4 text-white"><div><p className="text-sm font-black">{tr("Find any tool")}</p><p className="mt-1 text-[11px] text-white/55">{tr("Search every feature in one place")}</p></div><Compass className="h-5 w-5 text-[#d9ff57]" /></Link>
+        <Link href="/profile" className="mt-5 flex items-center gap-3 rounded-[20px] border border-black/10 bg-white px-4 py-3 dark:border-white/10 dark:bg-white/5"><span className="ncg-account-avatar">{initial}</span><span className="min-w-0 flex-1"><strong className="block truncate text-sm">{userName}</strong><small className="text-xs text-slate-500">{tr("Profile and settings")}</small></span><ChevronRight size={18} /></Link>
+        <Link href="/tools" className="mt-3 flex items-center justify-between rounded-[20px] bg-[#071713] px-5 py-4 text-white"><div><p className="text-sm font-black">{tr("Find any tool")}</p><p className="mt-1 text-[11px] text-white/55">{tr("Search every feature in one place")}</p></div><Compass className="h-5 w-5 text-[#d9ff57]" /></Link>
         <div className="mt-4 grid grid-cols-2 gap-2">{nav.map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} className="rounded-[18px] border border-black/7 bg-white p-4 shadow-[0_6px_24px_rgba(25,45,36,.05)] dark:border-white/8 dark:bg-white/[.04]"><Icon className="h-5 w-5 text-emerald-700 dark:text-[#d9ff57]" /><p className="mt-4 text-sm font-bold">{t(item.key)}</p></Link>; })}</div>
         <div className="mt-5 rounded-[22px] border border-black/7 bg-white p-4 dark:border-white/8 dark:bg-white/[.04]"><div className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-emerald-700 dark:text-[#d9ff57]" /><p className="text-sm font-black">{tr("Preferences")}</p></div><div className="mt-4 grid gap-3"><NationalAreaControl /><LanguageSelector /><ExperienceRoleControl /><ExplanationModeControl /><ReadAloudControl /><div className="flex items-center justify-between rounded-[14px] bg-[#f3f4ee] p-3 dark:bg-black/20"><span className="text-xs font-semibold">{tr("Appearance")}</span><ThemeToggle /></div></div></div>
         <div className="mt-4 grid grid-cols-2 gap-2">{productLinks.filter((item) => item.href !== "/tools").map((item) => <Link key={item.href} href={item.href} className="rounded-[18px] bg-[#071713] p-4 text-white"><item.icon className="h-5 w-5 text-[#d9ff57]" /><p className="mt-3 text-sm font-bold">{tr(item.label)}</p></Link>)}</div>

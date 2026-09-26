@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import AppShell from "./AppShell";
+import { LockKeyhole } from "lucide-react";
 
 export default function ProtectedPage({ children, requiredPlan }: { children: React.ReactNode; requiredPlan?: string[] }) {
   const { data: session, status } = useSession();
@@ -30,7 +31,7 @@ export default function ProtectedPage({ children, requiredPlan }: { children: Re
         <AppShell>
           <div className="flex items-center justify-center h-64">
             <div className="glass-card rounded-2xl p-10 text-center max-w-md">
-              <div className="text-4xl mb-4">🔒</div>
+              <LockKeyhole className="mx-auto mb-4 h-9 w-9 text-radar" aria-hidden="true" />
               <h2 className="font-display text-xl font-bold mb-2">Upgrade Required</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">This feature requires {requiredPlan[0]} plan. You are on {userPlan}.</p>
               <button onClick={() => router.push("/#pricing")} className="rounded-xl bg-radar px-6 py-2.5 text-sm font-semibold text-white hover:bg-radar/90 shadow-lg shadow-radar/20">View Plans</button>

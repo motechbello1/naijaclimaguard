@@ -10,13 +10,13 @@ export default function LandingIntro() {
 
   useEffect(() => {
     if (window.sessionStorage.getItem(KEY)) return;
+    window.sessionStorage.setItem(KEY, "1");
     setVisible(true);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const exit = window.setTimeout(() => setLeaving(true), reduced ? 180 : 950);
+    const exit = window.setTimeout(() => setLeaving(true), reduced ? 180 : 1900);
     const finish = window.setTimeout(() => {
       setVisible(false);
-      window.sessionStorage.setItem(KEY, "1");
-    }, reduced ? 250 : 1450);
+    }, reduced ? 250 : 2600);
     return () => { window.clearTimeout(exit); window.clearTimeout(finish); };
   }, []);
 
