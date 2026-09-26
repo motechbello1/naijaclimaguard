@@ -38,6 +38,12 @@
 .fp-footer { background: #0b282b; }
 .fp-footer-lockup strong { font-size: 19px; letter-spacing: -.04em; }
 .fp-mark rect { fill: #0f3639; }
+/* The older platform theme uses an !important dark input rule on html.dark.
+   FloodPass keeps its own day/night setting, so its form controls must follow it. */
+.dark .fp-root:not(.fp-night) input:not([type="checkbox"]),
+.dark .fp-root:not(.fp-night) select,
+.dark .fp-root:not(.fp-night) textarea { background-color: #fffefa !important; color: #102a2b !important; border-color: #cbd6d0 !important; }
+.fp-root input::placeholder,.fp-root textarea::placeholder { color: var(--fp-muted); opacity: 1; }
 
 .ncg-home { color: var(--fp-text); }
 .fp-root .ncg-kicker { display: block; font: 800 11px "DM Mono",monospace; letter-spacing: .14em; }
