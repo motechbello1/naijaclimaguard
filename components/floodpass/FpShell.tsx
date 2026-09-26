@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck, House, Languages, Moon, Radio, Sun, Volume2, Waves, ArrowUpRight } from "lucide-react";
+import { BadgeCheck, House, Languages, Moon, Radio, Sun, Volume2, ArrowUpRight } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import "@/app/floodpass.css";
+import "@/app/brand-v2.css";
 
 export type UiLang = "en" | "pcm";
 
@@ -16,14 +17,14 @@ const Ctx = createContext<FpContext | null>(null);
 const UI: Record<UiLang, Record<string, string>> = {
   en: {
     hear: "Listen", night: "Night mode", day: "Day mode", home: "Home", report: "Report", check: "Check", plans: "Plans", help: "Help", partners: "For partners",
-    promise: "Proof that turns a flood into help.",
+    promise: "Know before. Act together. Prove after.",
     lead: "FloodPass shows official flood warnings and helps you report water. Reports that pass our checks become proof that others can check.",
     whatsapp: "Get warnings on WhatsApp", myStreet: "Check my area", waterHere: "Report water", checkCode: "Check a FloodPass code",
     free: "Warnings and proof are free. Always.",
   },
   pcm: {
     hear: "Hear am", night: "Night mode", day: "Day mode", home: "Home", report: "Report", check: "Check", plans: "Plans", help: "Help", partners: "For partners",
-    promise: "Proof wey turn flood to help.",
+    promise: "Know before. Act together. Prove after.",
     lead: "FloodPass dey show official flood warning and help you report water. If your report pass our checks, e go become proof wey people fit check.",
     whatsapp: "Collect warning for WhatsApp", myStreet: "Check my area", waterHere: "Report water", checkCode: "Check FloodPass code",
     free: "Warning and proof na free. Always.",
@@ -48,12 +49,18 @@ export function whatsappLink(text = "Hi") {
   return number ? `https://wa.me/${number}?text=${encodeURIComponent(text)}` : null;
 }
 
-const nav = [
+const mobileNav = [
   { key: "home", href: "/", icon: House },
   { key: "report", href: "/floodpass/report", icon: Radio },
   { key: "check", href: "/check", icon: BadgeCheck },
-  { key: "plans", href: "/floodpass/plans", icon: Waves },
   { key: "help", href: "/floodpass/help", icon: Volume2 },
+] as const;
+
+const desktopNav = [
+  { key: "home", href: "/", label: "Today" },
+  { key: "report", href: "/floodpass/report", label: "Report water" },
+  { key: "check", href: "/check", label: "Check a record" },
+  { key: "partners", href: "/partners", label: "For organisations" },
 ] as const;
 
 export default function FpShell({ children, active }: { children: React.ReactNode; active?: Active }) {
@@ -85,13 +92,13 @@ export default function FpShell({ children, active }: { children: React.ReactNod
         <a className="fp-skip" href="#fp-content">Skip to content</a>
         <header className="fp-header">
           <div className="fp-wrap fp-header-inner">
-            <Link href="/" className="fp-brand" aria-label="FloodPass home">
+            <Link href="/" className="fp-brand" aria-label="NaijaClimaGuard home">
               <FpMark size={42} />
-              <span className="fp-brand-words"><strong>Flood<span>Pass</span></strong><small>BY NAIJACLIMAGUARD</small></span>
+              <span className="fp-brand-words"><strong>NaijaClima<span>Guard</span></strong><small>FLOOD INTELLIGENCE / FLOODPASS</small></span>
             </Link>
-            <nav aria-label="FloodPass main navigation" className="fp-desktop-nav">
-              {nav.map((item) => (
-                <Link key={item.key} href={item.href} className="fp-nav-link" aria-current={active === item.key ? "page" : undefined}>{tr(item.key)}</Link>
+            <nav aria-label="NaijaClimaGuard main navigation" className="fp-desktop-nav">
+              {desktopNav.map((item) => (
+                <Link key={item.key} href={item.href} className="fp-nav-link" aria-current={active === item.key ? "page" : undefined}>{item.label}</Link>
               ))}
             </nav>
             <div className="fp-header-controls">
@@ -101,20 +108,20 @@ export default function FpShell({ children, active }: { children: React.ReactNod
               <button className="fp-control fp-theme-control" onClick={toggleNight} aria-label={night ? "Switch to day mode" : "Switch to night mode"} aria-pressed={night} title={night ? "Day mode" : "Night mode"}>
                 {night ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
               </button>
-              <Link href="/floodpass/report" className="fp-header-report">Report water <ArrowUpRight size={17} aria-hidden="true" /></Link>
+              <Link href="/#today" className="fp-header-report">Check my area <ArrowUpRight size={17} aria-hidden="true" /></Link>
             </div>
           </div>
         </header>
         <main id="fp-content" className={`fp-wrap fp-main${active === "home" ? " fp-main-home" : ""}`}>{children}</main>
         <footer className="fp-footer">
           <div className="fp-wrap fp-footer-inner">
-            <div><div className="fp-footer-lockup"><FpMark size={34} /><strong>FloodPass</strong></div><p>By NaijaClimaGuard.<br />{tr("free")}</p></div>
-            <div className="fp-footer-links"><Link href="/floodpass/help">Flood guidance</Link><Link href="/partners">{tr("partners")}</Link><Link href="/floodpass/coverage">Coverage</Link></div>
-            <p className="fp-footer-note">Official warnings come from NiMet, NIHSA and NEMA. No warning does not mean no flood risk. In an emergency call 112.</p>
+            <div><div className="fp-footer-lockup"><FpMark size={34} /><strong>NaijaClimaGuard</strong></div><p>Know before. Act together. Prove after.<br />FloodPass is our field evidence service.</p></div>
+            <div className="fp-footer-links"><Link href="/floodpass/help">Flood guidance</Link><Link href="/partners">For organisations</Link><Link href="/floodpass/coverage">Coverage and sources</Link><Link href="/floodpass/plans">Membership and pilots</Link></div>
+            <p className="fp-footer-note">Public warnings and reporting are free. Official warnings take priority. No warning does not mean no flood risk. In an emergency call 112.</p>
           </div>
         </footer>
-        <nav aria-label="FloodPass mobile navigation" className="fp-mobile-nav">
-          {nav.map((item) => {
+        <nav aria-label="NaijaClimaGuard mobile navigation" className="fp-mobile-nav">
+          {mobileNav.map((item) => {
             const Icon = item.icon;
             return <Link key={item.key} href={item.href} aria-current={active === item.key ? "page" : undefined}><Icon size={21} strokeWidth={active === item.key ? 2.4 : 1.9} aria-hidden="true" /><span>{tr(item.key)}</span></Link>;
           })}

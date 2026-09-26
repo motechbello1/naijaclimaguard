@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight, ArrowUpRight, BadgeCheck, FileClock, Layers3 } from "lucide-react";
 import { useEffect, useState } from "react";
 import FpShell from "@/components/floodpass/FpShell";
 
@@ -40,12 +41,12 @@ function Body() {
   }
 
   return (
-    <div className="fp-inner-page fp-stack" style={{ gap: 20 }}>
-      <div className="fp-page-intro">
-        <p className="fp-overline">PARTNERS / EVIDENCE CHECK</p>
-        <h1 className="fp-h1">Check the record. See the evidence.</h1>
-        <p>For organisations checking a FloodPass before deciding how to help. Read the place, time, status and supporting checks.</p>
-      </div>
+    <div className="fp-inner-page fp-stack ncg-partners" style={{ gap: 20 }}>
+      <div className="ncg-partner-hero"><span className="ncg-kicker">NAIJACLIMAGUARD / FOR ORGANISATIONS</span><h1>Good decisions need <em>ground truth.</em></h1><p>A report, an official signal and a checkable record can help a team decide where to investigate next. FloodPass makes the evidence easier to review, with its limits attached.</p><div><a href="#pilot" className="ncg-cta ncg-cta-lime">Explore a pilot <ArrowUpRight size={17} /></a><a href="#record-check" className="ncg-cta ncg-cta-outline">Check a code <ArrowRight size={17} /></a></div></div>
+      <div className="ncg-partner-cases"><article><FileClock size={27} /><span>01 / RESPONSE</span><h2>Prioritise a field visit.</h2><p>See when and where water was reported, what checks ran and what still needs human confirmation.</p></article><article><BadgeCheck size={27} /><span>02 / FINANCE</span><h2>Review a claim or request.</h2><p>Use a code and its evidence trail as one input to your own assessment. The decision remains yours.</p></article><article><Layers3 size={27} /><span>03 / PLANNING</span><h2>Learn from repeated reports.</h2><p>Spot data gaps and recurring locations without mistaking an absence of reports for an absence of risk.</p></article></div>
+      <section className="ncg-pilot" id="pilot"><span className="ncg-kicker">A SCOPED COMMERCIAL PILOT</span><h2>Start with one decision, one place and a measurable result.</h2><div><p><b>Define.</b> Agree a use case, geography, data permissions and a review process.</p><p><b>Run.</b> Use logged code checks and evidence access alongside existing field work.</p><p><b>Measure.</b> Compare time to triage, usable evidence and decisions that still required a visit.</p></div><p>Commercial model: a scoped setup and service fee, with usage terms agreed after the pilot. No partner or result is claimed here until a real agreement exists.</p><Link href="/contact" className="ncg-cta ncg-cta-lime">Discuss a pilot <ArrowUpRight size={17} /></Link></section>
+
+      <div className="fp-page-intro" id="record-check"><p className="fp-overline">THE TOOL / EVIDENCE CHECK</p><h2 className="fp-h1">Check the record. See the limits.</h2><p>Look up a FloodPass before deciding how to help. A software check is not independent field verification.</p></div>
 
       <form className="fp-card fp-stack" onSubmit={check}>
         <h2 className="fp-h2">Check a FloodPass</h2>
@@ -54,7 +55,7 @@ function Body() {
         <label htmlFor="fp-p-key" style={{ fontWeight: 800 }}>Partner key (optional)</label>
         <input id="fp-p-key" className="fp-input" style={{ fontSize: 16, letterSpacing: 0 }} type="password" placeholder="fpk_..." value={key} onChange={(e) => setKey(e.target.value)} autoComplete="off" />
         <button className="fp-btn fp-btn-primary" type="submit" disabled={busy}>{busy ? "Checking..." : "Check"}</button>
-        <p className="fp-muted" style={{ margin: 0, fontSize: 15 }}>With a partner key you see the full evidence and the record fingerprint, and each check is logged for your monthly bill.</p>
+        <p className="fp-muted" style={{ margin: 0, fontSize: 15 }}>An authorised partner key can reveal additional evidence and a record fingerprint. Access is logged and governed by agreed terms.</p>
       </form>
 
       {result ? (
@@ -109,7 +110,7 @@ function Body() {
 
       <section className="fp-card fp-stack">
         <h2 className="fp-h2">Connect your system</h2>
-        <p style={{ margin: 0 }}>Call <code>GET /api/floodpass/check/&#123;code&#125;</code> with the header <code>x-floodpass-key</code>. The answer is JSON. Each successful check is billed at your agreed price.</p>
+        <p style={{ margin: 0 }}>Call <code>GET /api/floodpass/check/&#123;code&#125;</code> with the header <code>x-floodpass-key</code>. The answer is JSON. Access and pricing are subject to an agreement.</p>
         <Link className="fp-btn fp-btn-ghost" href="/contact">Become a partner</Link>
       </section>
     </div>

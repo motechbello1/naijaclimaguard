@@ -48,10 +48,11 @@ function Body() {
         </section>
       ) : (
         <section className="fp-card fp-stack">
-          <h2 className="fp-h2">2. Get the report</h2>
+          <h2 className="fp-h2">2. Save this place</h2>
           <p style={{ margin: 0 }}>Place: <strong>{check.placeName}{check.state ? `, ${check.state}` : ""}</strong></p>
-          <p style={{ margin: 0 }}>Your check code is <strong>{check.code}</strong>. Keep it: the report stays at its own link.</p>
-          <Link className="fp-btn fp-btn-primary" href={`/floodpass/plans/address_check?check=${encodeURIComponent(check.code)}`}>Pay N5,000 and see the report</Link>
+          <p style={{ margin: 0 }}>Your check code is <strong>{check.code}</strong>. The paid history report is being prepared and is not on sale yet. Public coverage is available now.</p>
+          <Link className="fp-btn fp-btn-primary" href="/floodpass/coverage">Explore public coverage</Link>
+          <Link className="fp-btn fp-btn-ghost" href="/floodpass/plans">See the launch plan</Link>
           <button className="fp-btn fp-btn-ghost" onClick={() => setCheck(null)}>Pick another place</button>
         </section>
       )}

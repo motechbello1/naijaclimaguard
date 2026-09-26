@@ -3,61 +3,37 @@
 import Link from "next/link";
 import { useState } from "react";
 import FpShell, { HearButton, useFp } from "@/components/floodpass/FpShell";
-import { PLANS } from "@/lib/floodpass/billing/plans";
+import { ArrowRight, ArrowUpRight, Check, LockKeyhole } from "lucide-react";
 
 function PlansBody() {
   const [joined, setJoined] = useState<string | null>(null);
   const [contact, setContact] = useState("");
-  const text = "Warnings and proof are free forever. Paid plans are optional extras. Paying users never get warnings earlier than free users.";
+  const [busy, setBusy] = useState(false);
+  const text = "Flood guidance and reporting are free. Optional paid services will be offered only when their delivery is ready. Paying will never move an official warning ahead of anyone else.";
 
-  async function join(plan: string) {
+  async function join(event: React.FormEvent) {
+    event.preventDefault();
     const value = contact.trim();
-    const body = value.includes("@") ? { plan, email: value } : { plan, phone: value };
-    const response = await fetch("/api/floodpass/waitlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    const json = await response.json().catch(() => ({}));
-    setJoined(response.ok ? "You are on the list. We will tell you when it is ready." : json.error ?? "Could not save. Try again.");
+    if (!value) return;
+    const body = value.includes("@") ? { plan: "family_plus_monthly", email: value } : { plan: "family_plus_monthly", phone: value };
+    setBusy(true);
+    try {
+      const response = await fetch("/api/floodpass/waitlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const json = await response.json().catch(() => ({}));
+      setJoined(response.ok ? "You are on the list. We will tell you when membership is ready. No payment was taken." : json.error ?? "Could not save. Try again.");
+    } catch { setJoined("Could not connect. Try again shortly."); }
+    finally { setBusy(false); }
   }
 
   return (
-    <div className="fp-inner-page">
-      <div className="fp-page-intro">
-        <p className="fp-overline">SIMPLE, FAIR PRICING</p>
-        <h1 className="fp-h1">The essentials are free.</h1>
-        <p>{text}</p>
-        <HearButton text={text} />
+    <div className="fp-inner-page ncg-offers">
+      <div className="fp-page-intro"><p className="fp-overline">MEMBERSHIP / THE MODEL</p><h1 className="fp-h1">Public safety first.<br />Useful extras when ready.</h1><p>{text}</p><HearButton text={text} /></div>
+      <div className="ncg-offer-grid">
+        <section className="ncg-offer ncg-offer-free"><span className="ncg-kicker">01 / FOR EVERY PERSON</span><div className="ncg-offer-title"><h2>Open access</h2><strong>₦0</strong></div><p>Use the place check, read available context, report water and check a FloodPass record.</p><ul><li><Check size={17} /> No account to report water</li><li><Check size={17} /> Official warnings take priority</li><li><Check size={17} /> The limits of the evidence stay visible</li></ul><Link href="/#today">Check your area <ArrowUpRight size={17} /></Link></section>
+        <section className="ncg-offer ncg-offer-family"><span className="ncg-kicker">02 / FAMILY MEMBERSHIP · IN DEVELOPMENT</span><div className="ncg-offer-title"><h2>Family Watch</h2><strong>Planned ₦500/mo</strong></div><p>We are testing whether watching more places, family check-ins and an optional night call make a real difference. These features are not on sale yet.</p><ul><li><Check size={17} /> Follow several places in one view</li><li><Check size={17} /> Share a check-in with chosen people</li><li><Check size={17} /> Delivery must be reliable before launch</li></ul><form onSubmit={join}><label htmlFor="ncg-family-contact">Tell me when it is ready</label><div><input id="ncg-family-contact" className="fp-field" placeholder="Phone or email" value={contact} onChange={(e) => setContact(e.target.value)} required /><button type="submit" disabled={busy}>{busy ? "Saving…" : "Join waitlist"}<ArrowRight size={16} /></button></div>{joined ? <small role="status">{joined}</small> : <small>No payment now. We use this contact only for the launch update.</small>}</form></section>
       </div>
-      <div className="fp-plan-grid">
-      <section className="fp-card fp-stack">
-        <p className="fp-overline" style={{ color: "#abdce7" }}>FOR EVERYONE</p>
-        <h2 className="fp-h2">Free, forever</h2>
-        <p className="fp-plan-price" style={{ margin: 0 }}>₦0</p>
-        <p style={{ margin: 0 }}>Warnings for your place, flood reports, FloodPass records, and Drain Heroes points. Use this website or another channel where it is available.</p>
-      </section>
-      {PLANS.filter((plan) => plan.code !== "family_plus_weekly").map((plan) => (
-        <section key={plan.code} className="fp-card fp-stack">
-          <h2 className="fp-h2">{plan.name}</h2>
-          <p className="fp-plan-price" style={{ margin: 0 }}>{plan.priceLabel}{plan.code === "family_plus_monthly" ? " (or ₦150 a week)" : ""}</p>
-          <p className="fp-muted" style={{ margin: 0 }}>For: {plan.who}</p>
-          <ul style={{ margin: 0, paddingLeft: 22 }}>{plan.gets.map((g) => <li key={g}>{g}</li>)}</ul>
-          {plan.status === "live" ? (
-            plan.family === "ADDRESS"
-              ? <Link className="fp-btn fp-btn-primary" href="/floodpass/address-check">Check an address</Link>
-              : <div className="fp-row">
-                  <Link className="fp-btn fp-btn-primary" style={{ flex: 1 }} href={`/floodpass/plans/${plan.code}`}>Choose {plan.name}</Link>
-                  {plan.code === "family_plus_monthly" ? <Link className="fp-btn fp-btn-ghost" style={{ flex: 1 }} href="/floodpass/plans/family_plus_weekly">Pay weekly</Link> : null}
-                </div>
-          ) : (
-            <div className="fp-stack">
-              <p className="fp-small" style={{ margin: 0 }}>Coming soon. Cash cover is sold only by a licensed insurance company; we are choosing a partner.</p>
-              <input className="fp-field" placeholder="Your phone or email" value={contact} onChange={(e) => setContact(e.target.value)} aria-label="Phone or email for the waiting list" />
-              <button className="fp-btn fp-btn-ghost" onClick={() => join(plan.code)}>Tell me when it is ready</button>
-              {joined ? <p className="fp-small" role="status" style={{ margin: 0 }}>{joined}</p> : null}
-            </div>
-          )}
-        </section>
-      ))}
-      </div>
-      <p className="fp-muted" style={{ margin: "25px 0 0", fontSize: 14 }}>Payments are handled by Paystack when checkout is enabled. Paid features start after a successful payment.</p>
+      <section className="ncg-pilot-promo"><div><span className="ncg-kicker">03 / FOR ORGANISATIONS</span><h2>Evidence that can inform a decision.</h2><p>Response teams, lenders and insurers can discuss a scoped pilot: code checks, evidence access and an auditable review workflow. Commercial terms are agreed around a real use case and measured results.</p></div><Link href="/partners">Explore a pilot <ArrowUpRight size={18} /></Link></section>
+      <p className="ncg-offers-note"><LockKeyhole size={17} /> FloodPass is evidence, not a promise of aid, compensation or insurance. Insurance cover needs a licensed provider.</p>
     </div>
   );
 }
