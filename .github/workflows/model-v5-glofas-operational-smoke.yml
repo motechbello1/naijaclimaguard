@@ -1,0 +1,101 @@
+name: Model v5 GloFAS Operational Archive Smoke
+
+# The source contract has already been proven end-to-end on 2022 and 2024.
+# Keep this smoke available only as an explicit diagnostic. Do not launch it on
+# every PR/push while the definitive durable monthly archive closure owns the
+# constrained EWDS source lane.
+on:
+  workflow_dispatch:
+  push:
+    branches: [model-v5-operational-native]
+    paths:
+      - "validation/model_v5_glofas_operational_smoke_trigger.txt"
+
+permissions:
+  contents: read
+
+env:
+  EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  control-archive-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: model-v5-ewds-source-access
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - year: 2022
+            date: "2022-09-21"
+          - year: 2024
+            date: "2024-07-04"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install Model v5 runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+      - name: Verify EWDS credential
+        run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
+      - name: Restore successful archived source file from earlier attempts
+        uses: actions/cache/restore@v4
+        with:
+          path: validation/model_v5/smoke/glofas_raw_${{ matrix.year }}
+          key: model-v5-glofas-smoke-${{ matrix.year }}-${{ matrix.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            model-v5-glofas-smoke-${{ matrix.year }}-${{ matrix.date }}-
+      - name: Fetch one archived operational control forecast
+        run: |
+          python validation/fetch_glofas_operational_archive_v5.py \
+            --year "${{ matrix.year }}" \
+            --dates "${{ matrix.date }}" \
+            --lead-hours 24 48 72 \
+            --raw-dir "validation/model_v5/smoke/glofas_raw_${{ matrix.year }}" \
+            --out "validation/model_v5/smoke/glofas_${{ matrix.year }}.csv"
+      - name: Persist any successfully downloaded source file
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: validation/model_v5/smoke/glofas_raw_${{ matrix.year }}
+          key: model-v5-glofas-smoke-${{ matrix.year }}-${{ matrix.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Validate source contract and extracted output
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          year = "${{ matrix.year }}"
+          date = "${{ matrix.date }}"
+          df = pd.read_csv(f"validation/model_v5/smoke/glofas_{year}.csv")
+          assert len(df) == 15, f"expected 15 rows, got {len(df)}"
+          assert sorted(df['lead_time_hours'].astype(int).unique().tolist()) == [24, 48, 72]
+          assert df['location'].nunique() == 5
+          assert sorted(df['issue_date'].astype(str).unique().tolist()) == [date]
+          assert sorted(df['system_version_request'].unique().tolist()) == ['operational']
+          assert sorted(df['hydrological_model'].unique().tolist()) == ['lisflood']
+          assert sorted(df['product_type'].unique().tolist()) == ['control_forecast']
+          print({
+              'status': 'pass',
+              'date': date,
+              'rows': len(df),
+              'locations': sorted(df['location'].unique().tolist()),
+              'lead_hours': sorted(df['lead_time_hours'].astype(int).unique().tolist()),
+          })
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: model-v5-glofas-control-smoke-${{ matrix.year }}
+          retention-days: 30
+          path: |
+            validation/model_v5/smoke/glofas_${{ matrix.year }}.csv
+            validation/model_v5/smoke/glofas_${{ matrix.year }}.source_manifest.json
+          if-no-files-found: warn

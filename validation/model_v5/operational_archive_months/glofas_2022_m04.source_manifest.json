@@ -1,0 +1,38 @@
+{
+  "coverage": 1.0,
+  "expected_rows": 450,
+  "extracted_issue_dates": 30,
+  "final_scientific_coverage_gate_scope": "build_model_v5_dataset synchronized issue-time dataset core features",
+  "minimum_final_synchronized_coverage": 0.9,
+  "missing_issue_dates": [],
+  "monthly_failures": {
+    "2022-04": "403 Client Error: Forbidden for url: https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-glofas-forecast/execution\ncost limits exceeded\nYour request is too large, please reduce your selection."
+  },
+  "months": [
+    4
+  ],
+  "output_rows": 450,
+  "pack_status": "complete_pack",
+  "parse_failures": {},
+  "partial_pack_allowed": true,
+  "request_modes": {
+    "2022-04": "daily_fallback"
+  },
+  "request_strategy": "monthly_batch_with_verified_daily_fallback_and_resume",
+  "requested_issue_dates": 30,
+  "retrieval_failures": {},
+  "schema": "naijaclimaguard.model_v5_glofas_source_qa.v1",
+  "source_contract": {
+    "archive_start": "2021-05-26",
+    "dataset": "cems-glofas-forecast",
+    "hydrological_model": "lisflood",
+    "lead_hours": [
+      24,
+      48,
+      72
+    ],
+    "product_type": "control_forecast",
+    "system_version": "operational"
+  },
+  "year": 2022
+}

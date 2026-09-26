@@ -1,0 +1,4 @@
+GloFAS reforecast smoke investigation completed.
+EWDS repeatedly returned invalid-combination errors and the current catalogue download page reports the GloFAS reforecast dataset as not available.
+Model v5 therefore moved, before any candidate score existed, to archived operational GloFAS control forecasts for the primary 2020-2024 development contract.
+See validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md.
