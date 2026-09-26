@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import FpShell, { HearButton, useFp } from "@/components/floodpass/FpShell";
+import FpShell, { HearButton } from "@/components/floodpass/FpShell";
 import type { CoverageReport } from "@/lib/floodpass/coverage";
 
 function ago(iso: string | null) {
@@ -14,7 +14,6 @@ function ago(iso: string | null) {
 }
 
 function Body() {
-  const { lang } = useFp();
   const [report, setReport] = useState<CoverageReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -37,15 +36,13 @@ function Body() {
     return [...filtered].sort((a, b) => b.warnings14d - a.warnings14d || b.newsFloods90d - a.newsFloods90d || b.lgasFlaggedToday - a.lgasFlaggedToday || a.state.localeCompare(b.state));
   }, [report, query]);
 
-  const intro = lang === "pcm"
-    ? "FloodPass dey watch all 36 states plus Abuja. Every 15 minutes we check rain for every local government, and we read flood news. Anybody for any state fit report flood and get FloodPass."
-    : "FloodPass watches all 36 states and the FCT. Every 15 minutes we check the rain in every local government area and read the flood news. Anyone in any state can report a flood and get a FloodPass.";
+  const intro = "FloodPass watches all 36 states and the FCT. Every 15 minutes we check the rain in every local government area and read the flood news. Anyone in any state can report a flood and get a FloodPass.";
 
   return (
     <div className="fp-inner-page fp-stack" style={{ gap: 20, maxWidth: 1080 }}>
       <div className="fp-page-intro">
         <p className="fp-overline">COVERAGE / NIGERIA</p>
-        <h1 className="fp-h1">{lang === "pcm" ? "Where we dey." : "See the coverage."}</h1>
+        <h1 className="fp-h1">See the coverage.</h1>
         <p>{intro}</p>
         <HearButton text={intro} />
       </div>

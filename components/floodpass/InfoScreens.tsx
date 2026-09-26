@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import FpShell, { HearButton, useFp } from "@/components/floodpass/FpShell";
+import FpShell, { HearButton } from "@/components/floodpass/FpShell";
 import { ArrowRight, ArrowUpRight, Check, LockKeyhole } from "lucide-react";
 
 function PlansBody() {
@@ -45,12 +45,11 @@ const HELP = {
 };
 
 function HelpBody() {
-  const { lang } = useFp();
   return (
     <div className="fp-inner-page">
       <div className="fp-page-intro">
         <p className="fp-overline">FLOOD GUIDANCE / KEEP THIS CLOSE</p>
-        <h1 className="fp-h1">{lang === "pcm" ? "Wetin to do" : "Know what to do."}</h1>
+        <h1 className="fp-h1">Know what to do.</h1>
         <p>Short, practical steps for before, during and after a flood.</p>
       </div>
       <p className="fp-status fp-status-red" style={{ margin: "0 0 23px", fontWeight: 800 }}>In danger now? Move to higher ground. Call 112.</p>

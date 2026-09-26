@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck, House, Languages, Moon, Radio, Sun, Volume2, ArrowUpRight } from "lucide-react";
+import { BadgeCheck, House, Languages, Moon, Radio, Sun, Volume2, ArrowUpRight, LayoutDashboard } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { APP_LANGUAGES, type AppLocale } from "@/lib/i18n/config";
+import { useLanguage } from "@/components/shared/LanguageProvider";
+import { translatePlatformText } from "@/lib/i18n/translate-platform";
 import "@/app/floodpass.css";
 import "@/app/brand-v2.css";
 
-export type UiLang = "en" | "pcm";
+export type UiLang = AppLocale;
 
 type FpContext = { lang: UiLang; setLang: (lang: UiLang) => void; night: boolean; say: (text: string) => void; tr: (key: string) => string };
 type Active = "home" | "report" | "check" | "plans" | "help" | "partners";
@@ -14,21 +18,12 @@ type Active = "home" | "report" | "check" | "plans" | "help" | "partners";
 const Ctx = createContext<FpContext | null>(null);
 
 /** Short UI words. Messages people act on live in lib/floodpass/messages.ts. */
-const UI: Record<UiLang, Record<string, string>> = {
-  en: {
+const UI: Record<string, string> = {
     hear: "Listen", night: "Night mode", day: "Day mode", home: "Home", report: "Report", check: "Check", plans: "Plans", help: "Help", partners: "For partners",
     promise: "Know before. Act together. Prove after.",
     lead: "FloodPass shows official flood warnings and helps you report water. Reports that pass our checks become proof that others can check.",
     whatsapp: "Get warnings on WhatsApp", myStreet: "Check my area", waterHere: "Report water", checkCode: "Check a FloodPass code",
     free: "Warnings and proof are free. Always.",
-  },
-  pcm: {
-    hear: "Hear am", night: "Night mode", day: "Day mode", home: "Home", report: "Report", check: "Check", plans: "Plans", help: "Help", partners: "For partners",
-    promise: "Know before. Act together. Prove after.",
-    lead: "FloodPass dey show official flood warning and help you report water. If your report pass our checks, e go become proof wey people fit check.",
-    whatsapp: "Collect warning for WhatsApp", myStreet: "Check my area", waterHere: "Report water", checkCode: "Check FloodPass code",
-    free: "Warning and proof na free. Always.",
-  },
 };
 
 export function useFp() {
@@ -53,7 +48,7 @@ const mobileNav = [
   { key: "home", href: "/", icon: House },
   { key: "report", href: "/floodpass/report", icon: Radio },
   { key: "check", href: "/check", icon: BadgeCheck },
-  { key: "help", href: "/floodpass/help", icon: Volume2 },
+  { key: "workspace", href: "/dashboard", icon: LayoutDashboard },
 ] as const;
 
 const desktopNav = [
@@ -64,27 +59,27 @@ const desktopNav = [
 ] as const;
 
 export default function FpShell({ children, active }: { children: React.ReactNode; active?: Active }) {
-  const [lang, setLangState] = useState<UiLang>("en");
+  const { locale: lang, setLocale: setLang } = useLanguage();
+  const { status } = useSession();
   const [night, setNight] = useState(false);
 
   useEffect(() => {
-    if (readStored("fp-lang") === "pcm") setLangState("pcm");
     if (readStored("fp-night") === "1") setNight(true);
   }, []);
 
-  const setLang = useCallback((next: UiLang) => { setLangState(next); writeStored("fp-lang", next); }, []);
   const toggleNight = () => { setNight((value) => { writeStored("fp-night", value ? "0" : "1"); return !value; }); };
 
   const say = useCallback((text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-NG";
+    const utterance = new SpeechSynthesisUtterance(translatePlatformText(lang, text));
+    utterance.lang = ({ en: "en-NG", pcm: "en-NG", ha: "ha-NG", yo: "yo-NG", ig: "ig-NG" } as const)[lang];
     utterance.rate = 0.95;
     window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [lang]);
 
-  const tr = useCallback((key: string) => UI[lang][key] ?? UI.en[key] ?? key, [lang]);
+  const tr = useCallback((key: string) => translatePlatformText(lang, UI[key] ?? key), [lang]);
+  const accountHref = status === "authenticated" ? "/dashboard" : "/login?callbackUrl=%2Fdashboard";
 
   return (
     <Ctx.Provider value={{ lang, setLang, night, say, tr }}>
@@ -100,15 +95,19 @@ export default function FpShell({ children, active }: { children: React.ReactNod
               {desktopNav.map((item) => (
                 <Link key={item.key} href={item.href} className="fp-nav-link" aria-current={active === item.key ? "page" : undefined}>{item.label}</Link>
               ))}
+              <Link href="/dashboard" className="fp-nav-link">Workspace</Link>
             </nav>
             <div className="fp-header-controls">
-              <button className="fp-control" onClick={() => setLang(lang === "en" ? "pcm" : "en")} aria-label={lang === "en" ? "Switch to Pidgin" : "Switch to English"} title={lang === "en" ? "Switch to Pidgin" : "Switch to English"}>
-                <Languages size={17} aria-hidden="true" /><span>{lang === "en" ? "Pidgin" : "English"}</span>
-              </button>
+              <label className="fp-control fp-language-control">
+                <Languages size={17} aria-hidden="true" />
+                <select value={lang} onChange={(event) => setLang(event.target.value as AppLocale)} aria-label="Platform language">
+                  {APP_LANGUAGES.map((item) => <option key={item.code} value={item.code}>{item.nativeLabel}</option>)}
+                </select>
+              </label>
               <button className="fp-control fp-theme-control" onClick={toggleNight} aria-label={night ? "Switch to day mode" : "Switch to night mode"} aria-pressed={night} title={night ? "Day mode" : "Night mode"}>
                 {night ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
               </button>
-              <Link href="/#today" className="fp-header-report">Check my area <ArrowUpRight size={17} aria-hidden="true" /></Link>
+              <Link href={accountHref} className="fp-header-report">{status === "authenticated" ? "My workspace" : "Log in"} <ArrowUpRight size={17} aria-hidden="true" /></Link>
             </div>
           </div>
         </header>
@@ -116,7 +115,7 @@ export default function FpShell({ children, active }: { children: React.ReactNod
         <footer className="fp-footer">
           <div className="fp-wrap fp-footer-inner">
             <div><div className="fp-footer-lockup"><FpMark size={34} /><strong>NaijaClimaGuard</strong></div><p>Know before. Act together. Prove after.<br />FloodPass is our field evidence service.</p></div>
-            <div className="fp-footer-links"><Link href="/floodpass/help">Flood guidance</Link><Link href="/partners">For organisations</Link><Link href="/floodpass/coverage">Coverage and sources</Link><Link href="/floodpass/plans">Membership and pilots</Link></div>
+            <div className="fp-footer-links"><Link href="/dashboard">My workspace · family, farm, business, agency</Link><Link href="/login">Log in</Link><Link href="/register">Create free account</Link><Link href="/floodpass/help">Flood guidance</Link><Link href="/partners">For organisations</Link><Link href="/floodpass/coverage">Coverage and sources</Link><Link href="/floodpass/plans">Membership and pilots</Link></div>
             <p className="fp-footer-note">Public warnings and reporting are free. Official warnings take priority. No warning does not mean no flood risk. In an emergency call 112.</p>
           </div>
         </footer>

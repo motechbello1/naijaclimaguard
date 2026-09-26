@@ -13,11 +13,11 @@ type Outcome = {
   pass: { code: string } | null;
 };
 
-const DEPTHS: Array<{ depth: Depth; en: string; pcm: string }> = [
-  { depth: "ANKLE", en: "Ankle", pcm: "Ankle" },
-  { depth: "KNEE", en: "Knee", pcm: "Knee" },
-  { depth: "WAIST", en: "Waist", pcm: "Waist" },
-  { depth: "CAR_ROOF", en: "Car roof", pcm: "Motor roof" },
+const DEPTHS: Array<{ depth: Depth; label: string }> = [
+  { depth: "ANKLE", label: "Ankle" },
+  { depth: "KNEE", label: "Knee" },
+  { depth: "WAIST", label: "Waist" },
+  { depth: "CAR_ROOF", label: "Car roof" },
 ];
 
 function deviceId() {
@@ -143,7 +143,7 @@ function Body() {
     <div className="fp-inner-page">
       <div className="fp-page-intro">
         <p className="fp-overline">REPORT WATER / FREE AND OPEN TO EVERYONE</p>
-        <h1 className="fp-h1">{lang === "pcm" ? "Water dey here?" : "Water where you are?"}</h1>
+        <h1 className="fp-h1">Water where you are?</h1>
         <p>Tell us what you see in three steps. When a report passes the checks, it can receive a FloodPass code.</p>
       </div>
       <div className="fp-page-layout">
@@ -160,7 +160,7 @@ function Body() {
           {DEPTHS.map((item) => (
             <button key={item.depth} className="fp-depth-btn" aria-pressed={depth === item.depth} onClick={() => setDepth(item.depth)}>
               <DepthIcon depth={item.depth} />
-              {lang === "pcm" ? item.pcm : item.en}
+              {item.label}
             </button>
           ))}
         </div>

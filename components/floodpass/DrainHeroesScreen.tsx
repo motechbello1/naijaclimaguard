@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import FpShell, { HearButton, useFp, whatsappLink } from "@/components/floodpass/FpShell";
+import FpShell, { HearButton, whatsappLink } from "@/components/floodpass/FpShell";
 
 type Board = {
   counts: { blocked: number; cleaned: number; verified: number };
@@ -38,7 +38,6 @@ async function shrink(file: File) {
 const STATUS_WORDS: Record<string, string> = { BLOCKED: "Blocked", CLEANED: "Cleaned, waiting for neighbours", VERIFIED: "Verified clean", REJECTED: "Rejected" };
 
 function Body() {
-  const { lang } = useFp();
   const [board, setBoard] = useState<Board | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -66,9 +65,7 @@ function Body() {
     );
   }
 
-  const intro = lang === "pcm"
-    ? "Gutter wey block dey cause flood for our streets. Drain Heroes dey pay people with points and airtime to clear am. Snap the gutter, clean am, make two neighbours confirm, collect your points."
-    : "Blocked drains flood our streets. Drain Heroes rewards people with points and airtime for clearing them. Photo the drain, clean it, two neighbours confirm, and you earn points.";
+  const intro = "Blocked drains flood our streets. Drain Heroes rewards people with points and airtime for clearing them. Photo the drain, clean it, two neighbours confirm, and you earn points.";
   const wa = whatsappLink("DRAIN");
 
   return (

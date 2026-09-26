@@ -12,8 +12,9 @@ import { TECHNICAL_COPY } from "./pages/technical";
 import { NAVIGATION_GROWTH_COPY } from "./pages/navigation-growth";
 import { REVENUE_COPY } from "./pages/revenue";
 import { PITCH_COPY } from "./pages/pitch";
+import { FLOODPASS_PUBLIC_COPY } from "./pages/floodpass-public";
 
-const PAGE_PACKS = [REPORT_COPY, EVIDENCE_OUTLOOK_COPY, PROFILE_COMMAND_COPY, DASHBOARD_COPY, AUTH_COPY, TECHNICAL_COPY, NAVIGATION_GROWTH_COPY, REVENUE_COPY, PITCH_COPY];
+const PAGE_PACKS = [FLOODPASS_PUBLIC_COPY, REPORT_COPY, EVIDENCE_OUTLOOK_COPY, PROFILE_COMMAND_COPY, DASHBOARD_COPY, AUTH_COPY, TECHNICAL_COPY, NAVIGATION_GROWTH_COPY, REVENUE_COPY, PITCH_COPY];
 
 const SHELL_COPY: Record<AppLocale, Record<string, string>> = {
   en: {},
@@ -127,6 +128,10 @@ function translateDynamic(locale: AppLocale, source: string): string | null {
 
 export function translatePlatformText(locale: AppLocale, source: string): string {
   if (locale === "en") return source;
+
+  // FloodPass copy takes precedence over older shell words (e.g. Workspace).
+  const floodPass = FLOODPASS_PUBLIC_COPY[locale]?.[source];
+  if (floodPass) return floodPass;
 
   const shell = SHELL_COPY[locale]?.[source];
   if (shell) return shell;

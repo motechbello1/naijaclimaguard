@@ -32,6 +32,19 @@
 .fp-brand-words small { font-size: 7px; letter-spacing: .125em; margin-top: 6px; }
 .fp-header-report { background: #0e3536; border-radius: 2px; }
 .fp-header-report:hover { background: #1a6155; }
+.fp-language-control { border: 1px solid var(--fp-border); border-radius: 4px; max-width: 158px; }
+.fp-language-control select { appearance: none; background: transparent; color: var(--fp-text); font: inherit; cursor: pointer; max-width: 120px; min-width: 64px; outline-offset: 3px; }
+.fp-language-control select option { color: #102d31; background: white; }
+.fp-language-control:focus-within { outline: 2px solid #167f76; outline-offset: 2px; }
+.ncg-workspace { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr); gap: clamp(28px, 6vw, 88px); align-items: center; padding: clamp(36px, 5vw, 68px); background: #e8f0ea; border: 1px solid #cedbd1; }
+.ncg-workspace h2 { margin: 14px 0 20px; font-size: clamp(36px, 4vw, 62px); line-height: 1.03; letter-spacing: -.055em; color: #0b282b; }
+.ncg-workspace h2 em { font-family: Georgia, serif; font-weight: 400; }
+.ncg-workspace p { max-width: 650px; line-height: 1.7; color: #345655; }
+.ncg-workspace-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 28px; }
+.ncg-workspace-roles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.ncg-workspace-roles span { display: flex; min-height: 92px; align-items: end; padding: 17px; background: #10383a; color: #fff; font-size: 12px; letter-spacing: .1em; font-weight: 800; }
+.ncg-workspace-roles span:nth-child(2), .ncg-workspace-roles span:nth-child(3) { background: #2b5d56; }
+.ncg-workspace-roles small { grid-column: 1/-1; color: #345655; }
 .fp-nav-link { font-size: 13px; }
 .fp-main-home { padding-top: 16px; padding-bottom: 0; }
 .fp-main-home .ncg-home { margin-bottom: 105px; }
@@ -256,6 +269,7 @@
   .ncg-hero-copy { padding-inline: 45px; }
 }
 @media (max-width: 850px) {
+  .ncg-workspace { grid-template-columns: 1fr; }
   .ncg-inquiry-grid { grid-template-columns: 1fr; }
   .ncg-inquiry-intro { min-height: 520px; }
   .ncg-partner-cases { grid-template-columns: 1fr; }
