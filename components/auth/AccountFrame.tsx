@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Building2, House, Landmark, Sprout } from "lucide-react";
 import LanguageSelector from "@/components/shared/LanguageSelector";
+import ThemeToggle from "@/components/shared/ThemeToggle";
 import { BrandLockup } from "@/components/shared/BrandLogo";
 import "@/app/account-v2.css";
 
@@ -17,7 +18,7 @@ export default function AccountFrame({ kind, children }: { kind: "login" | "regi
   return <main className="ncg-entry">
     <header className="ncg-entry-header">
       <BrandLockup inverse href="/" />
-      <div><LanguageSelector compact /><Link href="/" className="ncg-entry-back"><ArrowLeft size={15} /> Public site</Link></div>
+      <div><LanguageSelector compact /><ThemeToggle /><Link href="/" className="ncg-entry-back"><ArrowLeft size={15} /> Public site</Link></div>
     </header>
     <div className="ncg-entry-grid">
       <section className="ncg-entry-story" aria-label="The NaijaClimaGuard workspace">

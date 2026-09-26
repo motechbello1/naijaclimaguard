@@ -101,7 +101,7 @@ export default function OutlookPage() {
       <div className="space-y-6 max-w-5xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="font-display text-2xl font-bold flex items-center gap-2">
+            <h1 className="outlook-title font-display text-2xl font-bold flex items-center gap-2">
               <Telescope className="h-6 w-6 text-radar" />
               <span className="simple-only role-farmer-inline">Rain outlook for farming</span>
               <span className="simple-only role-household-inline">Rain outlook</span>

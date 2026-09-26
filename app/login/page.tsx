@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowUpRight, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import AccountFrame from "@/components/auth/AccountFrame";
@@ -14,7 +14,6 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const registered = searchParams.get("registered") === "true";
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -32,7 +31,9 @@ function LoginForm() {
       }
       const requested = searchParams.get("callbackUrl");
       const safeDestination = requested?.startsWith("/") && !requested.startsWith("//") && !requested.startsWith("/\\") ? requested : null;
-      router.push(safeDestination || (mode === "founder" ? "/admin" : "/dashboard"));
+      // A full navigation reads the new session cookie at the protected route.
+      // Client routing can race the middleware after a credentials sign-in.
+      window.location.assign(safeDestination || (mode === "founder" ? "/admin" : "/dashboard"));
     } catch {
       setError("Could not sign in. Please try again.");
     } finally {
@@ -51,7 +52,7 @@ function LoginForm() {
         <button type="button" aria-pressed={mode === "founder"} onClick={() => { setMode("founder"); setIdentity(""); setError(""); }}>Founder access</button>
       </div>
       <form onSubmit={handleSubmit} className="ncg-entry-fields">
-        {error && <div className="rounded-xl border border-crimson/20 bg-crimson/10 px-4 py-3 text-sm text-crimson">{error}</div>}
+        {error && <div role="alert" className="ncg-entry-error">{error}</div>}
         <div><label htmlFor="ncg-login-identity">{mode === "founder" ? "Founder username" : "Email address"}</label><input id="ncg-login-identity" type={mode === "founder" ? "text" : "email"} value={identity} onChange={(event) => setIdentity(event.target.value)} autoComplete={mode === "founder" ? "username" : "email"} placeholder={mode === "founder" ? "Founder username" : "you@example.com"} required /></div>
         <div><label htmlFor="ncg-login-password">Password</label><input id="ncg-login-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" placeholder="Enter your password" required /></div>
         <button type="submit" disabled={loading} className="ncg-entry-submit"><span>{loading ? "Signing in..." : mode === "founder" ? "Open founder command" : "Open my workspace"}</span>{loading ? <Loader2 size={19} className="animate-spin" /> : <ArrowUpRight size={20} />}</button>

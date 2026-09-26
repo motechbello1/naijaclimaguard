@@ -47,6 +47,12 @@ html[data-experience-role="household"] .role-household-inline { display: inline;
 html[data-experience-role="farmer"] .role-farmer-inline { display: inline; }
 html[data-experience-role="business"] .role-business-inline { display: inline; }
 html[data-experience-role="agency"] .role-agency-inline { display: inline; }
+/* The simple-mode display rule must not reveal every role's outlook title. */
+html[data-explanation-mode="simple"] .outlook-title .simple-only { display: none; }
+html[data-explanation-mode="simple"][data-experience-role="household"] .outlook-title .role-household-inline,
+html[data-explanation-mode="simple"][data-experience-role="farmer"] .outlook-title .role-farmer-inline,
+html[data-explanation-mode="simple"][data-experience-role="business"] .outlook-title .role-business-inline,
+html[data-explanation-mode="simple"][data-experience-role="agency"] .outlook-title .role-agency-inline { display: inline; }
 
 .text-gradient-green { color: #168760; background: none; -webkit-text-fill-color: unset; }
 .text-gradient-blue { color: #167e97; background: none; -webkit-text-fill-color: unset; }
