@@ -18,7 +18,7 @@ import AppMotionFrame from "@/components/shared/AppMotionFrame";
 
 // FloodPass screens have their own calm, light layout: no splash screen and no
 // floating buttons covering the text (a problem found in the diagnostics).
-const FLOODPASS_PREFIXES = ["/floodpass", "/check", "/pass", "/partners"];
+const FLOODPASS_PREFIXES = ["/floodpass", "/check", "/pass", "/partners", "/contact"];
 function isFloodPassPath(pathname: string | null) {
   if (!pathname) return false;
   return pathname === "/" || FLOODPASS_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
