@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
 import { FOUNDER_ROLE, verifyFounderCredentials } from "@/lib/founder-auth";
+import { authSecret } from "@/lib/auth-secret";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -65,5 +66,5 @@ export const authOptions: NextAuthOptions = {
   },
   pages: { signIn: "/login" },
   session: { strategy: "jwt" },
-  secret: process.env.NEXTAUTH_SECRET || "naijaclimaguard-secret-change-in-production",
+  secret: authSecret(),
 };

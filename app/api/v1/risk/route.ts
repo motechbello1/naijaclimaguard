@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchDerivedV2Risk } from "@/lib/risk/derived-v2";
-import { findOfficialSafetyState } from "@/lib/intelligence/official-advisory";
+import { findOfficialSafetyState, findReportedStateWarning, publicStatus } from "@/lib/intelligence/official-advisory";
 
 /**
  * GET /api/v1/risk?latitude=..&longitude=..
@@ -37,14 +37,20 @@ export async function GET(req: Request) {
   }
 
   try {
-    const [result, official] = await Promise.all([
+    const [result, official, reported] = await Promise.all([
       fetchDerivedV2Risk(lat, lon),
       findOfficialSafetyState(lat, lon),
+      findReportedStateWarning(lat, lon),
     ]);
+    // Official warnings always win over the model score. A connected official
+    // feed is preferred; an official warning reported in the news is next.
+    const safety = official ?? reported;
 
     return NextResponse.json({
       ...result,
-      safety_state: official ?? {
+      // The single status to show the public. Never "safe", never "NORMAL".
+      public_status: publicStatus((result as { risk?: { level?: string } }).risk?.level, safety),
+      safety_state: safety ?? {
         active: false,
         level: "NONE",
         headline: null,
@@ -57,7 +63,7 @@ export async function GET(req: Request) {
         formula:
           "0.40·rainfall(7d/200mm) + 0.35·burst(max of 3d/120mm OR hourly/30mm) + 0.25·antecedent-wetness proxy",
         data_source: "Open-Meteo forecast API · precipitation + ET0 · daily and hourly",
-        source_note: "The numeric live score still comes from derived-v2. Official advisories, when connected and fresh, are returned separately as a safety overlay and never alter the score.",
+        source_note: "The numeric live score still comes from derived-v2. Official advisories (from a connected feed, or official warnings reported in the news for this state) are returned as a safety overlay and decide public_status, but never alter the numeric score.",
         flood_type_note: "flood_type is a rainfall-pattern heuristic, not a hydraulic classification",
         latitude: lat,
         longitude: lon,

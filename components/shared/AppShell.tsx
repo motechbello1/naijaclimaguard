@@ -60,10 +60,17 @@ const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: a
   ],
 };
 
+// What every signed-in person sees: safety tools only.
 const PRODUCT_LINKS = [
-  { href: "/tools", label: "All tools", icon: Compass },
-  { href: "/live-floods", label: "Live Flood Intelligence", icon: Radar },
+  { href: "/floodpass", label: "FloodPass", icon: FileCheck2 },
+  { href: "/live-floods", label: "Floods now", icon: Radar },
   { href: "/safe-route", label: "Safe Route", icon: Map },
+  { href: "/tools", label: "All tools", icon: Compass },
+];
+
+// Business and investor pages are for the founder only. A farmer or a family
+// should never see "Revenue Engine" or "Pitch Mode" in their safety menu.
+const FOUNDER_LINKS = [
   { href: "/impact", label: "Economic Impact", icon: CircleDollarSign },
   { href: "/revenue", label: "Revenue Engine", icon: WalletCards },
   { href: "/investor-readiness", label: "Investor + TRL 6", icon: ShieldAlert },
@@ -98,7 +105,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const initial = userName.trim().charAt(0).toUpperCase() || "U";
   const revenueAdmin = Boolean((session?.user as any)?.revenueAdmin);
   const productLinks = revenueAdmin
-    ? [...PRODUCT_LINKS, { href: "/admin", label: "Founder Command", icon: BadgeDollarSign }]
+    ? [...PRODUCT_LINKS, ...FOUNDER_LINKS, { href: "/admin", label: "Founder Command", icon: BadgeDollarSign }]
     : PRODUCT_LINKS;
 
   useEffect(() => setMoreOpen(false), [pathname]);

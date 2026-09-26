@@ -317,3 +317,375 @@ model ExternalFloodReport {
   @@index([publishedAt])
   @@index([state, publishedAt])
 }
+
+// ---------------------------------------------------------------------------
+// FloodPass: proof that turns a flood into help.
+// Additive tables only; nothing above this line is changed.
+// ---------------------------------------------------------------------------
+
+/// A person or helper saying "there is water here". Channel-neutral.
+model FloodReport {
+  id             String     @id @default(cuid())
+  channel        String     // whatsapp | web | sms | voice | ussd | seed
+  /// A one-way hash of the phone number or browser id. Never the raw number.
+  reporterKey    String
+  latitude       Float
+  longitude      Float
+  placeName      String?
+  state          String?
+  depth          String     @default("UNKNOWN") // ANKLE | KNEE | WAIST | CAR_ROOF | UNKNOWN
+  note           String?
+  photoRef       String?    // WhatsApp media id or storage key; never a public URL of a person
+  photoTakenAt   DateTime?
+  photoLatitude  Float?
+  photoLongitude Float?
+  /// SHA-256 of the photo bytes. The photo itself is not stored. Used to spot one photo sent by many people.
+  photoHash      String?
+  /// The AI photo checker's verdict: flood visible, estimated depth, confidence, reason.
+  aiPhoto        Json?
+  /// Rain in the 24 hours before the report (mm), kept so Street Memory can learn.
+  rainfall24hMm  Float?
+  /// "gps" (a pin or phone location) or "place_name" (typed on SMS/USSD/voice, less exact).
+  locationSource String     @default("gps")
+  language       String     @default("en")
+  reportedAt     DateTime   @default(now())
+  score          Int        @default(0)
+  status         String     @default("UNCONFIRMED") // VERIFIED | LIKELY | UNCONFIRMED
+  checks         Json?
+  engineVersion  String?
+  /// true when the report was rebuilt from public news for demos, not sent by a person.
+  seeded         Boolean    @default(false)
+  sourceUrl      String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  pass           FloodPass?
+  photos         FloodPhoto[]
+
+  @@index([latitude, longitude])
+  @@index([reportedAt])
+  @@index([reporterKey, reportedAt])
+  @@index([status, reportedAt])
+  @@index([photoHash])
+}
+
+/// A locked proof that a flood happened. Chained by hash like pages in a book.
+model FloodPass {
+  id            String      @id @default(cuid())
+  code          String      @unique
+  sequence      Int         @unique
+  reportId      String      @unique
+  report        FloodReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  placeName     String
+  state         String?
+  latitude      Float
+  longitude     Float
+  depth         String
+  floodedAt     DateTime
+  score         Int
+  checksPassed  Int
+  checksTotal   Int
+  engineVersion String
+  previousHash  String
+  hash          String      @unique
+  seeded        Boolean     @default(false)
+  issuedAt      DateTime    @default(now())
+  revokedAt     DateTime?
+  revokedReason String?
+  checkLog      PassCheck[]
+
+  @@index([state, floodedAt])
+  @@index([latitude, longitude])
+}
+
+/// An organisation that checks FloodPasses (insurer, bank, charity, government).
+model FloodPassPartner {
+  id           String      @id @default(cuid())
+  name         String
+  kind         String      // INSURER | BANK | MICROFINANCE | CHARITY | GOVERNMENT | LANDLORD | OTHER
+  apiKeyPrefix String      @unique
+  apiKeyHash   String      @unique
+  active       Boolean     @default(true)
+  pricePerCheckKobo Int    @default(0)
+  createdAt    DateTime    @default(now())
+  checks       PassCheck[]
+}
+
+/// Every time anyone checks a code. Partner checks are billable.
+model PassCheck {
+  id        String            @id @default(cuid())
+  code      String
+  passId    String?
+  pass      FloodPass?        @relation(fields: [passId], references: [id], onDelete: SetNull)
+  partnerId String?
+  partner   FloodPassPartner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  result    String            // VERIFIED | NOT_FOUND | REVOKED
+  billable  Boolean           @default(false)
+  createdAt DateTime          @default(now())
+
+  @@index([partnerId, createdAt])
+  @@index([code, createdAt])
+}
+
+/// A WhatsApp/SMS contact. Holds only what is needed to warn them.
+model FloodPassContact {
+  id             String    @id @default(cuid())
+  channel        String    @default("whatsapp")
+  /// The WhatsApp id (phone number) is required to send them warnings.
+  address        String    @unique
+  reporterKey    String    @unique
+  language       String    @default("en")
+  step           String    @default("NEW") // NEW | CONSENT | LANGUAGE | LOCATION | READY | AWAIT_DEPTH
+  consentAt      DateTime?
+  latitude       Float?
+  longitude      Float?
+  placeName      String?
+  state          String?
+  pendingReport  Json?
+  /// Phone number in +234... form (SMS, voice, USSD and WhatsApp), used to avoid sending one person the same warning twice.
+  phone          String?
+  /// "gps" when the place came from a map pin, "place_name" when it was typed (less exact).
+  locationSource String    @default("gps")
+  /// Last message from this person. WhatsApp only allows free text within 24 hours of it; after that, approved templates.
+  lastInboundAt  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deliveries     WarningDelivery[]
+  places         WatchedPlace[]
+  family         FamilyMember[]
+
+  @@index([latitude, longitude])
+  @@index([phone])
+  @@index([state])
+}
+
+/// A flood warning sent to everyone in an area. Always from an official source,
+/// always approved by a person before it goes out (NiMet Act 2022).
+model FloodWarning {
+  id               String            @id @default(cuid())
+  status           String            @default("DRAFT") // DRAFT | SENDING | SENT | CANCELLED
+  level            String            @default("BE_CAREFUL") // DANGER | BE_CAREFUL
+  hazard           String
+  placeLabel       String
+  window           String
+  source           String
+  sourceUrl        String?
+  action           String
+  avoid            String?
+  areaType         String            // RADIUS | STATE
+  latitude         Float?
+  longitude        Float?
+  radiusKm         Float?
+  state            String?
+  createdBy        String            // founder | auto-news
+  externalReportId String?           @unique
+  recipients       Int               @default(0)
+  sent             Int               @default(0)
+  failed           Int               @default(0)
+  expiresAt        DateTime?
+  approvedAt       DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deliveries       WarningDelivery[]
+
+  @@index([status, createdAt])
+}
+
+model WarningDelivery {
+  id         String           @id @default(cuid())
+  warningId  String
+  warning    FloodWarning     @relation(fields: [warningId], references: [id], onDelete: Cascade)
+  contactId  String
+  contact    FloodPassContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  channel    String           // whatsapp | whatsapp_template | sms | voice | voice_night (Family Plus night call)
+  status     String           // QUEUED | SENT | FAILED | DRY_RUN
+  message    String
+  writtenBy  String           @default("template")
+  error      String?
+  createdAt  DateTime         @default(now())
+
+  @@unique([warningId, contactId, channel])
+  @@index([contactId, createdAt])
+}
+
+/// A photo kept as proof. Private: shown only through short-lived signed links.
+model FloodPhoto {
+  id          String       @id @default(cuid())
+  kind        String       // FLOOD | DRAIN_BEFORE | DRAIN_AFTER | VAULT
+  ownerKey    String       // the reporter key of the person who sent it
+  reportId    String?
+  report      FloodReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  drainId     String?
+  sha256      String
+  mimeType    String
+  sizeBytes   Int
+  storage     String       // database | supabase
+  storageKey  String?
+  bytes       Bytes?
+  createdAt   DateTime     @default(now())
+  deleteAfter DateTime
+
+  @@index([ownerKey])
+  @@index([reportId])
+  @@index([drainId])
+  @@index([deleteAfter])
+}
+
+/// A paid plan. Warnings and proof stay free for everyone; plans only add extras.
+model FloodPassSubscription {
+  id                   String    @id @default(cuid())
+  plan                 String
+  status               String    @default("PENDING") // PENDING | ACTIVE | CANCELLED | PAST_DUE | EXPIRED
+  email                String
+  phone                String
+  amountKobo           Int
+  currency             String    @default("NGN")
+  reference            String    @unique
+  paystackCustomerCode String?
+  paystackSubscription String?
+  paystackEmailToken   String?
+  currentPeriodEnd     DateTime?
+  cancelledAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([phone, status])
+  @@index([email])
+}
+
+model FloodPassPayment {
+  id         String   @id @default(cuid())
+  reference  String   @unique
+  plan       String
+  amountKobo Int
+  currency   String
+  status     String   // success | failed | abandoned
+  email      String?
+  phone      String?
+  event      String
+  raw        Json
+  createdAt  DateTime @default(now())
+}
+
+/// Extra places a Family Plus or Farmer Season Pass member watches.
+model WatchedPlace {
+  id        String           @id @default(cuid())
+  contactId String
+  contact   FloodPassContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  name      String
+  kind      String           @default("HOME") // HOME | FAMILY | FARM | SHOP
+  latitude  Float
+  longitude Float
+  state     String?
+  createdAt DateTime         @default(now())
+
+  @@index([latitude, longitude])
+  @@index([state])
+}
+
+/// Family numbers told when a Family Plus member sends SAFE.
+model FamilyMember {
+  id        String           @id @default(cuid())
+  contactId String
+  contact   FloodPassContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  phone     String
+  name      String?
+  createdAt DateTime         @default(now())
+
+  @@unique([contactId, phone])
+}
+
+model FloodPassWaitlist {
+  id        String   @id @default(cuid())
+  plan      String
+  phone     String?
+  email     String?
+  state     String?
+  createdAt DateTime @default(now())
+
+  @@index([plan, createdAt])
+}
+
+/// Rent and Land Check: the flood history of one address, bought once.
+model AddressCheck {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  latitude  Float
+  longitude Float
+  placeName String
+  state     String?
+  status    String   @default("PENDING") // PENDING | PAID
+  reference String?  @unique
+  email     String?
+  result    Json?
+  createdAt DateTime @default(now())
+  paidAt    DateTime?
+}
+
+/// Drain Heroes: a blocked drain, then the proof it was cleaned.
+model Drain {
+  id               String              @id @default(cuid())
+  code             String              @unique
+  latitude         Float
+  longitude        Float
+  placeName        String
+  state            String?
+  status           String              @default("BLOCKED") // BLOCKED | CLEANED | VERIFIED | REJECTED
+  reportedByKey    String
+  reportedAt       DateTime            @default(now())
+  beforePhotoHash  String?
+  cleanedByKey     String?
+  cleanedAt        DateTime?
+  afterPhotoHash   String?
+  aiCheck          Json?
+  confirmations    Int                 @default(0)
+  verifiedAt       DateTime?
+  rejectedReason   String?
+  confirms         DrainConfirmation[]
+
+  @@index([status, reportedAt])
+  @@index([latitude, longitude])
+  @@index([state])
+}
+
+model DrainConfirmation {
+  id          String   @id @default(cuid())
+  drainId     String
+  drain       Drain    @relation(fields: [drainId], references: [id], onDelete: Cascade)
+  reporterKey String
+  createdAt   DateTime @default(now())
+
+  @@unique([drainId, reporterKey])
+}
+
+/// Append-only points ledger for Drain Heroes. Points are never edited, only added.
+model HeroPoints {
+  id          String   @id @default(cuid())
+  reporterKey String
+  points      Int
+  reason      String   // DRAIN_REPORTED | DRAIN_CLEANED | DRAIN_CONFIRMED | REWARD_PAID
+  drainId     String?
+  createdAt   DateTime @default(now())
+
+  @@unique([reporterKey, reason, drainId])
+  @@index([reporterKey, createdAt])
+}
+
+/// Airtime rewards. A person asks, a person approves, then it is paid.
+model RewardPayout {
+  id          String    @id @default(cuid())
+  reporterKey String
+  phone       String
+  points      Int
+  amountNaira Int
+  status      String    @default("REQUESTED") // REQUESTED | APPROVED | PAID | FAILED | REJECTED
+  provider    String    @default("africastalking")
+  providerRef String?
+  error       String?
+  createdAt   DateTime  @default(now())
+  decidedAt   DateTime?
+  paidAt      DateTime?
+
+  @@index([status, createdAt])
+  @@index([reporterKey])
+}

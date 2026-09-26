@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NaijaClimaGuard: FloodPass
 
-## Getting Started
+**Proof that turns a flood into help.**
 
-First, run the development server:
+FloodPass warns people before floods on their street. When a flood hits them, it gives them a
+locked proof code that banks, insurers, charities and government can check in one second.
+Warnings and proof are free for people. Partners pay to check codes.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+It works on any phone and in all 36 states and the FCT:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- WhatsApp, SMS, USSD and phone calls, in English and Pidgin
+- Warnings from official sources only, approved by a person, sent street by street
+- FloodPass proof with photos kept privately, saved to Google Wallet, Apple Wallet or as a picture
+- Drain Heroes: clear blocked drains, neighbours confirm, earn airtime
+- Optional paid extras (Family Plus, Diaspora Guardian, Farmer Season Pass, Rent and Land Check)
+- Its own AI (photo checks, news reading, questions, warnings, Street Memory), off until a key is added
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Links:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Setup, settings and what needs approval: [docs/FLOODPASS_SETUP.md](docs/FLOODPASS_SETUP.md)
+- Run locally: `npm ci`, then `npm run dev`
+- Tests: `npm test`
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Official warnings come from NiMet, NIHSA and NEMA and are always shown first.

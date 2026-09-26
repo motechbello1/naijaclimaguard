@@ -3,6 +3,7 @@
 import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import SplashScreen from "@/components/shared/SplashScreen";
 import { LanguageProvider } from "@/components/shared/LanguageProvider";
 import LanguagePreferenceSync from "@/components/shared/LanguagePreferenceSync";
@@ -15,10 +16,19 @@ import ThemeBrandSync from "@/components/shared/ThemeBrandSync";
 import RouteSecurityGuard from "@/components/shared/RouteSecurityGuard";
 import AppMotionFrame from "@/components/shared/AppMotionFrame";
 
+// FloodPass screens have their own calm, light layout: no splash screen and no
+// floating buttons covering the text (a problem found in the diagnostics).
+const FLOODPASS_PREFIXES = ["/floodpass", "/check", "/pass", "/partners"];
+function isFloodPassPath(pathname: string | null) {
+  if (!pathname) return false;
+  return pathname === "/" || FLOODPASS_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
 export function Providers({ children }: { children: ReactNode }) {
+  const floodPass = isFloodPassPath(usePathname());
   return (
     <SessionProvider refetchOnWindowFocus refetchInterval={5 * 60}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} forcedTheme={floodPass ? "light" : undefined}>
         <ThemeBrandSync />
         <NationalAreaProvider>
           <LanguageProvider>
@@ -26,10 +36,10 @@ export function Providers({ children }: { children: ReactNode }) {
               <RouteSecurityGuard />
               <LanguagePreferenceSync />
               <PlatformTranslationBridge />
-              <SplashScreen />
-              <AppMotionFrame>{children}</AppMotionFrame>
-              <GlobalAccessibilityDock />
-              <FloodAssistant />
+              {floodPass ? null : <SplashScreen />}
+              {floodPass ? children : <AppMotionFrame>{children}</AppMotionFrame>}
+              {floodPass ? null : <GlobalAccessibilityDock />}
+              {floodPass ? null : <FloodAssistant />}
             </SpeechProvider>
           </LanguageProvider>
         </NationalAreaProvider>

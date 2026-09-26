@@ -3,30 +3,13 @@
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
+import { isProtectedPath } from "@/lib/protected-routes";
 
-const PROTECTED_PREFIXES = [
-  "/dashboard",
-  "/my-area",
-  "/live-floods",
-  "/safe-route",
-  "/action-center",
-  "/action",
-  "/command",
-  "/intelligence",
-  "/predict",
-  "/outlook",
-  "/evidence",
-  "/report",
-  "/prove",
-  "/profile",
-  "/drill",
-  "/emergency-pack",
-];
 
 const EXPERIENCE_STORAGE_KEY = "naijaclimaguard.action-role";
 
 function isProtected(pathname: string) {
-  return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  return isProtectedPath(pathname);
 }
 
 function resetUnauthenticatedExperience() {

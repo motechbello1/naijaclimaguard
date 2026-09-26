@@ -1,28 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
-
-const PROTECTED_PREFIXES = [
-  "/dashboard",
-  "/my-area",
-  "/live-floods",
-  "/safe-route",
-  "/action-center",
-  "/action",
-  "/command",
-  "/intelligence",
-  "/predict",
-  "/outlook",
-  "/evidence",
-  "/report",
-  "/prove",
-  "/profile",
-  "/drill",
-  "/emergency-pack",
-];
+import { isProtectedPath } from "@/lib/protected-routes";
+import { authSecret } from "@/lib/auth-secret";
 
 function isProtected(pathname: string) {
-  return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  return isProtectedPath(pathname);
 }
 
 export async function middleware(req: NextRequest) {
@@ -31,7 +14,7 @@ export async function middleware(req: NextRequest) {
 
   const token = await getToken({
     req,
-    secret: process.env.NEXTAUTH_SECRET || "naijaclimaguard-secret-change-in-production",
+    secret: authSecret(),
   });
 
   if (!token) {
@@ -53,8 +36,6 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/my-area/:path*",
-    "/live-floods/:path*",
-    "/safe-route/:path*",
     "/action-center/:path*",
     "/action/:path*",
     "/command/:path*",
@@ -65,7 +46,5 @@ export const config = {
     "/report/:path*",
     "/prove/:path*",
     "/profile/:path*",
-    "/drill/:path*",
-    "/emergency-pack/:path*",
   ],
 };

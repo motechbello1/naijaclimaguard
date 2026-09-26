@@ -7,6 +7,8 @@ export interface LiveFloodFeedItem {
   source: string;
   publishedAt: string;
   state: string;
+  /** Every Nigerian state or FCT named in the headline, primary first. */
+  states?: string[];
   areas: string[];
   status: FloodFeedStatus;
   severity: number;
@@ -84,23 +86,58 @@ function aliasAppears(text: string, alias: string) {
   return new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i").test(text);
 }
 
-function extractLocations(text: string) {
+/**
+ * Places outside Nigeria that often appear in flood headlines carried by
+ * Nigerian outlets. A headline naming one of these, and no Nigerian state,
+ * is treated as foreign news and dropped.
+ */
+const FOREIGN_PLACES = [
+  "germany", "nepal", "seoul", "korea", "somalia", "pakistan", "india", "china", "kenya", "ghana",
+  "texas", "spain", "chad", "sudan", "japan", "philippines", "europe", "vietnam", "bangladesh",
+  "indonesia", "brazil", "italy", "france", "libya", "morocco", "south africa", "cameroon",
+  "niger republic", "benin republic", "mozambique", "malawi", "zimbabwe", "tanzania", "uganda",
+  "ethiopia", "egypt", "united kingdom", "britain", "london", "united states", "america", "australia", "valencia",
+];
+
+export function extractLocations(text: string) {
   const lower = text.toLowerCase();
-  const hits: Array<{ state: string; alias: string }> = [];
+  const hits: Array<{ state: string; alias: string; index: number }> = [];
   for (const entry of NIGERIA_JURISDICTIONS) {
-    for (const alias of entry.aliases) if (aliasAppears(lower, alias)) hits.push({ state: entry.state, alias });
+    for (const alias of entry.aliases) {
+      if (!aliasAppears(lower, alias)) continue;
+      hits.push({ state: entry.state, alias, index: lower.indexOf(alias.toLowerCase()) });
+    }
   }
-  if (!hits.length) return { state: UNPARSED, areas: [] as string[] };
-  hits.sort((a, b) => b.alias.length - a.alias.length);
-  const state = hits[0].state;
+  if (!hits.length) return { state: UNPARSED, states: [] as string[], areas: [] as string[] };
+  // Primary state: the most specific (longest) alias, as before.
+  const byLength = [...hits].sort((a, b) => b.alias.length - a.alias.length);
+  const state = byLength[0].state;
+  // All states, in the order they appear in the headline, primary first.
+  const inOrder = [...hits].sort((a, b) => a.index - b.index).map((hit) => hit.state);
+  const states = [state, ...inOrder.filter((value) => value !== state)]
+    .filter((value, index, all) => all.indexOf(value) === index);
   const areas = hits.filter((hit) => hit.state === state).map((hit) => hit.alias)
     .filter((value, index, all) => all.indexOf(value) === index)
     .slice(0, 4).map((area) => area.replace(/\b\w/g, (c) => c.toUpperCase()));
-  return { state, areas };
+  return { state, states, areas };
 }
 
-function classify(title: string): { status: FloodFeedStatus; severity: number } {
-  const value = title.toLowerCase();
+/** Google News appends " - Source Name" to titles; strip it before parsing. */
+export function stripSourceSuffix(title: string, source?: string) {
+  if (source && title.toLowerCase().endsWith(` - ${source.toLowerCase()}`)) {
+    return title.slice(0, title.length - source.length - 3).trim();
+  }
+  const dash = title.lastIndexOf(" - ");
+  return dash > 20 ? title.slice(0, dash).trim() : title;
+}
+
+export function looksForeign(headline: string) {
+  const lower = ` ${headline.toLowerCase()} `;
+  return FOREIGN_PLACES.some((place) => lower.includes(place.startsWith(" ") ? place : ` ${place}`));
+}
+
+export function classify(title: string): { status: FloodFeedStatus; severity: number } {
+  const value = ` ${title.toLowerCase()} `;
   if (["archives", "archive page", "tag page", "latest news on"].some((word) => value.includes(word))) {
     return { status: "UNVERIFIED", severity: 0 };
   }
@@ -115,6 +152,8 @@ function classify(title: string): { status: FloodFeedStatus; severity: number } 
   const forwardLooking = [
     "warning", "warns", "warned", "forecast", "forecasts", "possible", "expected", "may flood",
     "risk of flooding", "flood risk", "high risk", "alert", "alerts", "early warning", "preparedness",
+    // Lists of states "at risk" or "to experience" floods are warnings, not reports of damage.
+    " risk ", "at risk", "to experience", "go experience", "will experience", "likely to",
   ].some((word) => value.includes(word));
   if (forwardLooking) return { status: "WARNING", severity: 2 };
 
@@ -137,7 +176,12 @@ function parseDate(value: string | undefined) {
 }
 
 function isNigeriaItem(item: LiveFloodFeedItem) {
-  return item.state !== UNPARSED || /\bnigeria(?:n)?\b/i.test(item.title);
+  // Judge the headline only. The " - The Guardian Nigeria News" style suffix
+  // used to make foreign floods (Germany, Nepal, Seoul) look Nigerian.
+  const headline = stripSourceSuffix(item.title, item.source);
+  if (item.state !== UNPARSED) return true;
+  if (looksForeign(headline)) return false;
+  return /\bnigeria(?:n)?\b/i.test(headline);
 }
 
 async function fetchGdelt(): Promise<LiveFloodFeedItem[]> {
@@ -150,7 +194,7 @@ async function fetchGdelt(): Promise<LiveFloodFeedItem[]> {
     const url = String(article?.url ?? "");
     const location = extractLocations(title);
     const risk = classify(title);
-    return { id: stableId(`${title}|${url}`), title, url, source: String(article?.domain ?? "GDELT").replace(/^www\./, ""), publishedAt: parseDate(article?.seendate), state: location.state, areas: location.areas, status: risk.status, severity: risk.severity, channel: "news" as const };
+    return { id: stableId(`${title}|${url}`), title, url, source: String(article?.domain ?? "GDELT").replace(/^www\./, ""), publishedAt: parseDate(article?.seendate), state: location.state, states: location.states, areas: location.areas, status: risk.status, severity: risk.severity, channel: "news" as const };
   }).filter((item: LiveFloodFeedItem) => item.title && item.url && /flood|inundat/i.test(item.title) && isNigeriaItem(item));
 }
 
@@ -168,9 +212,11 @@ async function fetchGoogleNews(query: string): Promise<LiveFloodFeedItem[]> {
     const title = readXmlTag(chunk, "title");
     const link = readXmlTag(chunk, "link");
     const sourceMatch = chunk.match(/<source(?:\s[^>]*)?>([\s\S]*?)<\/source>/i);
-    const location = extractLocations(title);
-    const risk = classify(title);
-    return { id: stableId(`${title}|${link}`), title, url: link, source: sourceMatch ? cleanText(sourceMatch[1]) : "Google News", publishedAt: parseDate(readXmlTag(chunk, "pubDate")), state: location.state, areas: location.areas, status: risk.status, severity: risk.severity, channel: "news" as const };
+    const source = sourceMatch ? cleanText(sourceMatch[1]) : "Google News";
+    const headline = stripSourceSuffix(title, source);
+    const location = extractLocations(headline);
+    const risk = classify(headline);
+    return { id: stableId(`${title}|${link}`), title, url: link, source, publishedAt: parseDate(readXmlTag(chunk, "pubDate")), state: location.state, states: location.states, areas: location.areas, status: risk.status, severity: risk.severity, channel: "news" as const };
   }).filter((item) => item.title && item.url && /flood|inundat/i.test(item.title) && isNigeriaItem(item));
 }
 
