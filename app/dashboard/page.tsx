@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/shared/LanguageProvider";
 import AdaptiveDashboard, { LocationData, LiveRisk } from "@/components/dashboard/AdaptiveDashboard";
 import ActionOSBanner from "@/components/dashboard/ActionOSBanner";
 import DashboardCapabilityDock from "@/components/dashboard/DashboardCapabilityDock";
+import DashboardHero from "@/components/dashboard/DashboardHero";
 import { NIGERIA_ADMIN_AREAS } from "@/lib/nigeria-geography";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
 import { useSession } from "next-auth/react";
@@ -97,23 +98,11 @@ function DashboardContent() {
   return (
     <AppShell>
       <div className="ncg-motion-stack space-y-6" key={locale}>
-        <div className="simple-only">
-          <p className="text-[11px] font-black uppercase tracking-[.2em] text-emerald-700 dark:text-[#d9ff57]">{area.name} · Nigeria</p>
-        </div>
-        <section className="standard-up ncg-water-panel rounded-[2.25rem] px-6 py-7 sm:px-9 sm:py-10" data-read-aloud>
-          <div className="relative z-10 grid gap-7 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-700 dark:text-[#d9ff57]">{area.zone} · {tr("National workspace")}</p>
-              <h1 className="mt-3 max-w-3xl font-display text-4xl font-black leading-[.96] tracking-[-.055em] sm:text-6xl">{area.name}</h1>
-              <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-600 dark:text-white/62">{tr("Your working area organises the experience. Every risk result still belongs to an exact saved coordinate, not an invented state-wide forecast.")}</p>
-            </div>
-            <div className="relative z-10 inline-flex w-fit items-center rounded-full border border-[#0d1f19]/10 bg-white/80 px-4 py-2 text-xs font-black shadow-sm dark:border-white/10 dark:bg-white/8">36 states + FCT</div>
-          </div>
-        </section>
-        <DashboardCapabilityDock />
+        <DashboardHero areaName={area.name} areaZone={area.zone} />
+        <AdaptiveDashboard userName={session.user?.name} paymentStatus={paymentStatus} locations={locations} risks={risks} limit={limit} plan={plan} showAdd={showAdd} setShowAdd={setShowAdd} newLoc={newLoc} setNewLoc={setNewLoc} addErr={addErr} addLocation={addLocation} deleteLocation={deleteLocation} fetchRisk={fetchRisk} />
         <div className="standard-up"><ActionOSBanner /></div>
         <div className="standard-up"><RiverineWatchEvidence compact /></div>
-        <AdaptiveDashboard userName={session.user?.name} paymentStatus={paymentStatus} locations={locations} risks={risks} limit={limit} plan={plan} showAdd={showAdd} setShowAdd={setShowAdd} newLoc={newLoc} setNewLoc={setNewLoc} addErr={addErr} addLocation={addLocation} deleteLocation={deleteLocation} fetchRisk={fetchRisk} />
+        <DashboardCapabilityDock />
       </div>
     </AppShell>
   );

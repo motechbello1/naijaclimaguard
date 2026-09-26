@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { BrandMark } from "./BrandLogo";
 
 export default function SplashScreen() {
   const [visible, setVisible] = useState(true);
@@ -18,48 +19,48 @@ export default function SplashScreen() {
       return;
     }
 
+    const finish = window.setTimeout(() => {
+      setVisible(false);
+      announceComplete();
+    }, 1420);
     const timer = window.setTimeout(() => {
       setFadeOut(true);
-      window.setTimeout(() => {
-        setVisible(false);
-        announceComplete();
-      }, 520);
-    }, 1450);
+    }, 920);
 
-    return () => window.clearTimeout(timer);
+    return () => { window.clearTimeout(timer); window.clearTimeout(finish); };
   }, []);
 
   if (!visible) return null;
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden bg-cloud dark:bg-midnight transition-all duration-500 ease-out ${
-        fadeOut ? "scale-[1.015] opacity-0 blur-[4px]" : "scale-100 opacity-100 blur-0"
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden bg-[#0b282b] text-[#f4f8ed] transition-all duration-500 ease-out ${
+        fadeOut ? "translate-y-[-101%]" : "translate-y-0"
       }`}
     >
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-radar/8 blur-3xl dark:bg-[#d9ff57]/[.045]" />
+        <div className="absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#daf18c]/[.06] blur-3xl" />
       </div>
-
+      <BrandMark inverse className="relative mb-8 h-14 w-14" />
       <div
-        className="relative font-display text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl"
+        className="relative text-3xl font-extrabold tracking-[-.055em] sm:text-4xl"
         style={{ animation: "splashWordmark .72s cubic-bezier(.16,1,.3,1) both" }}
       >
-        NaijaClima<span className="text-radar">Guard</span>
+        NaijaClima<span className="text-[#daf18c]">Guard</span>
       </div>
 
-      <div className="relative mt-3 h-[2px] w-[180px] overflow-hidden rounded-full bg-black/5 dark:bg-white/8">
+      <div className="relative mt-6 h-[2px] w-[180px] overflow-hidden bg-white/20">
         <div
-          className="h-full bg-radar shadow-[0_0_14px_rgba(22,135,96,.45)] dark:bg-[#d9ff57] dark:shadow-[0_0_16px_rgba(217,255,87,.5)]"
+          className="h-full bg-[#daf18c]"
           style={{ animation: "splashDraw 1s cubic-bezier(.16,1,.3,1) .18s both" }}
         />
       </div>
 
       <p
-        className="relative mt-4 text-xs uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500"
+        className="relative mt-5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#c5d9cb]"
         style={{ animation: "splashFade .62s cubic-bezier(.16,1,.3,1) .62s both" }}
       >
-        Physical risk intelligence
+        Know before / Act together / Prove after
       </p>
 
       <style jsx>{`

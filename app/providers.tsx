@@ -15,9 +15,9 @@ import FloodAssistant from "@/components/assistant/FloodAssistant";
 import ThemeBrandSync from "@/components/shared/ThemeBrandSync";
 import RouteSecurityGuard from "@/components/shared/RouteSecurityGuard";
 import AppMotionFrame from "@/components/shared/AppMotionFrame";
+import LandingIntro from "@/components/floodpass/LandingIntro";
 
-// FloodPass screens have their own calm, light layout: no splash screen and no
-// floating buttons covering the text (a problem found in the diagnostics).
+// Public FloodPass screens have their own layout and controls.
 const FLOODPASS_PREFIXES = ["/floodpass", "/check", "/pass", "/partners", "/contact"];
 function isFloodPassPath(pathname: string | null) {
   if (!pathname) return false;
@@ -25,7 +25,8 @@ function isFloodPassPath(pathname: string | null) {
 }
 
 export function Providers({ children }: { children: ReactNode }) {
-  const floodPass = isFloodPassPath(usePathname());
+  const pathname = usePathname();
+  const floodPass = isFloodPassPath(pathname);
   return (
     <SessionProvider refetchOnWindowFocus refetchInterval={5 * 60}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} forcedTheme={floodPass ? "light" : undefined}>
@@ -36,6 +37,7 @@ export function Providers({ children }: { children: ReactNode }) {
               <RouteSecurityGuard />
               <LanguagePreferenceSync />
               <PlatformTranslationBridge />
+              {pathname === "/" && <LandingIntro />}
               {floodPass ? null : <SplashScreen />}
               {floodPass ? children : <AppMotionFrame>{children}</AppMotionFrame>}
               {floodPass ? null : <GlobalAccessibilityDock />}

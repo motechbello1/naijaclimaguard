@@ -5,15 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
-  BarChart3, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck,
+  BarChart3, Building2, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardCheck,
   Compass, FileCheck2, Home, LayoutDashboard, LogOut, Map, MapPin, Megaphone,
-  Menu, Presentation, Radar, Settings2, ShieldAlert, Telescope,
+  Menu, Presentation, Radar, Settings2, ShieldAlert, Sprout, House, Landmark, Telescope,
   BadgeDollarSign, WalletCards, X, Zap,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import SatelliteStatus from "./SatelliteStatus";
 import { ExplanationModeControl, ExplanationModeProvider, PageExplanation } from "./ExplanationMode";
-import { ExperienceProfileProvider, ExperienceRoleControl, useExperienceProfile } from "./ExperienceProfile";
+import { EXPERIENCE_LABELS, ExperienceProfileProvider, ExperienceRoleControl, useExperienceProfile, type ExperienceRole } from "./ExperienceProfile";
 import { NationalAreaControl, useNationalArea } from "./NationalArea";
 import { useLanguage } from "./LanguageProvider";
 import LanguageSelector from "./LanguageSelector";
@@ -21,6 +21,7 @@ import { ReadAloudControl } from "./SpeechProvider";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { BrandLockup, BrandMark } from "./BrandLogo";
+import "@/app/workspace-v2.css";
 
 const NAV_BY_ROLE: Record<string, Array<{ href: string; key: MessageKey; icon: any }>> = {
   HOUSEHOLD: [
@@ -95,7 +96,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
-  const { role } = useExperienceProfile();
+  const { role, setRole } = useExperienceProfile();
   const { area } = useNationalArea();
   const { t, locale } = useLanguage();
   const tr = (source: string) => translatePlatformText(locale, source);
@@ -139,8 +140,8 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="ncg-app flex min-h-[100dvh] min-w-0 bg-[#f3f4ee] text-[#0d1f19] dark:bg-[#07110e] dark:text-slate-100" key={locale}>
-      <aside className={`fixed inset-y-3 left-3 z-40 hidden overflow-hidden rounded-[28px] border border-black/8 bg-[#eef1e9] text-[#0d1f19] shadow-[0_24px_70px_rgba(5,25,20,.16)] transition-[width] duration-300 dark:border-white/10 dark:bg-[#071713] dark:text-white lg:flex lg:flex-col ${collapsed ? "w-[78px]" : "w-[272px]"}`}>
+    <div className="ncg-app ncg-workspace-app flex min-h-[100dvh] min-w-0 bg-[#f3f4ee] text-[#0d1f19] dark:bg-[#07110e] dark:text-slate-100" key={locale}>
+      <aside className={`ncg-workspace-sidebar fixed inset-y-3 left-3 z-40 hidden overflow-hidden rounded-[28px] border border-black/8 bg-[#eef1e9] text-[#0d1f19] shadow-[0_24px_70px_rgba(5,25,20,.16)] transition-[width] duration-300 dark:border-white/10 dark:bg-[#071713] dark:text-white lg:flex lg:flex-col ${collapsed ? "w-[78px]" : "w-[272px]"}`}>
         <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-emerald-300/28 blur-3xl dark:bg-[#1f5f49]/30" />
         <div className="relative flex h-[74px] items-center justify-between px-4"><Brand compact={collapsed} /><button onClick={() => setCollapsed((v) => !v)} className="flex h-8 w-8 items-center justify-center rounded-full border border-black/8 bg-white/75 text-emerald-900/65 hover:text-[#071713] dark:border-white/10 dark:bg-white/[.05] dark:text-white/55 dark:hover:text-white" aria-label={collapsed ? tr("Expand navigation") : tr("Collapse navigation")}>{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button></div>
 
@@ -160,13 +161,13 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className={`min-w-0 flex-1 transition-[padding] duration-300 ${collapsed ? "lg:pl-[102px]" : "lg:pl-[296px]"}`}>
-        <header className="sticky top-0 z-30 border-b border-[#0d1f19]/7 bg-[#f3f4ee]/[.94] backdrop-blur-xl dark:border-white/8 dark:bg-[#07110e]/[.94]">
+        <header className="ncg-workspace-header sticky top-0 z-30 border-b border-[#0d1f19]/7 bg-[#f3f4ee]/[.94] backdrop-blur-xl dark:border-white/8 dark:bg-[#07110e]/[.94]">
           <div className="mx-auto flex h-[68px] max-w-[1680px] items-center gap-3 px-4 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3 lg:hidden" data-ncg-no-translate="true"><BrandMark className="h-9 w-9 shrink-0 dark:hidden" /><BrandMark inverse className="hidden h-9 w-9 shrink-0 dark:block" /><div className="min-w-0"><p className="truncate text-[15px] font-black tracking-[-.03em]">NaijaClimaGuard</p><p className="truncate text-[10px] font-semibold text-slate-500 dark:text-white/48">{area.name}</p></div></div>
             <div className="hidden lg:block"><SatelliteStatus /></div>
             <div className="ml-auto flex items-center gap-2">
-              <div className="hidden xl:block"><NationalAreaControl compact /></div>
-              <div className="hidden xl:block"><LanguageSelector compact /></div>
+              <div className="hidden md:block"><NationalAreaControl compact /></div>
+              <div className="hidden sm:block"><LanguageSelector compact /></div>
               <div className="hidden 2xl:block"><ExplanationModeControl /></div>
               <div className="hidden 2xl:block"><ExperienceRoleControl /></div>
               <ThemeToggle />
@@ -175,12 +176,17 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="min-w-0 overflow-x-hidden px-4 pb-[calc(7.25rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 lg:px-8 lg:pb-10 lg:pt-8">
-          <div className="mx-auto w-full max-w-[1680px]"><PageExplanation pathname={pathname} />{children}</div>
+        <main className="ncg-workspace-main min-w-0 overflow-x-hidden px-4 pb-[calc(7.25rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 lg:px-8 lg:pb-10 lg:pt-8">
+          <div className="mx-auto w-full max-w-[1680px]">
+            <div className="ncg-workspace-identity"><div><span>YOUR WORKSPACE / {area.name.toUpperCase()}</span><p>Choose what you protect.</p></div><div className="ncg-role-switch" aria-label="Choose dashboard view">
+              {(Object.keys(EXPERIENCE_LABELS) as ExperienceRole[]).map((item) => { const Icon = { HOUSEHOLD: House, FARMER: Sprout, BUSINESS: Building2, AGENCY: Landmark }[item]; return <button key={item} type="button" aria-pressed={role === item} onClick={() => setRole(item)}><Icon size={16} strokeWidth={1.8} /><span>{tr(EXPERIENCE_LABELS[item])}</span></button>; })}
+            </div></div>
+            <PageExplanation pathname={pathname} />{children}
+          </div>
         </main>
       </div>
 
-      <nav className="fixed inset-x-3 bottom-[max(.65rem,env(safe-area-inset-bottom))] z-50 flex rounded-[22px] border border-black/8 bg-[#eef1e9] p-1.5 text-[#0d1f19] shadow-[0_18px_50px_rgba(3,20,15,.22)] dark:border-white/10 dark:bg-[#071713] dark:text-white lg:hidden" aria-label="Primary navigation">
+      <nav className="ncg-workspace-mobile fixed inset-x-3 bottom-[max(.65rem,env(safe-area-inset-bottom))] z-50 flex rounded-[22px] border border-black/8 bg-[#eef1e9] p-1.5 text-[#0d1f19] shadow-[0_18px_50px_rgba(3,20,15,.22)] dark:border-white/10 dark:bg-[#071713] dark:text-white lg:hidden" aria-label="Primary navigation">
         {MOBILE_LINKS.map((item) => { const active = pathname === item.href || pathname.startsWith(`${item.href}/`); const Icon = item.icon; return <Link key={item.href} href={item.href} className={`flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[16px] px-1 text-[10px] font-black transition ${active ? "bg-[#071713] text-[#d9ff57] dark:bg-[#d9ff57] dark:text-[#071713]" : "text-emerald-950/75 dark:text-white/90"}`}><Icon className="h-[18px] w-[18px] shrink-0" /><span className="max-w-full truncate">{tr(item.label)}</span></Link>; })}
         <button onClick={() => setMoreOpen(true)} className={`flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[16px] px-1 text-[10px] font-black ${moreOpen ? "bg-black/5 text-[#071713] dark:bg-white/10 dark:text-white" : "text-emerald-950/75 dark:text-white/90"}`}><Menu className="h-[18px] w-[18px]" /><span className="max-w-full truncate">{tr("More")}</span></button>
       </nav>

@@ -5,6 +5,9 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { MapPin, RefreshCw, Megaphone, ShieldCheck, ShieldAlert, Loader2, UserPlus, ChevronDown, ChevronUp } from "lucide-react";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import LanguageSelector from "@/components/shared/LanguageSelector";
+import { BrandLockup } from "@/components/shared/BrandLogo";
+import "@/app/my-area-v2.css";
 
 type Verdict = { score: number; headline: string; plain: string; color: string; bg: string; actions: string[]; floodType: string; maxHourly: number; rain7: number; };
 
@@ -43,13 +46,13 @@ export default function MyAreaPage() {
   useEffect(() => { locate(); }, [locate]);
 
   return (
-    <div className="min-h-screen bg-cloud dark:bg-midnight text-slate-900 dark:text-slate-200 font-body">
-      <header className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-midnight-border">
-        <Link href="/" className="font-display text-lg font-bold">NaijaClima<span className="text-radar">Guard</span></Link>
-        <div className="flex items-center gap-3"><ThemeToggle />{!session ? <Link href="/login" className="flex items-center gap-1.5 text-xs font-semibold text-radar hover:underline"><UserPlus className="h-3.5 w-3.5" /> Sign in</Link> : <Link href="/dashboard" className="text-xs font-semibold text-radar hover:underline">My dashboard →</Link>}</div>
+    <div className="ncg-my-area min-h-screen bg-cloud dark:bg-midnight text-slate-900 dark:text-slate-200 font-body">
+      <header className="ncg-my-area-header flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-midnight-border">
+        <BrandLockup inverse href="/" />
+        <div className="flex items-center gap-3"><LanguageSelector compact /><ThemeToggle />{!session ? <Link href="/login" className="ncg-my-area-account"><UserPlus className="h-3.5 w-3.5" /> Sign in</Link> : <Link href="/dashboard" className="ncg-my-area-account">My workspace →</Link>}</div>
       </header>
 
-      <main className="mx-auto max-w-lg px-5 pt-6 pb-16">
+      <main className="ncg-my-area-main mx-auto max-w-lg px-5 pt-6 pb-16"><div className="ncg-my-area-intro"><span>MY AREA / LIVE CHECK</span><h1>Know your <em>next step.</em></h1><p>Check the rainfall signal where you are. Official warnings and visible conditions always take priority.</p></div>
         {(state === "locating" || state === "loading") && <div className="flex flex-col items-center gap-4 pt-24 text-slate-500"><Loader2 className="h-8 w-8 animate-spin text-radar" /><p className="text-base font-semibold">{state === "locating" ? "Finding where you are…" : "Checking your area…"}</p><p className="text-sm text-slate-400">This may take a few seconds.</p></div>}
 
         {state === "no-location" && <div className="mt-12 rounded-2xl border border-slate-200 dark:border-midnight-border p-8 text-center"><MapPin className="mx-auto h-10 w-10 text-slate-400" /><h1 className="mt-4 font-display text-xl font-bold">We need your location</h1><p className="mt-2 text-sm text-slate-500">Allow location so we can check conditions around you. You do not need an account.</p><button onClick={locate} className="mt-6 rounded-xl bg-radar px-6 py-3 font-semibold text-white">Use my location</button></div>}

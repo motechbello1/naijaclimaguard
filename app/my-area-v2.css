@@ -1,0 +1,18 @@
+.ncg-my-area { min-height:100dvh; background:#f2f4ec; color:#103234; font-family:Manrope,sans-serif; }
+.dark .ncg-my-area { background:#0b2023; color:#f4f8ed; }
+.ncg-my-area-header { min-height:77px; padding:15px clamp(22px,4vw,62px); border-color:#bacfc3; background:#0b292c; color:#f5f8ed; }
+.ncg-my-area-header .font-display { font-family:Manrope,sans-serif; font-size:19px; color:#fff; }.ncg-my-area-header .font-display span { color:#daf18c; }
+.ncg-my-area-account { display:inline-flex; align-items:center; gap:7px; background:#daf18c; padding:11px 14px; color:#123630; font-size:12px; font-weight:800; }
+.ncg-my-area-header label { border-color:#67867d; color:#fff; }.ncg-my-area-header select { color:#fff !important; background:transparent !important; }.ncg-my-area-header select option { color:#103234; }
+.ncg-my-area-main { max-width:850px; padding:40px clamp(22px,4vw,45px) 100px; }
+.ncg-my-area-intro { margin-bottom:35px; padding-bottom:33px; border-bottom:1px solid #b8cfc2; }
+.ncg-my-area-intro > span { color:#267361; font:800 10px 'DM Mono',monospace; letter-spacing:.16em; }
+.ncg-my-area-intro h1 { margin:20px 0 16px; font-size:clamp(48px,7vw,86px); line-height:1; font-weight:800; letter-spacing:-.07em; }
+.ncg-my-area-intro h1 em { color:#257461; font-family:'Instrument Serif',Georgia,serif; font-weight:400; }
+.ncg-my-area-intro p { max-width:570px; margin:0; color:#4f6963; font-size:15px; line-height:1.7; }.dark .ncg-my-area-intro p { color:#c5d9d0; }
+.ncg-my-area-main .rounded-2xl,.ncg-my-area-main .rounded-3xl,.ncg-my-area-main .rounded-xl { border-radius:2px; }
+.ncg-my-area-main button,.ncg-my-area-main a { transition:transform .2s ease,background .2s ease; }.ncg-my-area-main button:hover,.ncg-my-area-main a:hover { transform:translateY(-2px); }
+.ncg-my-area-main button.bg-radar,.ncg-my-area-main a.bg-radar { background:#0c3535; color:#fff; }
+.ncg-my-area-main .bg-radar\/5 { background:#e0efda; }.dark .ncg-my-area-main .bg-radar\/5 { background:#183f38; }
+@media (max-width:540px) { .ncg-my-area-header .font-display { font-size:14px; }.ncg-my-area-header .h-10 { width:32px;height:32px; }.ncg-my-area-header > div { gap:6px; }.ncg-my-area-account { padding:10px; font-size:11px; } }
+@media (prefers-reduced-motion:reduce) { .ncg-my-area-main button,.ncg-my-area-main a { transition:none; } }
