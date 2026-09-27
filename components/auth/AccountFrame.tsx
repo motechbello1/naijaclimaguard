@@ -17,7 +17,7 @@ const ROLES = [
 export default function AccountFrame({ kind, children }: { kind: "login" | "register"; children: React.ReactNode }) {
   return <main className="ncg-entry">
     <header className="ncg-entry-header">
-      <BrandLockup inverse href="/" />
+      <BrandLockup inverse href="/" className="ncg-entry-brand" />
       <div><LanguageSelector compact /><ThemeToggle /><Link href="/" className="ncg-entry-back"><ArrowLeft size={15} /> Public site</Link></div>
     </header>
     <div className="ncg-entry-grid">

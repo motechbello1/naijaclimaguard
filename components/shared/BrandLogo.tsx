@@ -12,8 +12,8 @@ type BrandMarkProps = {
 export function BrandMark({ className = "h-10 w-10", title = "NaijaClimaGuard", inverse = false, style }: BrandMarkProps) {
   return (
     <span role="img" aria-label={title} data-ncg-brand="approved-v3" data-inverse={inverse || undefined} className={`ncg-brand-mark ${className}`} style={style}>
-      <Image unoptimized className="ncg-brand-light" src="/brand/symbol-light-v3.png" width={512} height={512} alt="" aria-hidden="true" draggable={false} />
-      <Image unoptimized className="ncg-brand-dark" src="/brand/symbol-dark-v3.png" width={512} height={512} alt="" aria-hidden="true" draggable={false} />
+      <Image unoptimized className="ncg-brand-light" src="/brand/symbol-light-v3.png?v=4" width={512} height={512} alt="" aria-hidden="true" draggable={false} />
+      <Image unoptimized className="ncg-brand-dark" src="/brand/symbol-dark-v3.png?v=4" width={512} height={512} alt="" aria-hidden="true" draggable={false} />
     </span>
   );
 }

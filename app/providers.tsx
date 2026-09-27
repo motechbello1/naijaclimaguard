@@ -29,7 +29,7 @@ export function Providers({ children }: { children: ReactNode }) {
   const ownControls = pathname === "/login" || pathname === "/register" || pathname === "/my-area";
   return (
     <SessionProvider refetchOnWindowFocus refetchInterval={5 * 60}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} forcedTheme={floodPass ? "light" : undefined}>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <ThemeBrandSync />
         <NationalAreaProvider>
           <LanguageProvider>

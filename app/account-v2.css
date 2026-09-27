@@ -64,4 +64,20 @@
 @media (max-width: 1050px) { .ncg-entry-grid { grid-template-columns: minmax(0,.8fr) minmax(450px,1fr); }.ncg-entry-role-grid { grid-template-columns: repeat(2,1fr); }.ncg-entry-story h2 { font-size: 65px; } }
 @media (max-width: 800px) { .ncg-entry-grid { display: flex; flex-direction: column; }.ncg-entry-story,.ncg-entry-story-content { min-height: 350px; }.ncg-entry-story-content { gap: 35px; }.ncg-entry-story h2 { font-size: clamp(50px,11vw,80px); margin-bottom: 13px; }.ncg-entry-story p { font-size: 14px; }.ncg-entry-role-grid { display: none; }.ncg-entry-panel-inner { min-height: 0; }.ncg-entry-form { padding: 45px 0; } }
 @media (max-width: 520px) { .ncg-entry-header { height: 70px; }.ncg-entry-header .font-display { font-size: 15px; }.ncg-entry-header .h-10 { width: 33px; height: 33px; }.ncg-entry-header > div { gap: 9px; }.ncg-entry-back { font-size: 0; }.ncg-entry-back svg { width: 18px; height: 18px; }.ncg-entry-panel-top span:last-child,.ncg-entry-panel-foot span { display: none; }.ncg-entry-story,.ncg-entry-story-content { min-height: 305px; }.ncg-entry-panel { padding: 26px 22px 40px; }.ncg-entry-form h1 { font-size: 44px; } }
+@media (max-width: 620px) {
+  .ncg-entry-header { gap: 8px; padding-inline: 12px; }
+  .ncg-entry-brand { flex: 1 1 auto; max-width: 160px; overflow: hidden; gap: 6px; }
+  .ncg-entry-brand .font-display { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+  .ncg-entry-header > div { flex: none; gap: 6px; }
+  .ncg-entry-header label { width: 88px; min-width: 0; gap: 3px; padding-inline: 5px; }
+  .ncg-entry-header label svg { width: 14px; flex: none; }
+  .ncg-entry-header select { width: 60px; min-width: 0; font-size: 11px; }
+  .ncg-entry-header button[aria-label*="mode"] { width: 36px; height: 36px; flex: none; }
+  .ncg-entry-back { width: 24px; justify-content: center; flex: none; }
+}
+@media (max-width: 350px) {
+  .ncg-entry-brand { max-width: 125px; }
+  .ncg-entry-header label { width: 78px; }
+  .ncg-entry-header select { width: 50px; }
+}
 @media (prefers-reduced-motion: reduce) { .ncg-entry-photo,.ncg-entry-form { animation: none; }.ncg-entry-submit { transition: none; } }

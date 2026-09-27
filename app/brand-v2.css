@@ -317,6 +317,19 @@ html { scroll-behavior: smooth; }
   .ncg-action-card:last-child { grid-column: 1/-1; min-height: 300px; }
 }
 @media (max-width: 620px) {
+  .fp-header .fp-wrap { width: calc(100% - 24px); }
+  .fp-header-inner { gap: 8px; }
+  .fp-root .fp-brand { min-width: 0; max-width: 162px; flex: 1 1 auto; gap: 6px; }
+  .fp-brand .fp-mark { width: 32px !important; height: 32px !important; }
+  .fp-brand-words { min-width: 0; }
+  .fp-header .fp-brand-words strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; letter-spacing: -.055em; }
+  .fp-brand-words small { display: none; }
+  .fp-header-controls { flex: none; gap: 5px; }
+  .fp-language-control { width: 86px; min-width: 0; padding: 0 5px; gap: 3px; }
+  .fp-language-control svg { width: 14px; flex: none; }
+  .fp-language-control select { min-width: 0; width: 60px; max-width: 60px; font-size: 11px; }
+  .fp-theme-control { width: 36px; height: 36px; }
+  .fp-account-menu summary { width: 36px; justify-content: center; }
   .ncg-inquiry { padding-bottom: 30px; }
   .ncg-inquiry-intro { min-height: 500px; padding: 42px 26px; }
   .ncg-inquiry-intro h1 { font-size: 48px; }
@@ -363,6 +376,12 @@ html { scroll-behavior: smooth; }
   .ncg-record-aside { min-height: 230px; }
   .ncg-close { margin-top: 85px; }
   .ncg-close h2 { font-size: 47px; }
+}
+@media (max-width: 350px) {
+  .fp-root .fp-brand { max-width: 128px; }
+  .fp-header .fp-brand-words strong { font-size: 12px; }
+  .fp-language-control { width: 76px; }
+  .fp-language-control select { width: 50px; max-width: 50px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ncg-home *, .ncg-home *::before, .ncg-home *::after { animation: none !important; transition: none !important; }

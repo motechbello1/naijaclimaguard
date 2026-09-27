@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { BadgeCheck, House, Languages, Moon, Radio, Sun, Volume2, LayoutDashboard, ChevronDown, LogOut, UserRound, UserPlus } from "lucide-react";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { APP_LANGUAGES, type AppLocale } from "@/lib/i18n/config";
 import { useLanguage } from "@/components/shared/LanguageProvider";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
@@ -34,13 +35,6 @@ export function useFp() {
   return value;
 }
 
-function readStored(key: string) {
-  try { return window.localStorage.getItem(key); } catch { return null; }
-}
-function writeStored(key: string, value: string) {
-  try { window.localStorage.setItem(key, value); } catch { /* private mode: fine */ }
-}
-
 export function whatsappLink(text = "Hi") {
   const number = (process.env.NEXT_PUBLIC_FLOODPASS_WHATSAPP || "").replace(/[^0-9]/g, "");
   return number ? `https://wa.me/${number}?text=${encodeURIComponent(text)}` : null;
@@ -64,18 +58,15 @@ export default function FpShell({ children, active }: { children: React.ReactNod
   const { locale: lang, setLocale: setLang } = useLanguage();
   const { status, data: session } = useSession();
   const router = useRouter();
-  const [night, setNight] = useState(false);
-
-  useEffect(() => {
-    if (readStored("fp-night") === "1") setNight(true);
-  }, []);
+  const { resolvedTheme, setTheme } = useTheme();
+  const night = resolvedTheme === "dark";
 
   useEffect(() => {
     document.documentElement.dataset.fpTheme = night ? "dark" : "light";
     return () => { delete document.documentElement.dataset.fpTheme; };
   }, [night]);
 
-  const toggleNight = () => { setNight((value) => { writeStored("fp-night", value ? "0" : "1"); return !value; }); };
+  const toggleNight = () => setTheme(night ? "light" : "dark");
 
   const say = useCallback((text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
