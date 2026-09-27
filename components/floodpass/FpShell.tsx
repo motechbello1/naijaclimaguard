@@ -22,7 +22,7 @@ const Ctx = createContext<FpContext | null>(null);
 
 /** Short UI words. Messages people act on live in lib/floodpass/messages.ts. */
 const UI: Record<string, string> = {
-    hear: "Listen", night: "Night mode", day: "Day mode", home: "Home", report: "Report", check: "Check", plans: "Plans", help: "Help", partners: "For partners",
+    hear: "Listen", night: "Night mode", day: "Day mode", home: "Home", report: "Report", check: "Check", workspace: "Workspace", plans: "Plans", help: "Help", partners: "For partners",
     promise: "Know before. Act together. Prove after.",
     lead: "FloodPass shows official flood warnings and helps you report water. Reports that pass our checks become proof that others can check.",
     whatsapp: "Get warnings on WhatsApp", myStreet: "Check my area", waterHere: "Report water", checkCode: "Check a FloodPass code",
