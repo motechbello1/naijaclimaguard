@@ -9,7 +9,7 @@ export default function ThemeBrandSync() {
   useEffect(() => {
     if (!resolvedTheme) return;
     const sync = () => {
-    const dark = (document.documentElement.dataset.fpTheme || resolvedTheme) === "dark";
+    const dark = resolvedTheme === "dark";
     const href = dark ? "/brand/favicon-dark.svg?v=3" : "/brand/favicon-light.svg?v=3";
     let icon = document.head.querySelector<HTMLLinkElement>("link[data-ncg-theme-icon]");
     if (!icon) {
@@ -37,7 +37,6 @@ export default function ThemeBrandSync() {
     };
     sync();
     const observer = new MutationObserver(sync);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-fp-theme"] });
     observer.observe(document.head, { childList: true });
     return () => observer.disconnect();
   }, [resolvedTheme]);

@@ -30,7 +30,7 @@ html { scroll-behavior: smooth; }
   --fp-cream: #e8eee7;
   --fp-shadow: 0 18px 42px rgba(17, 50, 45, .06);
 }
-.fp-root.fp-night {
+.dark .fp-root {
   --fp-bg: #0b2227;
   --fp-text: #f3f4e8;
   --fp-muted: #bacdca;
@@ -46,7 +46,7 @@ html { scroll-behavior: smooth; }
 .fp-brand { min-width: 260px; gap: 12px; }
 .fp-brand-words strong { font-size: 20px; letter-spacing: -.055em; }
 .fp-brand-words strong span { font-weight: 800; color: #21775f; }
-.fp-night .fp-brand-words strong span { color: #d7ed8b; }
+.dark .fp-root .fp-brand-words strong span { color: #d7ed8b; }
 .fp-brand-words small { font-size: 7px; letter-spacing: .125em; margin-top: 6px; }
 .fp-header-report { background: #0e3536; border-radius: 2px; }
 .fp-header-report:hover { background: #1a6155; }
@@ -68,11 +68,6 @@ html { scroll-behavior: smooth; }
 .fp-main-home .ncg-home { margin-bottom: 105px; }
 .fp-footer { background: #0b282b; }
 .fp-footer-lockup strong { font-size: 19px; letter-spacing: -.04em; }
-/* The older platform theme uses an !important dark input rule on html.dark.
-   FloodPass keeps its own day/night setting, so its form controls must follow it. */
-.dark .fp-root:not(.fp-night) input:not([type="checkbox"]),
-.dark .fp-root:not(.fp-night) select,
-.dark .fp-root:not(.fp-night) textarea { background-color: #fffefa !important; color: #102a2b !important; border-color: #cbd6d0 !important; }
 .fp-root input::placeholder,.fp-root textarea::placeholder { color: var(--fp-muted); opacity: 1; }
 
 .ncg-home { color: var(--fp-text); }

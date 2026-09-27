@@ -30,15 +30,23 @@ body {
 /* Same approved silhouette on every surface; only the ink changes. */
 .ncg-brand-mark { position: relative; display: inline-block; flex-shrink: 0; vertical-align: middle; }
 .ncg-brand-mark > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-.ncg-brand-mark > .ncg-brand-dark { display: none; }
-.dark .ncg-brand-mark > .ncg-brand-light { display: none; }
-.dark .ncg-brand-mark > .ncg-brand-dark { display: block; }
-.fp-root .ncg-brand-mark > .ncg-brand-light { display: block; }
-.fp-root .ncg-brand-mark > .ncg-brand-dark { display: none; }
-.fp-night .ncg-brand-mark > .ncg-brand-light,
-.ncg-brand-mark[data-inverse] > .ncg-brand-light { display: none; }
-.fp-night .ncg-brand-mark > .ncg-brand-dark,
-.ncg-brand-mark[data-inverse] > .ncg-brand-dark { display: block; }
+.ncg-brand-mark > .ncg-brand-dark { opacity: 0; }
+.dark .ncg-brand-mark > .ncg-brand-light { opacity: 0; }
+.dark .ncg-brand-mark > .ncg-brand-dark { opacity: 1; }
+.fp-root .ncg-brand-mark > .ncg-brand-light { opacity: 1; }
+.fp-root .ncg-brand-mark > .ncg-brand-dark { opacity: 0; }
+.dark .fp-root .ncg-brand-mark > .ncg-brand-light,
+.ncg-brand-mark[data-inverse] > .ncg-brand-light { opacity: 0; }
+.dark .fp-root .ncg-brand-mark > .ncg-brand-dark,
+.ncg-brand-mark[data-inverse] > .ncg-brand-dark { opacity: 1; }
+
+/* Theme ink settles together. The class is added only by a deliberate toggle. */
+html.ncg-theme-transitioning :where(body, .fp-root, .fp-root *, .ncg-entry, .ncg-entry *, .ncg-app, .ncg-app *, .app-route-motion-frame *) {
+  transition-property: background-color, color, border-color, box-shadow, fill, stroke !important;
+  transition-duration: .55s !important;
+  transition-timing-function: cubic-bezier(.22, 1, .36, 1) !important;
+}
+html.ncg-theme-transitioning .ncg-brand-mark > img { transition: opacity .55s cubic-bezier(.22, 1, .36, 1) !important; }
 
 .simple-only { display: none; }
 .standard-up { display: block; }

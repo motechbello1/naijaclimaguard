@@ -3,6 +3,7 @@
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { transitionTheme } from "@/lib/theme-transition";
 
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -14,7 +15,7 @@ export default function ThemeToggle() {
 
   return (
     <button
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      onClick={() => transitionTheme(setTheme, isDark ? "light" : "dark")}
       className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white transition-colors hover:bg-slate-50 dark:border-midnight-border dark:bg-midnight-light dark:hover:bg-slate-800"
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}

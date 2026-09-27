@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { BadgeCheck, House, Languages, Moon, Radio, Sun, Volume2, LayoutDashboard, ChevronDown, LogOut, UserRound, UserPlus } from "lucide-react";
-import { createContext, useCallback, useContext, useEffect } from "react";
+import { createContext, useCallback, useContext } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -10,6 +10,7 @@ import { APP_LANGUAGES, type AppLocale } from "@/lib/i18n/config";
 import { useLanguage } from "@/components/shared/LanguageProvider";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
 import { BrandMark } from "@/components/shared/BrandLogo";
+import { transitionTheme } from "@/lib/theme-transition";
 import "@/app/floodpass.css";
 import "@/app/brand-v2.css";
 
@@ -61,12 +62,7 @@ export default function FpShell({ children, active }: { children: React.ReactNod
   const { resolvedTheme, setTheme } = useTheme();
   const night = resolvedTheme === "dark";
 
-  useEffect(() => {
-    document.documentElement.dataset.fpTheme = night ? "dark" : "light";
-    return () => { delete document.documentElement.dataset.fpTheme; };
-  }, [night]);
-
-  const toggleNight = () => setTheme(night ? "light" : "dark");
+  const toggleNight = () => transitionTheme(setTheme, night ? "light" : "dark");
 
   const say = useCallback((text: string) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -83,7 +79,7 @@ export default function FpShell({ children, active }: { children: React.ReactNod
 
   return (
     <Ctx.Provider value={{ lang, setLang, night, say, tr }}>
-      <div className={`fp-root${night ? " fp-night" : ""}`}>
+      <div className="fp-root">
         <a className="fp-skip" href="#fp-content">Skip to content</a>
         <header className="fp-header">
           <div className="fp-wrap fp-header-inner">
