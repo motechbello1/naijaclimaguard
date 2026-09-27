@@ -105,10 +105,14 @@ html { scroll-behavior: smooth; }
 .ncg-hero-image > small { position: absolute; right: 6%; bottom: 3%; z-index: 2; color: rgba(255,255,255,.65); font-size: 9px; }
 .ncg-scroll-cue { position: absolute; bottom: 0; left: 0; z-index: 3; display: grid; place-items: center; width: 49px; height: 49px; color: #0d2f30; background: #daf18c; }
 .ncg-pillar-strip { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--fp-border); }
-.ncg-pillar-strip span { display: flex; align-items: center; gap: 16px; padding: 23px 26px; font-size: 13px; font-weight: 800; border-right: 1px solid var(--fp-border); }
+.ncg-pillar-strip span { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: start; gap: 16px; padding: 23px 26px; font-size: 13px; font-weight: 800; border-right: 1px solid var(--fp-border); }
 .ncg-pillar-strip span:first-child { padding-left: 0; }
 .ncg-pillar-strip span:last-child { border: 0; }
-.ncg-pillar-strip b { color: #397666; font: 800 11px "DM Mono", monospace; }
+.ncg-pillar-strip b { color: #397666; font: 800 11px "DM Mono", monospace; line-height: inherit; font-variant-numeric: tabular-nums; }
+.dark .ncg-pillar-strip b,
+.dark .ncg-section-head .ncg-kicker,
+.dark .ncg-section-head h2 em,
+.dark .ncg-close > .ncg-kicker { color: #b7d9c8; }
 .ncg-section-head { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 39px; }
 .ncg-section-head h2 { max-width: 760px; margin: 16px 0 0; font-size: clamp(40px, 4.8vw, 70px); line-height: 1.06; letter-spacing: -.065em; font-weight: 800; }
 .ncg-section-head h2 em { color: #367962; }
@@ -356,8 +360,10 @@ html { scroll-behavior: smooth; }
   .ncg-image-label { bottom: 15%; }
   .ncg-image-label strong { font-size: 22px; }
   .ncg-pillar-strip { grid-template-columns: 1fr; padding: 12px 0; }
-  .ncg-pillar-strip span { padding: 9px 4px; border-right: 0; font-size: 12px; }
+  .ncg-pillar-strip span,
+  .ncg-pillar-strip span:first-child { grid-template-columns: 24px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-right: 0; font-size: 12px; }
   .ncg-section { padding-top: 86px; }
+  .ncg-today.ncg-section { padding-top: 40px; }
   .ncg-section-head { flex-direction: column; gap: 17px; margin-bottom: 25px; }
   .ncg-section-head h2 { font-size: clamp(37px,9vw,48px); }
   .ncg-section-head > p { max-width: 100%; }
