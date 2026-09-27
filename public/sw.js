@@ -1,5 +1,5 @@
-const CACHE = "naijaclimaguard-emergency-v1";
-const EMERGENCY_ROUTES = ["/emergency-pack", "/offline"];
+const CACHE = "naijaclimaguard-emergency-v2";
+const EMERGENCY_ROUTES = ["/emergency-pack", "/offline", "/brand/symbol-light-v3.png", "/brand/symbol-dark-v3.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(EMERGENCY_ROUTES)).then(() => self.skipWaiting()));
@@ -15,6 +15,11 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname === "/brand/symbol-light-v3.png" || url.pathname === "/brand/symbol-dark-v3.png") {
+    event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+    return;
+  }
 
   if (url.pathname === "/emergency-pack" || url.pathname === "/offline") {
     event.respondWith(

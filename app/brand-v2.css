@@ -68,7 +68,6 @@ html { scroll-behavior: smooth; }
 .fp-main-home .ncg-home { margin-bottom: 105px; }
 .fp-footer { background: #0b282b; }
 .fp-footer-lockup strong { font-size: 19px; letter-spacing: -.04em; }
-.fp-mark rect { fill: #0f3639; }
 /* The older platform theme uses an !important dark input rule on html.dark.
    FloodPass keeps its own day/night setting, so its form controls must follow it. */
 .dark .fp-root:not(.fp-night) input:not([type="checkbox"]),

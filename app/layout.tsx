@@ -16,7 +16,7 @@ export const metadata: Metadata = {
       { url: "/brand/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
     ],
     shortcut: "/brand/favicon-dark.svg",
-    apple: "/brand/naijaclimaguard-mark.svg",
+    apple: "/brand/apple-touch-icon-v3.png",
   },
 };
 

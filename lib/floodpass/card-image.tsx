@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import React from "react";
 import QRCode from "qrcode";
 import type { PublicPass } from "@/lib/floodpass/service";
+import { WALLET_IMAGES } from "@/lib/floodpass/wallet-assets";
 
 /** Shareable picture and link preview for a FloodPass record. */
 export async function renderPassCard(input: { pass: PublicPass | null; code: string; checkUrl: string; og: boolean }) {
@@ -19,9 +20,13 @@ export async function renderPassCard(input: { pass: PublicPass | null; code: str
     (
       <div style={{ width, height, display: "flex", flexDirection: "column", background: "#f3f5f3", fontFamily: "sans-serif", color: ink }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: navy, color: "#f3f9fa", padding: og ? "27px 44px" : "40px 52px" }}>
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`data:image/png;base64,${WALLET_IMAGES["logo@3x.png"]}`} width={og ? 58 : 76} height={og ? 58 : 76} alt="NaijaClimaGuard" />
+            <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", fontSize: og ? 39 : 52, fontWeight: 800, letterSpacing: -2 }}>FloodPass</div>
             <div style={{ display: "flex", fontSize: og ? 11 : 14, fontWeight: 700, letterSpacing: 4, color: "#b9dce5" }}>BY NAIJACLIMAGUARD</div>
+            </div>
           </div>
           <div style={{ display: "flex", border: "1px solid #a8dbe4", padding: og ? "9px 13px" : "13px 17px", fontSize: og ? 16 : 21, fontWeight: 800, letterSpacing: 2, color: pass?.seeded ? "#ffe2a6" : "#b9edf1" }}>{state}</div>
         </div>

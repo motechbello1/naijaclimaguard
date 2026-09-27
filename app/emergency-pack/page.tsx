@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrandLockup } from "@/components/shared/BrandLogo";
 import { useEffect, useState } from "react";
 import { ArrowLeft, BatteryCharging, CheckCircle2, FileText, HeartPulse, Home, MapPin, Phone, Printer, Radio, ShieldAlert, Wifi, WifiOff } from "lucide-react";
 
@@ -23,7 +24,7 @@ export default function EmergencyPackPage() {
     window.addEventListener("online", sync);
     window.addEventListener("offline", sync);
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.ready.then(() => caches.open("naijaclimaguard-emergency-v1").then((cache) => cache.match("/emergency-pack")).then((match) => setCached(Boolean(match)))).catch(() => undefined);
+      navigator.serviceWorker.ready.then(() => caches.open("naijaclimaguard-emergency-v2").then((cache) => cache.match("/emergency-pack")).then((match) => setCached(Boolean(match)))).catch(() => undefined);
     }
     return () => { window.removeEventListener("online", sync); window.removeEventListener("offline", sync); };
   }, []);
@@ -31,6 +32,7 @@ export default function EmergencyPackPage() {
   return (
     <main className="min-h-screen bg-cloud text-slate-900 dark:bg-midnight dark:text-slate-100">
       <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6 sm:py-8">
+        <BrandLockup className="mb-5" />
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <Link href="/action-center" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold dark:border-midnight-border dark:bg-midnight-light"><ArrowLeft className="h-4 w-4" /> Action Center</Link>
           <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${online ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300" : "border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-950/20 dark:text-amber-200"}`}>{online ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}{online ? "Online" : "Offline"}{cached && " · pack cached"}</div>

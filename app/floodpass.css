@@ -73,7 +73,6 @@
 .fp-footer { background: #102d48; color: #eaf4f6; padding: 60px 0; }
 .fp-footer-inner { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 50px; align-items: start; }
 .fp-footer-lockup { display: inline-flex; gap: 10px; align-items: center; font-size: 23px; letter-spacing: -.05em; }
-.fp-footer-lockup .fp-mark rect { fill: #204563; }
 .fp-footer p { color: #c5d8df; font-size: 13px; line-height: 1.8; }
 .fp-footer-links { display: flex; flex-direction: column; gap: 12px; }
 .fp-footer-links a { color: #eaf4f6; font-size: 14px; font-weight: 700; text-decoration: none; }
@@ -127,7 +126,6 @@
 .fp-pass { width: 100%; max-width: 900px; margin-inline: auto; overflow: hidden; background: var(--fp-card); border: 1px solid var(--fp-border); border-radius: 9px; box-shadow: 0 28px 60px rgba(11,53,80,.12); }
 .fp-pass-top { background: #102d48; color: #f3f9fa; padding: 25px 34px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .fp-pass-brand { display: flex; align-items: center; gap: 10px; }
-.fp-pass-brand .fp-mark rect { fill: #244c65; }
 .fp-pass-brand div { display: flex; flex-direction: column; line-height: 1; }
 .fp-pass-brand strong { font-size: 22px; letter-spacing: -.05em; }
 .fp-pass-brand small { margin-top: 6px; font-size: 7px; letter-spacing: .17em; font-weight: 800; }

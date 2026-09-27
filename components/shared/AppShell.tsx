@@ -156,7 +156,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       <div className={`min-w-0 flex-1 transition-[padding] duration-300 ${collapsed ? "lg:pl-[102px]" : "lg:pl-[296px]"}`}>
         <header className="ncg-workspace-header sticky top-0 z-30 border-b border-[#0d1f19]/7 bg-[#f3f4ee]/[.94] backdrop-blur-xl dark:border-white/8 dark:bg-[#07110e]/[.94]">
           <div className="mx-auto flex h-[68px] max-w-[1680px] items-center gap-3 px-4 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3 lg:hidden" data-ncg-no-translate="true"><BrandMark className="h-9 w-9 shrink-0 dark:hidden" /><BrandMark inverse className="hidden h-9 w-9 shrink-0 dark:block" /><div className="min-w-0"><p className="truncate text-[15px] font-black tracking-[-.03em]">NaijaClimaGuard</p><p className="truncate text-[10px] font-semibold text-slate-500 dark:text-white/48">{area.name}</p></div></div>
+            <div className="flex min-w-0 items-center gap-3 lg:hidden" data-ncg-no-translate="true"><BrandMark className="h-9 w-9 shrink-0" /><div className="min-w-0"><p className="truncate text-[15px] font-black tracking-[-.03em]">NaijaClimaGuard</p><p className="truncate text-[10px] font-semibold text-slate-500 dark:text-white/48">{area.name}</p></div></div>
             <span className="hidden text-[11px] font-semibold text-[#315045] dark:text-white/60 lg:block">{area.name}</span>
             <div className="ml-auto flex items-center gap-2">
               <div className="hidden md:block"><NationalAreaControl compact /></div>

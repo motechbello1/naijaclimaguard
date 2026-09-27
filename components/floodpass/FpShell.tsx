@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { APP_LANGUAGES, type AppLocale } from "@/lib/i18n/config";
 import { useLanguage } from "@/components/shared/LanguageProvider";
 import { translatePlatformText } from "@/lib/i18n/translate-platform";
+import { BrandMark } from "@/components/shared/BrandLogo";
 import "@/app/floodpass.css";
 import "@/app/brand-v2.css";
 
@@ -69,6 +70,11 @@ export default function FpShell({ children, active }: { children: React.ReactNod
     if (readStored("fp-night") === "1") setNight(true);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.dataset.fpTheme = night ? "dark" : "light";
+    return () => { delete document.documentElement.dataset.fpTheme; };
+  }, [night]);
+
   const toggleNight = () => { setNight((value) => { writeStored("fp-night", value ? "0" : "1"); return !value; }); };
 
   const say = useCallback((text: string) => {
@@ -123,7 +129,7 @@ export default function FpShell({ children, active }: { children: React.ReactNod
         <main id="fp-content" className={`fp-wrap fp-main${active === "home" ? " fp-main-home" : ""}`}>{children}</main>
         <footer className="fp-footer">
           <div className="fp-wrap fp-footer-inner">
-            <div><div className="fp-footer-lockup"><FpMark size={34} /><strong>NaijaClimaGuard</strong></div><p>Know before. Act together. Prove after.<br />FloodPass is our field evidence service.</p></div>
+            <div><div className="fp-footer-lockup"><FpMark size={34} inverse /><strong>NaijaClimaGuard</strong></div><p>Know before. Act together. Prove after.<br />FloodPass is our field evidence service.</p></div>
             <div className="fp-footer-links"><Link href="/dashboard">My workspace · family, farm, business, agency</Link>{signedIn ? <Link href="/profile">Profile and settings</Link> : <><Link href="/login">Log in</Link><Link href="/register">Create free account</Link></>}<Link href="/floodpass/help">Flood guidance</Link><Link href="/partners">For organisations</Link><Link href="/floodpass/coverage">Coverage and sources</Link><Link href="/floodpass/plans">Membership and pilots</Link></div>
             <p className="fp-footer-note">Public warnings and reporting are free. Official warnings take priority. No warning does not mean no flood risk. In an emergency call 112.</p>
           </div>
@@ -139,13 +145,9 @@ export default function FpShell({ children, active }: { children: React.ReactNod
   );
 }
 
-export function FpMark({ size = 32 }: { size?: number }) {
+export function FpMark({ size = 32, inverse = false }: { size?: number; inverse?: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 44 44" fill="none" aria-hidden="true" className="fp-mark">
-      <rect width="44" height="44" rx="12" fill="#102D48" />
-      <path d="M8 19.5c4.9-5.8 9.4-7.5 14-4.4 4.8 3.2 8.1 3.8 14-1.9M8 26.2c5.1-5.4 9.3-7.3 14-4.2 4.8 3.2 8.1 3.9 14-1.9M8 32.4c5.1-5.5 9.3-7.2 14-4.1 4.8 3.2 8.1 3.8 14-1.9" stroke="#E6F3F4" strokeWidth="2.3" strokeLinecap="round" />
-      <circle cx="22" cy="15.1" r="3.1" fill="#6DD6E5" />
-    </svg>
+    <BrandMark inverse={inverse} className="fp-mark" style={{ width: size, height: size }} />
   );
 }
 

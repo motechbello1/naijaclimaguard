@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BrandMark } from "@/components/shared/BrandLogo";
 
 const KEY = "ncg-landing-intro-seen";
 
@@ -22,7 +23,7 @@ export default function LandingIntro() {
 
   if (!visible) return null;
   return <div className={`ncg-landing-intro${leaving ? " is-leaving" : ""}`} aria-label="NaijaClimaGuard is opening" role="status">
-    <div className="ncg-intro-top"><span>NAIJACLIMAGUARD</span><span>NIGERIA / 001</span></div>
+    <div className="ncg-intro-top"><span className="flex items-center gap-3"><BrandMark inverse className="h-10 w-10" />NAIJACLIMAGUARD</span><span>NIGERIA / 001</span></div>
     <div className="ncg-intro-center"><span className="ncg-intro-rule" /><p>Know before.<br /><em>Act together.</em><br />Prove after.</p><span className="ncg-intro-sub">FLOOD INTELLIGENCE FOR PEOPLE</span></div>
     <div className="ncg-intro-bottom"><span>READING THE LANDSCAPE</span><span className="ncg-intro-progress" /></div>
   </div>;

@@ -26,7 +26,7 @@ export default function PassCard({ pass, qrSvg, checkUrl, wallets }: { pass: Pub
   return (
     <article className="fp-pass" data-demo={pass.seeded ? "true" : undefined} aria-label={`FloodPass ${pass.code}${pass.seeded ? ", reconstructed demo" : ""}`}>
       <div className="fp-pass-top">
-        <div className="fp-pass-brand"><FpMark size={34} /><div><strong>FloodPass</strong><small>BY NAIJACLIMAGUARD</small></div></div>
+        <div className="fp-pass-brand"><FpMark size={34} inverse /><div><strong>FloodPass</strong><small>BY NAIJACLIMAGUARD</small></div></div>
         <span className="fp-pass-status">{pass.seeded ? "RECONSTRUCTED DEMO" : valid ? "VERIFIED REPORT" : "CANCELLED RECORD"}</span>
       </div>
       <div className="fp-pass-body">
