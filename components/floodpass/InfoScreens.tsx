@@ -27,12 +27,12 @@ function PlansBody() {
 
   return (
     <div className="fp-inner-page ncg-offers">
-      <div className="fp-page-intro"><p className="fp-overline">MEMBERSHIP / THE MODEL</p><h1 className="fp-h1">Public safety first.<br />Useful extras when ready.</h1><p>{text}</p><HearButton text={text} /></div>
+      <div className="fp-page-intro"><p className="fp-overline">Membership</p><h1 className="fp-h1">Public safety first.<br />Useful extras when ready.</h1><p>{text}</p><HearButton text={text} /></div>
       <div className="ncg-offer-grid">
-        <section className="ncg-offer ncg-offer-free"><span className="ncg-kicker">01 / FOR EVERY PERSON</span><div className="ncg-offer-title"><h2>Open access</h2><strong>₦0</strong></div><p>Use the place check, read available context, report water and check a FloodPass record.</p><ul><li><Check size={17} /> No account to report water</li><li><Check size={17} /> Official warnings take priority</li><li><Check size={17} /> The limits of the evidence stay visible</li></ul><Link href="/#today">Check your area <ArrowUpRight size={17} /></Link></section>
+        <section className="ncg-offer ncg-offer-free"><span className="ncg-kicker">For everyone</span><div className="ncg-offer-title"><h2>Open access</h2><strong>₦0</strong></div><p>Use the place check, read available context, report water and check a FloodPass record.</p><ul><li><Check size={17} /> No account to report water</li><li><Check size={17} /> Official warnings take priority</li><li><Check size={17} /> The limits of the evidence stay visible</li></ul><Link href="/#today">Check your area <ArrowUpRight size={17} /></Link></section>
         <section className="ncg-offer ncg-offer-family"><span className="ncg-kicker">02 / FAMILY MEMBERSHIP · IN DEVELOPMENT</span><div className="ncg-offer-title"><h2>Family Watch</h2><strong>Planned ₦500/mo</strong></div><p>We are testing whether watching more places, family check-ins and an optional night call make a real difference. These features are not on sale yet.</p><ul><li><Check size={17} /> Follow several places in one view</li><li><Check size={17} /> Share a check-in with chosen people</li><li><Check size={17} /> Delivery must be reliable before launch</li></ul><form onSubmit={join}><label htmlFor="ncg-family-contact">Tell me when it is ready</label><div><input id="ncg-family-contact" className="fp-field" placeholder="Phone or email" value={contact} onChange={(e) => setContact(e.target.value)} required /><button type="submit" disabled={busy}>{busy ? "Saving…" : "Join waitlist"}<ArrowRight size={16} /></button></div>{joined ? <small role="status">{joined}</small> : <small>No payment now. We use this contact only for the launch update.</small>}</form></section>
       </div>
-      <section className="ncg-pilot-promo"><div><span className="ncg-kicker">03 / FOR ORGANISATIONS</span><h2>Evidence that can inform a decision.</h2><p>Response teams, lenders and insurers can discuss a scoped pilot: code checks, evidence access and an auditable review workflow. Commercial terms are agreed around a real use case and measured results.</p></div><Link href="/partners">Explore a pilot <ArrowUpRight size={18} /></Link></section>
+      <section className="ncg-pilot-promo"><div><span className="ncg-kicker">For organisations</span><h2>Evidence that can inform a decision.</h2><p>Response teams, lenders and insurers can discuss a scoped pilot: code checks, evidence access and an auditable review workflow. Commercial terms are agreed around a real use case and measured results.</p></div><Link href="/partners">Explore a pilot <ArrowUpRight size={18} /></Link></section>
       <p className="ncg-offers-note"><LockKeyhole size={17} /> FloodPass is evidence, not a promise of aid, compensation or insurance. Insurance cover needs a licensed provider.</p>
     </div>
   );
@@ -48,7 +48,7 @@ function HelpBody() {
   return (
     <div className="fp-inner-page">
       <div className="fp-page-intro">
-        <p className="fp-overline">FLOOD GUIDANCE / KEEP THIS CLOSE</p>
+        <p className="fp-overline">Flood guidance</p>
         <h1 className="fp-h1">Know what to do.</h1>
         <p>Short, practical steps for before, during and after a flood.</p>
       </div>

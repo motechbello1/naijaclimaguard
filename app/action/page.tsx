@@ -222,7 +222,7 @@ export default function ActionPage() {
               })}
             </div>
             {providerState && (
-              <div className="technical-only mt-4 border-t border-slate-100 pt-3 text-xs font-mono text-slate-500 dark:border-midnight-border">
+              <div className="technical-only mt-4 border-t border-slate-100 pt-3 text-xs font-body tabular-nums text-slate-500 dark:border-midnight-border">
                 Provider readiness: {Object.entries(providerState).map(([key, value]) => `${key}=${value}`).join(" · ")}
               </div>
             )}

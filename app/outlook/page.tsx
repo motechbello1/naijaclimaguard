@@ -157,8 +157,8 @@ export default function OutlookPage() {
                   const r = readings[st.id];
                   return (
                     <div key={st.id} className="flex items-center justify-between rounded-lg border border-slate-100 dark:border-midnight-border px-4 py-3">
-                      <div><p className="text-sm font-semibold">{st.name} <span className="text-slate-400 font-normal text-xs">· {st.country}</span></p><p className="font-mono text-[11px] text-slate-500 flex items-center gap-1"><ArrowDown className="h-3 w-3" /> {st.context}</p></div>
-                      {r === undefined || state === "loading" ? <div className="h-8 w-24 animate-pulse rounded bg-slate-100 dark:bg-slate-800/60" /> : r === "error" ? <span className="font-mono text-xs text-slate-400">feed unreachable</span> : <div className="text-right"><p className="font-mono text-sm font-bold" style={{ color: loadColor(r.load) }}>{r.rain14} mm <span className="text-[10px] font-normal">/ 14d</span></p><p className="font-mono text-[10px] text-slate-500">{r.rain7} mm / 7d</p></div>}
+                      <div><p className="text-sm font-semibold">{st.name} <span className="text-slate-400 font-normal text-xs">· {st.country}</span></p><p className="font-body tabular-nums text-[11px] text-slate-500 flex items-center gap-1"><ArrowDown className="h-3 w-3" /> {st.context}</p></div>
+                      {r === undefined || state === "loading" ? <div className="h-8 w-24 animate-pulse rounded bg-slate-100 dark:bg-slate-800/60" /> : r === "error" ? <span className="font-body tabular-nums text-xs text-slate-400">feed unreachable</span> : <div className="text-right"><p className="font-body tabular-nums text-sm font-bold" style={{ color: loadColor(r.load) }}>{r.rain14} mm <span className="text-[10px] font-normal">/ 14d</span></p><p className="font-body tabular-nums text-[10px] text-slate-500">{r.rain7} mm / 7d</p></div>}
                     </div>
                   );
                 })}
@@ -168,7 +168,7 @@ export default function OutlookPage() {
         })}
 
         <div className="technical-only glass-card rounded-2xl p-6 border-cyan/20">
-          <div className="flex items-center justify-between mb-2"><h2 className="text-sm font-bold">GloFAS Ensemble Discharge Integration</h2><span className="inline-flex items-center gap-1.5 rounded border border-cyan/30 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-cyan"><PlugZap className="h-3 w-3" /> Integration target</span></div>
+          <div className="flex items-center justify-between mb-2"><h2 className="text-sm font-bold">GloFAS Ensemble Discharge Integration</h2><span className="inline-flex items-center gap-1.5 rounded border border-cyan/30 px-2 py-0.5 text-[10px] font-body tabular-nums font-semibold uppercase tracking-wider text-cyan"><PlugZap className="h-3 w-3" /> Integration target</span></div>
           <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">Operational GloFAS ensemble discharge is being validated separately under the Model v5 archive protocol. This production outlook does not simulate or fabricate GloFAS probabilities before that evidence is accepted.</p>
         </div>
       </div>

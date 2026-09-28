@@ -1,3 +1,4 @@
+import { PRESENTATION_LABEL_COPY, PRESENTATION_LABEL_SOURCES, sentenceCaseLabel } from "./presentation-labels";
 import type { AppLocale } from "./config";
 import { translatePlatformText as translateCorePlatformText } from "./platform-copy";
 import { translateActionOSExact } from "./action-os";
@@ -130,6 +131,13 @@ function translateDynamic(locale: AppLocale, source: string): string | null {
 
 export function translatePlatformText(locale: AppLocale, source: string): string {
   if (locale === "en") return source;
+  const presentation = PRESENTATION_LABEL_COPY[locale]?.[source];
+  if (presentation) return presentation;
+  const originalLabel = PRESENTATION_LABEL_SOURCES[source];
+  if (originalLabel) {
+    const translated = translatePlatformText(locale, originalLabel);
+    if (translated !== originalLabel) return sentenceCaseLabel(translated);
+  }
 
   // FloodPass copy takes precedence over older shell words (e.g. Workspace).
   const floodPass = FLOODPASS_PUBLIC_COPY[locale]?.[source];

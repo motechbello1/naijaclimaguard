@@ -24,12 +24,12 @@ export default function AccountFrame({ kind, children }: { kind: "login" | "regi
       <section className="ncg-entry-story" aria-label="The NaijaClimaGuard workspace">
         <div className="ncg-entry-photo" />
         <div className="ncg-entry-story-content">
-          <span className="ncg-entry-index">01 / THE PLACES WE PROTECT</span>
+          <span className="ncg-entry-index">The places we protect</span>
           <div><h2>{kind === "login" ? <>The story<br />continues <em>here.</em></> : <>Start with<br />what <em>matters.</em></>}</h2><p>One place to understand the risk, decide what to do, and keep a record of what happened.</p></div>
           <div className="ncg-entry-role-grid">{ROLES.map(({ label, Icon }, i) => <div key={label}><span>0{i + 1}</span><Icon size={19} strokeWidth={1.6} /><strong>{label}</strong></div>)}</div>
         </div>
       </section>
-      <section className="ncg-entry-panel"><div className="ncg-entry-panel-inner"><div className="ncg-entry-panel-top"><span>NAIJACLIMAGUARD / ACCOUNT</span><span>{kind === "login" ? "RETURNING" : "NEW ACCOUNT"}</span></div>{children}<div className="ncg-entry-panel-foot"><span>Know before. Act together. Prove after.</span><Link href="/floodpass/coverage">Explore the evidence <ArrowUpRight size={15} /></Link></div></div></section>
+      <section className="ncg-entry-panel"><div className="ncg-entry-panel-inner"><div className="ncg-entry-panel-top"><span>Your account</span><span>{kind === "login" ? "Welcome back" : "New account"}</span></div>{children}<div className="ncg-entry-panel-foot"><span>Know before. Act together. Prove after.</span><Link href="/floodpass/coverage">Explore the evidence <ArrowUpRight size={15} /></Link></div></div></section>
     </div>
   </main>;
 }

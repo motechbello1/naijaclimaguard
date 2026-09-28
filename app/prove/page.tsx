@@ -84,7 +84,7 @@ export default function ProvePage() {
             </div>
             <p className="font-display text-3xl font-bold">Live</p>
             <p className="mt-1 text-sm text-slate-500">Current risk API</p>
-            <p className="mt-1 font-mono text-xs text-radar">derived-v2 · disclosed heuristic</p>
+            <p className="mt-1 font-body tabular-nums text-xs text-radar">derived-v2 · disclosed heuristic</p>
           </div>
 
           <div className="glass-card rounded-2xl p-7 text-center">
@@ -93,7 +93,7 @@ export default function ProvePage() {
             </div>
             <p className="font-display text-3xl font-bold">3</p>
             <p className="mt-1 text-sm text-slate-500">Validation data families</p>
-            <p className="mt-1 font-mono text-xs text-cyan">NASA IMERG · GloFAS · ERA5-Land</p>
+            <p className="mt-1 font-body tabular-nums text-xs text-cyan">NASA IMERG · GloFAS · ERA5-Land</p>
           </div>
 
           <div className="glass-card rounded-2xl p-7 text-center">
@@ -102,7 +102,7 @@ export default function ProvePage() {
             </div>
             <p className="font-display text-3xl font-bold">v2</p>
             <p className="mt-1 text-sm text-slate-500">Independent model validation</p>
-            <p className="mt-1 font-mono text-xs text-amber">chronological holdout · event labels</p>
+            <p className="mt-1 font-body tabular-nums text-xs text-amber">chronological holdout · event labels</p>
           </div>
         </div>
 

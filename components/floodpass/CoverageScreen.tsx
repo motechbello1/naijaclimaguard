@@ -41,7 +41,7 @@ function Body() {
   return (
     <div className="fp-inner-page fp-stack" style={{ gap: 20, maxWidth: 1080 }}>
       <div className="fp-page-intro">
-        <p className="fp-overline">COVERAGE / NIGERIA</p>
+        <p className="fp-overline">Coverage across Nigeria</p>
         <h1 className="fp-h1">See the coverage.</h1>
         <p>{intro}</p>
         <HearButton text={intro} />

@@ -31,7 +31,7 @@ export default function RegisterPage() {
 
   return (
     <AccountFrame kind="register"><div className="ncg-entry-form">
-      <span className="ncg-entry-eyebrow">START FREE / ONE ACCOUNT</span>
+      <span className="ncg-entry-eyebrow">Create your account</span>
       <h1>Make the places<br /><em>you love visible.</em></h1>
       <p>Save a home, farm, business or community location. Choose the view that fits your work once you enter.</p>
       <form onSubmit={handleSubmit} className="ncg-entry-fields">

@@ -134,20 +134,20 @@ export default function AdaptiveDashboard(props: Props) {
       ) : mode !== "simple" ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="glass-card p-4">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{tr("Highest saved-location index")}</p>
-            <p className="mt-1 font-mono text-xl font-bold" style={peak !== null ? { color: getRiskLevel(peak).color } : {}}>{peak !== null ? `${peak}/100` : "—"}</p>
+            <p className="font-body text-xs font-medium text-slate-500">{tr("Highest saved-location index")}</p>
+            <p className="mt-1 font-body tabular-nums text-xl font-bold" style={peak !== null ? { color: getRiskLevel(peak).color } : {}}>{peak !== null ? `${peak}/100` : "—"}</p>
           </div>
           <div className="glass-card p-4">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{tr("Protected assets")}</p>
-            <p className="mt-1 font-mono text-xl font-bold">{props.locations.length} <span className="text-xs text-slate-500">/ {props.limit}</span></p>
+            <p className="font-body text-xs font-medium text-slate-500">{tr("Protected assets")}</p>
+            <p className="mt-1 font-body tabular-nums text-xl font-bold">{props.locations.length} <span className="text-xs text-slate-500">/ {props.limit}</span></p>
           </div>
           <div className="glass-card p-4">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{tr("Current risk engine")}</p>
-            <p className="mt-1 font-mono text-sm font-bold text-cyan" data-ncg-no-translate="true">Derived-v2 · Open-Meteo</p>
+            <p className="font-body text-xs font-medium text-slate-500">{tr("Current risk engine")}</p>
+            <p className="mt-1 font-body tabular-nums text-sm font-bold text-cyan" data-ncg-no-translate="true">Derived-v2 · Open-Meteo</p>
           </div>
           <Link href="/action" className="glass-card p-4 transition-all hover:border-radar/30">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{tr("Alerts")}</p>
-            <p className="mt-1 flex items-center gap-1.5 font-mono text-sm font-bold text-radar"><Zap className="h-3.5 w-3.5" /> {tr("Manage rules →")}</p>
+            <p className="font-body text-xs font-medium text-slate-500">{tr("Alerts")}</p>
+            <p className="mt-1 flex items-center gap-1.5 font-body tabular-nums text-sm font-bold text-radar"><Zap className="h-3.5 w-3.5" /> {tr("Manage rules →")}</p>
           </Link>
         </div>
       ) : null}
@@ -213,7 +213,7 @@ export default function AdaptiveDashboard(props: Props) {
                       <div className="min-w-0"><p className={`${mode === "simple" ? "text-lg font-black" : "text-base font-semibold"}`}>{loc.name}</p><p className="text-sm text-slate-500">{loc.state}{mode !== "simple" ? ` · ${loc.latitude.toFixed(3)}, ${loc.longitude.toFixed(3)}` : ""}</p></div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      {risk === "loading" || risk === undefined ? <span className="text-xs font-semibold text-slate-400">{tr("Checking…")}</span> : risk === "error" ? <button onClick={() => props.fetchRisk(loc)} className="flex items-center gap-1 text-xs font-semibold text-slate-500"><AlertTriangle className="h-4 w-4" /> {tr("Try again")}</button> : mode === "simple" ? <span className={`rounded-full px-3 py-1.5 text-[11px] font-black ${official ? "bg-rose-100 text-rose-800" : risk.score >= 60 ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"}`}>{official ? tr("OFFICIAL WARNING") : tr(plainRiskLabel(risk.level))}</span> : <div className="text-right"><p className="font-mono text-lg font-bold" style={{ color: getRiskLevel(risk.score).color }}>{risk.score}</p><p className="font-mono text-[10px] uppercase" style={{ color: getRiskLevel(risk.score).color }}>{risk.level}</p></div>}
+                      {risk === "loading" || risk === undefined ? <span className="text-xs font-semibold text-slate-400">{tr("Checking…")}</span> : risk === "error" ? <button onClick={() => props.fetchRisk(loc)} className="flex items-center gap-1 text-xs font-semibold text-slate-500"><AlertTriangle className="h-4 w-4" /> {tr("Try again")}</button> : mode === "simple" ? <span className={`rounded-full px-3 py-1.5 text-[11px] font-black ${official ? "bg-rose-100 text-rose-800" : risk.score >= 60 ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"}`}>{official ? tr("OFFICIAL WARNING") : tr(plainRiskLabel(risk.level))}</span> : <div className="text-right"><p className="font-body tabular-nums text-lg font-bold" style={{ color: getRiskLevel(risk.score).color }}>{risk.score}</p><p className="font-body tabular-nums text-[10px] uppercase" style={{ color: getRiskLevel(risk.score).color }}>{risk.level}</p></div>}
                       {mode !== "simple" && <button onClick={() => props.fetchRisk(loc)} title={tr("Refresh")} className="rounded-lg border border-slate-200 p-2 text-slate-400 dark:border-midnight-border"><RefreshCw className="h-3.5 w-3.5" /></button>}
                       <button onClick={() => props.deleteLocation(loc.id)} title={tr("Remove")} className={`${mode === "simple" ? "opacity-45 hover:opacity-100" : "rounded-lg border border-slate-200 p-2 text-slate-400 dark:border-midnight-border"} text-slate-400 hover:text-crimson`}><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>

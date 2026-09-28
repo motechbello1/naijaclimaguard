@@ -43,7 +43,7 @@ function LoginForm() {
 
   return (
     <div className="ncg-entry-form">
-      <span className="ncg-entry-eyebrow">WELCOME BACK / YOUR WORKSPACE</span>
+      <span className="ncg-entry-eyebrow">Welcome back</span>
       <h1>Pick up where<br /><em>you left off.</em></h1>
       <p>Your saved places, warnings, actions and evidence are ready when you need them.</p>
       {registered && <div className="mb-5 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 dark:border-radar/20 dark:bg-radar/10 dark:text-radar"><CheckCircle2 className="h-4 w-4" /> Account created. Sign in to protect your places.</div>}

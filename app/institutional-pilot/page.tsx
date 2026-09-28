@@ -202,7 +202,7 @@ export default function InstitutionalPilotPage() {
                     ["04", "Decide", "Produce a pilot close-out: promote, extend, integrate a specific component, change scope, or stop. No result is hidden to manufacture a success story."],
                   ].map(([step, title, text]) => (
                     <div key={step} className="flex gap-4">
-                      <span className="font-mono text-xs font-bold text-radar">{step}</span>
+                      <span className="font-body tabular-nums text-xs font-bold text-radar">{step}</span>
                       <div>
                         <h3 className="font-semibold">{title}</h3>
                         <p className="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{text}</p>
@@ -276,7 +276,7 @@ export default function InstitutionalPilotPage() {
                     <CheckCircle2 className="mx-auto h-12 w-12 text-radar" />
                     <h3 className="mt-4 font-display text-2xl font-bold">Pilot request recorded</h3>
                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Your request is in the NaijaClimaGuard institutional lead register.</p>
-                    <p className="mt-4 font-mono text-sm font-semibold text-radar">Reference: {reference}</p>
+                    <p className="mt-4 font-body tabular-nums text-sm font-semibold text-radar">Reference: {reference}</p>
                     <button onClick={() => setState("idle")} className="mt-6 text-sm font-semibold text-radar hover:underline">Submit another request</button>
                   </div>
                 ) : (

@@ -24,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preload" href="/fonts/public-sans-variable.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7f2" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101b18" />

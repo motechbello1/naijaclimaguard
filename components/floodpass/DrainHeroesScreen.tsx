@@ -71,7 +71,7 @@ function Body() {
   return (
     <div className="fp-inner-page fp-stack" style={{ gap: 20 }}>
       <div className="fp-page-intro">
-        <p className="fp-overline">COMMUNITY ACTION / DRAIN HEROES</p>
+        <p className="fp-overline">Drain Heroes</p>
         <h1 className="fp-h1">Clear the way for water.</h1>
         <p>{intro}</p>
         <HearButton text={intro} />

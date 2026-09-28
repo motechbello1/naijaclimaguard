@@ -38,7 +38,7 @@ function Body({ code, addressCheckCode }: { code: string; addressCheckCode?: str
   return (
     <form className="fp-inner-page fp-stack" style={{ gap: 20, maxWidth: 680 }} onSubmit={pay}>
       <div className="fp-page-intro">
-        <p className="fp-overline">FLOODPASS / OPTIONAL EXTRA</p>
+        <p className="fp-overline">Optional membership</p>
         <h1 className="fp-h1">{plan.name}</h1>
         <p style={{ fontWeight: 800, fontSize: 22 }}>{plan.priceLabel}</p>
       </div>

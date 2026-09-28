@@ -67,7 +67,7 @@ function DrillInner() {
       <section className="overflow-hidden rounded-3xl border border-violet-300/40 bg-gradient-to-br from-violet-50 via-white to-cyan-50 p-6 dark:from-violet-950/20 dark:via-midnight-light dark:to-cyan-950/10 sm:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl"><p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">Flood Drill Mode</p><h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">Practice the response before the warning is real.</h1><p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{plan.scenario}</p></div>
-          <div className="flex min-w-40 flex-col items-center rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-midnight-border dark:bg-midnight/60"><AlarmClock className="h-6 w-6 text-violet-600" /><p className="mt-2 font-mono text-3xl font-black tabular-nums">{formatSeconds(seconds)}</p><p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">practice timer</p></div>
+          <div className="flex min-w-40 flex-col items-center rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-midnight-border dark:bg-midnight/60"><AlarmClock className="h-6 w-6 text-violet-600" /><p className="mt-2 font-body tabular-nums text-3xl font-black tabular-nums">{formatSeconds(seconds)}</p><p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">practice timer</p></div>
         </div>
       </section>
 

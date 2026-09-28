@@ -216,7 +216,7 @@ export default function MultiSourceIntelligencePanel({ technical = false }: { te
                   <p className="mt-2 text-xs text-slate-500">
                     {source.latest ? `Latest observation ${source.ageMinutes ?? 0} min ago · ${source.latest.variable}` : "No observations received yet."}
                   </p>
-                  {technical && source.latest && <p className="mt-1 font-mono text-[10px] text-slate-400">Freshness window: {source.freshnessMinutes} min · observed {source.latest.observedAt}</p>}
+                  {technical && source.latest && <p className="mt-1 font-body tabular-nums text-[10px] text-slate-400">Freshness window: {source.freshnessMinutes} min · observed {source.latest.observedAt}</p>}
                 </div>
               ))}
             </div>

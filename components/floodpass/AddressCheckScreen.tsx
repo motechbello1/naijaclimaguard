@@ -33,7 +33,7 @@ function Body() {
   return (
     <div className="fp-inner-page fp-stack" style={{ gap: 20 }}>
       <div className="fp-page-intro">
-        <p className="fp-overline">RENT & LAND / PLACE HISTORY</p>
+        <p className="fp-overline">Rent and land checks</p>
         <h1 className="fp-h1">Know the place before you decide.</h1>
         <p>{intro}</p>
         <HearButton text={intro} />

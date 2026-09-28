@@ -85,7 +85,7 @@ export default function FpShell({ children, active }: { children: React.ReactNod
           <div className="fp-wrap fp-header-inner">
             <Link href="/" className="fp-brand" aria-label="NaijaClimaGuard home">
               <FpMark size={42} />
-              <span className="fp-brand-words"><strong>NaijaClima<span>Guard</span></strong><small>FLOOD INTELLIGENCE / FLOODPASS</small></span>
+              <span className="fp-brand-words"><strong>NaijaClima<span>Guard</span></strong><small>Flood intelligence · FloodPass</small></span>
             </Link>
             <nav aria-label="NaijaClimaGuard main navigation" className="fp-desktop-nav">
               {desktopNav.map((item) => (

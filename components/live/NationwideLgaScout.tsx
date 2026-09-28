@@ -148,9 +148,9 @@ export default function NationwideLgaScout() {
 }
 
 function Metric({ label, value, detail, warning = false, danger = false }: { label: string; value: string | number; detail: string; warning?: boolean; danger?: boolean }) {
-  return <div className={`glass-card rounded-2xl p-4 ${danger ? "border-crimson/20" : warning ? "border-amber/20" : ""}`}><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p><p className={`mt-2 font-mono text-2xl font-bold ${danger ? "text-crimson" : warning ? "text-amber" : ""}`}>{value}</p><p className="mt-1 text-[11px] text-slate-500">{detail}</p></div>;
+  return <div className={`glass-card rounded-2xl p-4 ${danger ? "border-crimson/20" : warning ? "border-amber/20" : ""}`}><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p><p className={`mt-2 font-body tabular-nums text-2xl font-bold ${danger ? "text-crimson" : warning ? "text-amber" : ""}`}>{value}</p><p className="mt-1 text-[11px] text-slate-500">{detail}</p></div>;
 }
 
 function Rain({ label, value }: { label: string; value: number }) {
-  return <div className="rounded-lg bg-slate-50 px-2 py-2 dark:bg-midnight"><p className="text-[9px] font-bold uppercase text-slate-400">{label}</p><p className="mt-0.5 font-mono text-xs font-bold">{value.toFixed(1)}<span className="ml-0.5 text-[9px] font-normal text-slate-400">mm</span></p></div>;
+  return <div className="rounded-lg bg-slate-50 px-2 py-2 dark:bg-midnight"><p className="text-[9px] font-bold uppercase text-slate-400">{label}</p><p className="mt-0.5 font-body tabular-nums text-xs font-bold">{value.toFixed(1)}<span className="ml-0.5 text-[9px] font-normal text-slate-400">mm</span></p></div>;
 }

@@ -116,7 +116,7 @@ function Body() {
   return (
     <div className="fp-inner-page fp-stack" style={{ gap: 20 }}>
       <div className="fp-page-intro">
-        <p className="fp-overline">FLOODPASS / OPERATIONS</p>
+        <p className="fp-overline">FloodPass operations</p>
         <h1 className="fp-h1">Founder desk.</h1>
         <p>Official warnings, drain rewards, plans and demo records in one place. <Link className="fp-link" href="/login?callbackUrl=/floodpass/founder">Log in</Link> for founder access.</p>
       </div>

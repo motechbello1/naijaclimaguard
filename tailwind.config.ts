@@ -21,9 +21,9 @@ const config: Config = {
         crimson: { DEFAULT: "#EF4444", dim: "#EF444422" },
       },
       fontFamily: {
-        display: ['"Inter"', "system-ui", "sans-serif"],
-        body: ['"Inter"', "system-ui", "sans-serif"],
-        mono: ['"JetBrains Mono"', "monospace"],
+        display: ["var(--ncg-font-sans)"],
+        body: ["var(--ncg-font-sans)"],
+        mono: ["var(--ncg-font-code)"],
       },
       borderRadius: {
         DEFAULT: "8px",

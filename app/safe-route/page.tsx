@@ -108,4 +108,4 @@ function SafeRouteContent() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) { return <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-midnight-border dark:bg-midnight/60"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 font-mono text-lg font-bold">{value}</p></div>; }
+function Stat({ label, value }: { label: string; value: string | number }) { return <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-midnight-border dark:bg-midnight/60"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 font-body tabular-nums text-lg font-bold">{value}</p></div>; }

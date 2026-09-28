@@ -19,10 +19,10 @@ export default function DashboardHero({ areaName, areaZone }: { areaName: string
   const tr = (value: string) => translatePlatformText(locale, value);
   const view = VIEWS[role];
   return <section className="ncg-dashboard-hero" data-read-aloud aria-label={tr(`${view.label} workspace`)}>
-    <div className="ncg-dashboard-hero-copy"><div className="ncg-dashboard-hero-index"><span>{view.number} / {tr(EXPERIENCE_LABELS[role])} · {tr("WORKSPACE")}</span><span className="ncg-dashboard-signal" /> </div>
+    <div className="ncg-dashboard-hero-copy"><div className="ncg-dashboard-hero-index"><span>{tr(EXPERIENCE_LABELS[role])} · {tr("Workspace")}</span><span className="ncg-dashboard-signal" /> </div>
       <h1>{tr(view.first)}<br /><em>{tr(view.emphasis)}</em></h1><p>{tr(view.description)}</p>
       <Link href={view.href}>{tr(view.action)} <ArrowUpRight size={19} /></Link>
     </div>
-    <div className="ncg-dashboard-hero-place"><span>YOUR WORKING AREA / {areaZone.toUpperCase()}</span><MapPin size={32} strokeWidth={1.3} /><div><strong>{areaName}</strong><p>Every risk result belongs to an exact saved coordinate. The working area does not imply a state wide forecast.</p></div><small>36 STATES + FCT / NIGERIA</small></div>
+    <div className="ncg-dashboard-hero-place"><span>Your working area · {areaZone}</span><MapPin size={32} strokeWidth={1.3} /><div><strong>{areaName}</strong><p>Every risk result belongs to an exact saved coordinate. The working area does not imply a state wide forecast.</p></div><small>36 states + FCT · Nigeria</small></div>
   </section>;
 }

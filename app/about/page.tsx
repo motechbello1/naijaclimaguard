@@ -52,7 +52,7 @@ export default function AboutPage() {
           <div className="glass-card rounded-2xl p-8 mb-10">
             <h2 className="font-display text-2xl font-bold mb-4">Our Model and Product Layers</h2>
             <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-              The current public platform continues to use the disclosed <code className="font-mono">derived-v2</code> risk engine for general live location monitoring. Riverine Watch v1 is a separate frozen shadow model for Lokoja and Makurdi. Its job is to identify whether rainfall history and operational river-discharge forecasts indicate an elevated riverine flood-onset WATCH condition within the next 14 days.
+              The current public platform continues to use the disclosed <code className="font-body tabular-nums">derived-v2</code> risk engine for general live location monitoring. Riverine Watch v1 is a separate frozen shadow model for Lokoja and Makurdi. Its job is to identify whether rainfall history and operational river-discharge forecasts indicate an elevated riverine flood-onset WATCH condition within the next 14 days.
             </p>
             <div className="grid sm:grid-cols-3 gap-6 mt-8">
               {[

@@ -67,7 +67,7 @@ export default function RiverineWatchEvidence({
           )}
 
           <p className="mt-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-            <strong>Important:</strong> 80% is an event-detection result, not “80% accuracy,” not a national performance claim, and not prospective public-warning validation. The current public risk API remains the separate <code className="font-mono">derived-v2</code> decision-support engine. Official warnings and visible flooding take priority.
+            <strong>Important:</strong> 80% is an event-detection result, not “80% accuracy,” not a national performance claim, and not prospective public-warning validation. The current public risk API remains the separate <code className="font-body tabular-nums">derived-v2</code> decision-support engine. Official warnings and visible flooding take priority.
           </p>
         </div>
 

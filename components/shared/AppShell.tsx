@@ -86,7 +86,7 @@ const MOBILE_LINKS = [
 ];
 
 function Brand({ compact = false }: { compact?: boolean }) {
-  return <BrandLockup href="/dashboard" compact={compact} className="group text-[#0d1f19] dark:text-white" />;
+  return <BrandLockup inverse href="/dashboard" compact={compact} className="ncg-sidebar-brand group text-white" />;
 }
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
@@ -142,12 +142,12 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     <div className="ncg-app ncg-workspace-app flex min-h-[100dvh] min-w-0 bg-[#f3f4ee] text-[#0d1f19] dark:bg-[#07110e] dark:text-slate-100" key={locale}>
       <aside className={`ncg-workspace-sidebar fixed inset-y-3 left-3 z-40 hidden overflow-hidden rounded-[28px] border border-black/8 bg-[#eef1e9] text-[#0d1f19] shadow-[0_24px_70px_rgba(5,25,20,.16)] transition-[width] duration-300 dark:border-white/10 dark:bg-[#071713] dark:text-white lg:flex lg:flex-col ${collapsed ? "w-[78px]" : "w-[272px]"}`}>
         <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-emerald-300/28 blur-3xl dark:bg-[#1f5f49]/30" />
-        <div className="relative flex h-[74px] items-center justify-between px-4"><Brand compact={collapsed} /><button onClick={() => setCollapsed((v) => !v)} className="flex h-8 w-8 items-center justify-center rounded-full border border-black/8 bg-white/75 text-emerald-900/65 hover:text-[#071713] dark:border-white/10 dark:bg-white/[.05] dark:text-white/55 dark:hover:text-white" aria-label={collapsed ? tr("Expand navigation") : tr("Collapse navigation")}>{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button></div>
+        <div className="ncg-sidebar-brand-row" data-collapsed={collapsed}><Brand compact={collapsed} /><button onClick={() => setCollapsed((v) => !v)} className="ncg-sidebar-toggle" aria-expanded={!collapsed} aria-label={collapsed ? tr("Expand navigation") : tr("Collapse navigation")}>{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button></div>
 
         <div className="relative flex-1 overflow-y-auto px-3 py-4">
-          {!collapsed && <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[.18em] text-emerald-950/38 dark:text-white/35">{tr("Workspace")}</p>}
+          {!collapsed && <p className="px-3 pb-2 text-xs font-medium text-emerald-950/38 dark:text-white/35">{tr("Workspace")}</p>}
           <nav className="space-y-1">{nav.map(navLink)}</nav>
-          {!collapsed && <p className="px-3 pb-2 pt-6 text-[10px] font-black uppercase tracking-[.18em] text-emerald-950/38 dark:text-white/35">{tr("Explore")}</p>}
+          {!collapsed && <p className="px-3 pb-2 pt-6 text-xs font-medium text-emerald-950/38 dark:text-white/35">{tr("Explore")}</p>}
           <nav className="space-y-1">{productLinks.map((item) => { const active = pathname === item.href || (item.href === "/admin" && pathname.startsWith("/revenue/command")); const Icon = item.icon; return <Link key={item.href} href={item.href} className={`group flex min-h-11 items-center gap-3 rounded-[14px] px-3 text-sm font-semibold ${active ? "bg-[#071713] text-white dark:bg-white/[.11]" : "text-[#315045] hover:bg-black/[.045] hover:text-[#071713] dark:text-white/70 dark:hover:bg-white/[.06] dark:hover:text-white"}`}><Icon className={`h-[18px] w-[18px] ${active ? "text-[#d9ff57]" : "text-emerald-800/65 dark:text-white/55"}`} />{!collapsed && <span>{tr(item.label)}</span>}</Link>; })}</nav>
         </div>
 

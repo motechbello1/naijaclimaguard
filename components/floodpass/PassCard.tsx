@@ -26,7 +26,7 @@ export default function PassCard({ pass, qrSvg, checkUrl, wallets }: { pass: Pub
   return (
     <article className="fp-pass" data-demo={pass.seeded ? "true" : undefined} aria-label={`FloodPass ${pass.code}${pass.seeded ? ", reconstructed demo" : ""}`}>
       <div className="fp-pass-top">
-        <div className="fp-pass-brand"><FpMark size={34} inverse /><div><strong>FloodPass</strong><small>BY NAIJACLIMAGUARD</small></div></div>
+        <div className="fp-pass-brand"><FpMark size={34} inverse /><div><strong>FloodPass</strong><small>By NaijaClimaGuard</small></div></div>
         <span className="fp-pass-status">{pass.seeded ? "RECONSTRUCTED DEMO" : valid ? "VERIFIED REPORT" : "CANCELLED RECORD"}</span>
       </div>
       <div className="fp-pass-body">
@@ -37,7 +37,7 @@ export default function PassCard({ pass, qrSvg, checkUrl, wallets }: { pass: Pub
             <div><p className="fp-pass-label">02 / WHEN</p><strong>{when(pass.floodedAt)}</strong></div>
             <div className="fp-pass-depth"><p className="fp-pass-label">03 / WATER LEVEL</p><span><DepthIcon depth={pass.depth} size={44} /> <strong>{pass.depthWords}</strong></span></div>
           </div>
-          <div className="fp-pass-code-block"><p className="fp-pass-label">FLOODPASS CODE</p><strong className="fp-code">{pass.code}</strong><small>{pass.seeded ? `Demo record ${pass.sequence} · rebuilt from news` : `Record ${pass.sequence} · ${pass.checksPassed} of ${pass.checksTotal} checks passed`}</small></div>
+          <div className="fp-pass-code-block"><p className="fp-pass-label">FloodPass code</p><strong className="fp-code">{pass.code}</strong><small>{pass.seeded ? `Demo record ${pass.sequence} · rebuilt from news` : `Record ${pass.sequence} · ${pass.checksPassed} of ${pass.checksTotal} checks passed`}</small></div>
         </div>
         <div className="fp-pass-verify">
           {qrSvg ? <div className="fp-pass-qr" aria-label="QR code to check this FloodPass" dangerouslySetInnerHTML={{ __html: qrSvg }} /> : null}

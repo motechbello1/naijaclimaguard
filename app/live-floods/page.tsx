@@ -108,5 +108,5 @@ function LiveFloodsContent() {
 }
 
 function Metric({ icon: Icon, label, value, detail, danger = false }: { icon: any; label: string; value: string | number; detail: string; danger?: boolean }) {
-  return <div className={`glass-card rounded-2xl p-4 ${danger ? "border-crimson/20 bg-crimson/[0.03]" : ""}`}><div className="flex items-center justify-between"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{label}</p><Icon className={`h-4 w-4 ${danger ? "text-crimson" : "text-radar"}`} /></div><p className={`mt-3 font-mono text-3xl font-bold ${danger ? "text-crimson" : ""}`}>{value}</p><p className="mt-1 text-xs text-slate-500">{detail}</p></div>;
+  return <div className={`glass-card rounded-2xl p-4 ${danger ? "border-crimson/20 bg-crimson/[0.03]" : ""}`}><div className="flex items-center justify-between"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{label}</p><Icon className={`h-4 w-4 ${danger ? "text-crimson" : "text-radar"}`} /></div><p className={`mt-3 font-body tabular-nums text-3xl font-bold ${danger ? "text-crimson" : ""}`}>{value}</p><p className="mt-1 text-xs text-slate-500">{detail}</p></div>;
 }

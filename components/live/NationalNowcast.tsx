@@ -97,9 +97,9 @@ export default function NationalNowcast() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-midnight-border dark:bg-midnight-light">
         <div className={`grid gap-3 ${simple ? "sm:grid-cols-3" : "sm:grid-cols-4"}`}>
-          {!simple ? <div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Rainfall points</p><p className="mt-1 font-mono text-2xl font-bold">{screeningPoints || "—"}</p></div> : null}
-          <div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{simple ? "Areas checked" : "States/FCT online"}</p><p className="mt-1 font-mono text-2xl font-bold">{available || "—"}</p></div>
-          <div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{simple ? "Need attention" : "Above normal"}</p><p className={`mt-1 font-mono text-2xl font-bold ${active.length ? "text-amber" : ""}`}>{active.length}</p></div>
+          {!simple ? <div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Rainfall points</p><p className="mt-1 font-body tabular-nums text-2xl font-bold">{screeningPoints || "—"}</p></div> : null}
+          <div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{simple ? "Areas checked" : "States/FCT online"}</p><p className="mt-1 font-body tabular-nums text-2xl font-bold">{available || "—"}</p></div>
+          <div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{simple ? "Need attention" : "Above normal"}</p><p className={`mt-1 font-body tabular-nums text-2xl font-bold ${active.length ? "text-amber" : ""}`}>{active.length}</p></div>
           <div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{simple ? "Last checked" : "Last rainfall scan"}</p><p className="mt-1 text-sm font-semibold">{generatedAt ? new Date(generatedAt).toLocaleString("en-NG", { timeStyle: "short", dateStyle: "medium" }) : loading ? "Checking…" : "Unavailable"}</p></div>
         </div>
       </div>
@@ -119,5 +119,5 @@ export default function NationalNowcast() {
 }
 
 function RainStat({ label, value }: { label: string; value: number }) {
-  return <div className="rounded-lg bg-slate-50 px-2 py-2 dark:bg-midnight"><p className="text-[9px] font-bold uppercase text-slate-400">{label}</p><p className="mt-0.5 font-mono text-xs font-bold">{value.toFixed(1)}<span className="ml-0.5 text-[9px] font-normal text-slate-400">mm</span></p></div>;
+  return <div className="rounded-lg bg-slate-50 px-2 py-2 dark:bg-midnight"><p className="text-[9px] font-bold uppercase text-slate-400">{label}</p><p className="mt-0.5 font-body tabular-nums text-xs font-bold">{value.toFixed(1)}<span className="ml-0.5 text-[9px] font-normal text-slate-400">mm</span></p></div>;
 }

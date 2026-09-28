@@ -98,7 +98,7 @@ function StatePill({ state }: { state: string }) {
   const m = map[state];
   const Icon = m.icon;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider ${m.cls}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] font-body tabular-nums font-semibold uppercase tracking-wider ${m.cls}`}>
       <Icon className="h-3 w-3" /> {m.label}
     </span>
   );
@@ -116,7 +116,7 @@ function Gauge({ score }: { score: number }) {
           style={{ transition: "stroke-dashoffset 1s cubic-bezier(0.16,1,0.3,1)" }} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono text-3xl font-bold">{score}</span>
+        <span className="font-body tabular-nums text-3xl font-bold">{score}</span>
         <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: lvl.color }}>{lvl.label}</span>
       </div>
     </div>
@@ -128,7 +128,7 @@ function FactorBar({ label, value, color }: { label: string; value: number; colo
     <div className="mb-2.5">
       <div className="mb-1 flex justify-between text-xs text-slate-500 dark:text-slate-400">
         <span>{label}</span>
-        <span className="font-mono text-slate-700 dark:text-slate-300">{Math.round(value * 100)}%</span>
+        <span className="font-body tabular-nums text-slate-700 dark:text-slate-300">{Math.round(value * 100)}%</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
         <div className="h-full rounded-full transition-all duration-700 ease-out"
@@ -195,8 +195,8 @@ export default function IntelligencePage() {
             { label: "Current model", value: "Derived-v2", sub: "single engine" },
           ].map((m) => (
             <div key={m.label} className="glass-card rounded-xl p-4">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{m.label}</p>
-              <p className="mt-1 font-mono text-xl font-bold" style={m.color ? { color: m.color } : {}}>{m.value}</p>
+              <p className="font-body text-xs font-medium text-slate-500">{m.label}</p>
+              <p className="mt-1 font-body tabular-nums text-xl font-bold" style={m.color ? { color: m.color } : {}}>{m.value}</p>
               <p className="text-xs text-slate-500">{m.sub}</p>
             </div>
           ))}
@@ -228,7 +228,7 @@ export default function IntelligencePage() {
                             <span className="ml-2 text-xs text-slate-500">{r.station.state}</span>
                           </span>
                         </span>
-                        <span className="font-mono text-sm font-bold" style={{ color: lvl.color }}>
+                        <span className="font-body tabular-nums text-sm font-bold" style={{ color: lvl.color }}>
                           {r.model.score}
                         </span>
                       </button>
@@ -271,8 +271,8 @@ export default function IntelligencePage() {
                     { l: "Rain − ET0 bal.", v: `${active.model.raw.balance7} mm` },
                   ].map((x) => (
                     <div key={x.l}>
-                      <p className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{x.l}</p>
-                      <p className="font-mono text-sm font-bold">{x.v}</p>
+                      <p className="font-body text-xs font-medium text-slate-500">{x.l}</p>
+                      <p className="font-body tabular-nums text-sm font-bold">{x.v}</p>
                     </div>
                   ))}
                 </div>
@@ -290,7 +290,7 @@ export default function IntelligencePage() {
           <div className="glass-card rounded-2xl p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold">Platform modules</h2>
-              <span className="font-mono text-[10px] text-slate-500">
+              <span className="font-body tabular-nums text-[10px] text-slate-500">
                 {MODULES.filter((m) => m.state === "LIVE").length} live · {MODULES.filter((m) => m.state !== "LIVE").length} integration/partner-dependent
               </span>
             </div>

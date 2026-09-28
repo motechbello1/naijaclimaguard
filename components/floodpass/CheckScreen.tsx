@@ -39,7 +39,7 @@ function Body() {
   return (
     <div className="fp-inner-page">
       <div className="fp-page-intro">
-        <p className="fp-overline">THE FLOOD RECORD / OPEN CHECK</p>
+        <p className="fp-overline">Check a flood record</p>
         <h1 className="fp-h1">Check the proof.</h1>
         <p>Enter a FloodPass code to see its place, date and status. Anyone can check a code for free.</p>
       </div>
@@ -72,7 +72,7 @@ function Body() {
       ) : null}
       </div>
       <aside className="fp-page-aside">
-        <p className="fp-overline">WHAT THE CHECK MEANS</p>
+        <p className="fp-overline">About this check</p>
         <h2>A code is a starting point.</h2>
         <p>Read the place, time, depth, checks and any demo label. A code does not promise payment or prove the value of a loss.</p>
         <Link className="fp-link" href="/partners">Checking for an organisation?</Link>

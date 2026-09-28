@@ -116,7 +116,7 @@ function Body() {
     return (
       <div className="fp-inner-page fp-stack">
         <div className="fp-page-intro">
-          <p className="fp-overline">FLOOD REPORT / RECEIVED</p>
+          <p className="fp-overline">Report received</p>
           <h1 className="fp-h1">Your report is in.</h1>
         </div>
         <div className={`fp-status ${verified ? "fp-status-blue" : "fp-status-amber"} fp-stack`} role="status">
@@ -142,7 +142,7 @@ function Body() {
   return (
     <div className="fp-inner-page">
       <div className="fp-page-intro">
-        <p className="fp-overline">REPORT WATER / FREE AND OPEN TO EVERYONE</p>
+        <p className="fp-overline">Report water</p>
         <h1 className="fp-h1">Water where you are?</h1>
         <p>Tell us what you see in three steps. When a report passes the checks, it can receive a FloodPass code.</p>
       </div>
@@ -187,7 +187,7 @@ function Body() {
       <button className="fp-btn fp-btn-danger" onClick={send} disabled={!ready || sending}>{sending ? "Sending..." : "Send report"}</button>
       </div>
       <aside className="fp-page-aside">
-        <p className="fp-overline">PEOPLE FIRST</p>
+        <p className="fp-overline">Your safety comes first</p>
         <h2>Stay out of danger.</h2>
         <p>If water is rising around you, move to higher ground before reporting. Call 112 for an emergency.</p>
         <hr style={{ border: 0, borderTop: "1px solid var(--fp-border)", margin: "20px 0" }} />
