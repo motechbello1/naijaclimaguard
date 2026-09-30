@@ -1,0 +1,54 @@
+{
+  "status": "location_threshold_upper_bound_complete",
+  "diagnostic_only": true,
+  "warning": "Thresholds are optimized on the complete V5 OOF set. This is an optimistic upper bound, not a V6 validation result.",
+  "source": "authoritative V5 out-of-fold probabilities under 2022-2024 operational-archive replay",
+  "unchanged_gates": {
+    "minimum_event_detection_rate": 0.75,
+    "minimum_precision": 0.1,
+    "maximum_false_positive_issue_rows_per_1000_negative": 10.0
+  },
+  "evaluated_events": 19,
+  "required_detected_events": 15,
+  "negative_issue_rows": 5346,
+  "false_positive_issue_row_budget": 53,
+  "location_pareto_option_counts": {
+    "Hadejia": 38,
+    "Lokoja": 46,
+    "Makurdi": 13,
+    "Onitsha": 11,
+    "Yenagoa": 66
+  },
+  "oracle_location_threshold_pass_exists": false,
+  "best_oracle_state": {
+    "false_positive_issue_rows": 52,
+    "true_positive_issue_rows": 7,
+    "detected_events": 5,
+    "event_detection_rate": 0.2631578947368421,
+    "precision": 0.11864406779661017,
+    "qualifies": false,
+    "thresholds": {
+      "Hadejia": 0.66,
+      "Lokoja": 0.56,
+      "Makurdi": 0.04,
+      "Onitsha": 0.9,
+      "Yenagoa": 0.31
+    },
+    "detected_event_ids_by_location": {
+      "Hadejia": [],
+      "Lokoja": [],
+      "Makurdi": [
+        "makurdi-2022-09-26",
+        "makurdi-2023-07-10",
+        "makurdi-2024-07-04",
+        "makurdi-2024-10-14"
+      ],
+      "Onitsha": [],
+      "Yenagoa": [
+        "yenagoa-2022-09-30"
+      ]
+    }
+  },
+  "qualifying_state_count": 0,
+  "interpretation": "Even optimistic location-specific thresholding of the V5 score cannot satisfy the frozen gates; V6 must change the risk score/event formulation rather than only calibrating thresholds."
+}

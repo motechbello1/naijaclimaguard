@@ -1,0 +1,106 @@
+name: Model v6 Event-Aware Development
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [model-v5-operational-native]
+    paths:
+      - "validation/MODEL_V6_EVENT_AWARE_PROTOCOL.md"
+      - "validation/model_v6_event_aware.py"
+      - ".github/workflows/model-v6-event-aware.yml"
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+  NASA_SOURCE_RUN_ID: "31292573245"
+
+concurrency:
+  group: model-v6-event-aware-development
+  cancel-in-progress: true
+
+jobs:
+  develop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: model-v5-operational-native
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install pinned runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+      - name: Verify frozen V6 protocol and immutable V5 decision
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('validation/MODEL_V6_EVENT_AWARE_PROTOCOL.md').read_text()
+          assert 'FROZEN BEFORE FIRST MODEL V6 SCORE' in p
+          assert '>=75% independent eligible-event detection' in p
+          assert '>=10% precision' in p
+          assert '<=10 false-positive issue rows per 1,000 negatives' in p
+          assert 'n_estimators=500' in p and 'max_depth=2' in p and 'learning_rate=0.02' in p
+          v5=json.loads(Path('validation/model_v5_freeze_manifest.json').read_text())
+          assert v5['status']=='freeze_blocked'
+          print('Protocol frozen; V5 remains immutable freeze_blocked evidence.')
+          PY
+      - name: Reuse preserved NASA source artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.NASA_SOURCE_RUN_ID }}
+          pattern: model-v5-nasa-*
+          path: validation/model_v5/work/nasa
+          merge-multiple: true
+      - name: Rebuild synchronized issue-time dataset from preserved sources
+        run: |
+          python validation/build_model_v5_dataset.py \
+            --nasa 'validation/model_v5/work/nasa/*.csv' \
+            --glofas 'validation/model_v5/operational_archive_months/*.csv' \
+            --events validation/model_v4_event_registry.csv \
+            --start 2021-05-26 --end 2024-12-31 \
+            --out validation/model_v6_issue_dataset.csv \
+            --manifest validation/model_v6_dataset_manifest.json
+      - name: Execute frozen Model v6 once
+        run: |
+          python validation/model_v6_event_aware.py \
+            --dataset validation/model_v6_issue_dataset.csv \
+            --events validation/model_v4_event_registry.csv \
+            --output validation/model_v6_results.json \
+            --scored-output validation/model_v6_oof_scored.csv \
+            --manifest-out validation/model_v6_freeze_manifest.json \
+            --model-out validation/model_v6_freeze_candidate.joblib
+      - name: Commit Model v6 development decision
+        run: |
+          git config user.name "naijaclimaguard-model-v6-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add validation/model_v6_results.json validation/model_v6_freeze_manifest.json validation/model_v6_dataset_manifest.json
+          if [ -f validation/model_v6_freeze_candidate.joblib ]; then git add validation/model_v6_freeze_candidate.joblib; fi
+          git diff --cached --quiet && exit 0
+          git commit -m "model-v6: preserve frozen event-aware development decision ${GITHUB_RUN_ID}"
+          git pull --rebase origin model-v5-operational-native
+          git push origin HEAD:model-v5-operational-native
+      - name: Upload full V6 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-v6-event-aware-${{ github.run_id }}
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            validation/model_v6_issue_dataset.csv
+            validation/model_v6_dataset_manifest.json
+            validation/model_v6_results.json
+            validation/model_v6_oof_scored.csv
+            validation/model_v6_freeze_manifest.json
+            validation/model_v6_freeze_candidate.joblib

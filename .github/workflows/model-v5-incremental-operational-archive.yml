@@ -1,0 +1,311 @@
+name: Model v5 Incremental Operational Archive
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [model-v5-operational-native]
+    paths:
+      - "validation/model_v5_incremental_trigger.txt"
+      - ".github/workflows/model-v5-incremental-operational-archive.yml"
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+  NASA_SOURCE_RUN_ID: "31292573245"
+  QUARTER_DIR: validation/model_v5/operational_archive_quarters
+
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify frozen operational-archive protocol
+        run: |
+          python - <<'PY'
+          import csv
+          from pathlib import Path
+          p = Path('validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md').read_text()
+          assert '2021-05-26' in p
+          assert '2022, 2023 and 2024' in p
+          with open('validation/model_v4_event_registry.csv', newline='', encoding='utf-8') as f:
+              rows = list(csv.DictReader(f))
+          enabled = [r for r in rows if str(r.get('include_in_benchmark', '')).lower() == 'true']
+          assert len({r.get('event_id') for r in enabled if r.get('event_id')}) == 35
+          print('Frozen Model v5 protocol verified')
+          PY
+
+  quarter:
+    needs: protocol
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    concurrency:
+      group: model-v5-ewds-source-access
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - { year: 2021, quarter: 2, months: "5 6" }
+          - { year: 2021, quarter: 3, months: "7 8 9" }
+          - { year: 2021, quarter: 4, months: "10 11 12" }
+          - { year: 2022, quarter: 1, months: "1 2 3" }
+          - { year: 2022, quarter: 2, months: "4 5 6" }
+          - { year: 2022, quarter: 3, months: "7 8 9" }
+          - { year: 2022, quarter: 4, months: "10 11 12" }
+          - { year: 2023, quarter: 1, months: "1 2 3" }
+          - { year: 2023, quarter: 2, months: "4 5 6" }
+          - { year: 2023, quarter: 3, months: "7 8 9" }
+          - { year: 2023, quarter: 4, months: "10 11 12" }
+          - { year: 2024, quarter: 1, months: "1 2 3" }
+          - { year: 2024, quarter: 2, months: "4 5 6" }
+          - { year: 2024, quarter: 3, months: "7 8 9" }
+          - { year: 2024, quarter: 4, months: "10 11 12" }
+    env:
+      EWDS_API_KEY: ${{ secrets.EWDS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Move to latest Model v5 branch state
+        run: |
+          git fetch origin model-v5-operational-native
+          git checkout -B model-v5-operational-native origin/model-v5-operational-native
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install Model v5 runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+      - name: Verify EWDS credential
+        run: test -n "$EWDS_API_KEY" || (echo 'EWDS_API_KEY missing' && exit 1)
+      - name: Check whether quarter is already scientifically complete
+        id: existing
+        env:
+          YEAR: ${{ matrix.year }}
+          QUARTER: ${{ matrix.quarter }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          year = os.environ['YEAR']; q = os.environ['QUARTER']
+          root = Path('validation/model_v5/operational_archive_quarters')
+          csvp = root / f'glofas_{year}_q{q}.csv'
+          manp = root / f'glofas_{year}_q{q}.source_manifest.json'
+          ok = False
+          if csvp.exists() and manp.exists():
+              try:
+                  m = json.loads(manp.read_text())
+                  c = m.get('source_contract', {})
+                  ok = (
+                      float(m.get('coverage', 0)) >= 0.90 and
+                      c.get('dataset') == 'cems-glofas-forecast' and
+                      c.get('system_version') == 'operational' and
+                      c.get('hydrological_model') == 'lisflood' and
+                      c.get('product_type') == 'control_forecast' and
+                      c.get('lead_hours') == [24, 48, 72] and
+                      c.get('archive_start') == '2021-05-26'
+                  )
+              except Exception:
+                  ok = False
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'complete={str(ok).lower()}\n')
+          print(f'{year} Q{q} already complete={ok}')
+          PY
+      - name: Restore raw daily archives from prior attempts
+        if: steps.existing.outputs.complete != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: validation/model_v5/work/glofas_raw_${{ matrix.year }}_q${{ matrix.quarter }}
+          key: model-v5-glofas-raw-${{ matrix.year }}-q${{ matrix.quarter }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            model-v5-glofas-raw-${{ matrix.year }}-q${{ matrix.quarter }}-
+      - name: Fetch exact archived operational GloFAS quarter
+        if: steps.existing.outputs.complete != 'true'
+        run: |
+          mkdir -p "$QUARTER_DIR"
+          python validation/fetch_glofas_operational_archive_v5.py \
+            --year "${{ matrix.year }}" \
+            --months ${{ matrix.months }} \
+            --lead-hours 24 48 72 \
+            --workers 1 \
+            --raw-dir "validation/model_v5/work/glofas_raw_${{ matrix.year }}_q${{ matrix.quarter }}" \
+            --out "$QUARTER_DIR/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.csv"
+      - name: Persist raw daily archives for next attempt
+        if: always() && steps.existing.outputs.complete != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: validation/model_v5/work/glofas_raw_${{ matrix.year }}_q${{ matrix.quarter }}
+          key: model-v5-glofas-raw-${{ matrix.year }}-q${{ matrix.quarter }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Re-validate extracted quarter before preservation
+        if: steps.existing.outputs.complete != 'true'
+        env:
+          YEAR: ${{ matrix.year }}
+          QUARTER: ${{ matrix.quarter }}
+        run: |
+          python - <<'PY'
+          import json, os, pandas as pd
+          from pathlib import Path
+          year = os.environ['YEAR']; q = os.environ['QUARTER']
+          root = Path('validation/model_v5/operational_archive_quarters')
+          csvp = root / f'glofas_{year}_q{q}.csv'
+          manp = root / f'glofas_{year}_q{q}.source_manifest.json'
+          m = json.loads(manp.read_text())
+          df = pd.read_csv(csvp)
+          c = m['source_contract']
+          assert m['coverage'] >= 0.90
+          assert c == {
+              'archive_start': '2021-05-26',
+              'dataset': 'cems-glofas-forecast',
+              'hydrological_model': 'lisflood',
+              'lead_hours': [24, 48, 72],
+              'product_type': 'control_forecast',
+              'system_version': 'operational',
+          }
+          assert set(df['lead_time_hours'].unique()) == {24,48,72}
+          assert df['location'].nunique() == 5
+          assert len(df) == int(m['output_rows'])
+          print(f'Validated durable quarter {year} Q{q}: rows={len(df)} coverage={m["coverage"]:.1%}')
+          PY
+      - name: Commit completed quarter as durable scientific source pack
+        if: steps.existing.outputs.complete != 'true'
+        run: |
+          git config user.name "naijaclimaguard-model-v5-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$QUARTER_DIR/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.csv" \
+                  "$QUARTER_DIR/glofas_${{ matrix.year }}_q${{ matrix.quarter }}.source_manifest.json"
+          git diff --cached --quiet && exit 0
+          git commit -m "model-v5: preserve validated GloFAS ${{ matrix.year }} Q${{ matrix.quarter }}"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin model-v5-operational-native && git push origin HEAD:model-v5-operational-native && exit 0
+            sleep $((attempt * 5))
+          done
+          exit 1
+
+  score_when_complete:
+    if: always()
+    needs: [protocol, quarter]
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: model-v5-operational-native
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: validation/model_v5_requirements.txt
+      - name: Install pinned Model v5 runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r validation/model_v5_requirements.txt
+          python -m pip freeze > validation/model_v5_environment_freeze.txt
+      - name: Check durable quarter completion and source contract
+        id: readiness
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path('validation/model_v5/operational_archive_quarters')
+          expected = [(2021,q) for q in (2,3,4)] + [(y,q) for y in (2022,2023,2024) for q in (1,2,3,4)]
+          missing=[]; invalid=[]
+          for y,q in expected:
+              csvp=root/f'glofas_{y}_q{q}.csv'; manp=root/f'glofas_{y}_q{q}.source_manifest.json'
+              if not csvp.exists() or not manp.exists():
+                  missing.append(f'{y}Q{q}'); continue
+              try:
+                  m=json.loads(manp.read_text()); c=m['source_contract']
+                  ok=float(m.get('coverage',0))>=0.90 and c.get('dataset')=='cems-glofas-forecast' and c.get('system_version')=='operational' and c.get('hydrological_model')=='lisflood' and c.get('product_type')=='control_forecast' and c.get('lead_hours')==[24,48,72] and c.get('archive_start')=='2021-05-26'
+                  if not ok: invalid.append(f'{y}Q{q}')
+              except Exception:
+                  invalid.append(f'{y}Q{q}')
+          ready=not missing and not invalid
+          print('Durable quarter packs:', len(expected)-len(missing)-len(invalid), '/', len(expected))
+          print('Missing:', missing)
+          print('Invalid:', invalid)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write(f'ready={str(ready).lower()}\n')
+          PY
+      - name: Stop cleanly until every preregistered quarter exists
+        if: steps.readiness.outputs.ready != 'true'
+        run: echo "Model v5 source acquisition made durable progress but is not yet complete; scoring intentionally not run."
+      - name: Reuse preserved NASA artifacts
+        if: steps.readiness.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.NASA_SOURCE_RUN_ID }}
+          pattern: model-v5-nasa-*
+          path: validation/model_v5/work/nasa
+          merge-multiple: true
+      - name: Compile and run frozen Model v5 contract tests
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          python -m py_compile validation/build_model_v5_dataset.py validation/model_v5_operational_native.py validation/model_v5_operational_archive.py validation/freeze_model_v5_candidate.py
+          python -m unittest discover -s validation/tests -p 'test_model_v5.py' -v
+      - name: Build synchronized issue-time dataset
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          python validation/build_model_v5_dataset.py \
+            --nasa 'validation/model_v5/work/nasa/*.csv' \
+            --glofas 'validation/model_v5/operational_archive_quarters/*.csv' \
+            --events validation/model_v4_event_registry.csv \
+            --start 2021-05-26 --end 2024-12-31 \
+            --out validation/model_v5_issue_dataset.csv \
+            --manifest validation/model_v5_dataset_manifest.json
+      - name: Run preregistered candidates and ablations
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          python validation/model_v5_operational_archive.py \
+            --dataset validation/model_v5_issue_dataset.csv \
+            --events validation/model_v4_event_registry.csv \
+            --output validation/model_v5_results.json \
+            --scored-output validation/model_v5_oof_scored.csv
+      - name: Apply frozen serializer gate
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          python validation/freeze_model_v5_candidate.py \
+            --dataset validation/model_v5_issue_dataset.csv \
+            --dataset-manifest validation/model_v5_dataset_manifest.json \
+            --events validation/model_v4_event_registry.csv \
+            --results validation/model_v5_results.json \
+            --protocol validation/MODEL_V5_OPERATIONAL_ARCHIVE_PROTOCOL.md \
+            --model-out validation/model_v5_freeze_candidate.joblib \
+            --manifest-out validation/model_v5_freeze_manifest.json
+      - name: Commit synchronized final decision
+        if: steps.readiness.outputs.ready == 'true'
+        run: |
+          git config user.name "naijaclimaguard-model-v5-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add validation/model_v5_dataset_manifest.json validation/model_v5_results.json validation/model_v5_freeze_manifest.json validation/model_v5_environment_freeze.txt
+          git diff --cached --quiet && exit 0
+          git commit -m "model-v5: preserve synchronized incremental operational-archive decision ${GITHUB_RUN_ID}"
+          git pull --rebase origin model-v5-operational-native
+          git push origin HEAD:model-v5-operational-native
+      - name: Upload final scientific evidence
+        if: steps.readiness.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-v5-incremental-final-${{ github.run_id }}
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            validation/model_v5_issue_dataset.csv
+            validation/model_v5_dataset_manifest.json
+            validation/model_v5_results.json
+            validation/model_v5_oof_scored.csv
+            validation/model_v5_freeze_manifest.json
+            validation/model_v5_freeze_candidate.joblib
+            validation/model_v5_environment_freeze.txt
