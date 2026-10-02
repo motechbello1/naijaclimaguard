@@ -1,0 +1,9 @@
+# Frozen Model v3 development environment for Python 3.11.
+# Do not widen these ranges during the current development/freeze cycle.
+numpy==2.4.2
+pandas==3.0.3
+scipy==1.17.0
+scikit-learn==1.9.0
+joblib==1.5.3
+threadpoolctl==3.6.0
+xgboost==3.1.3
