@@ -1,0 +1,6 @@
+# Direct data-ingestion dependencies for the frozen Model v3 development workflow.
+# Transitive versions are captured by CI with pip freeze after the first successful run.
+requests==2.32.5
+earthaccess==0.15.1
+fsspec==2026.4.0
+h5py==3.15.1
