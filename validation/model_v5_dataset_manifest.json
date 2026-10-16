@@ -1,0 +1,233 @@
+{
+  "status": "model_v5_issue_dataset_built",
+  "target": "documented flood strictly after issue and within next 72 hours",
+  "rows": 6472,
+  "positive_issue_rows": 63,
+  "issue_dates": 1307,
+  "locations": [
+    "Hadejia",
+    "Lokoja",
+    "Makurdi",
+    "Onitsha",
+    "Yenagoa"
+  ],
+  "start": "2021-05-26",
+  "end": "2024-12-31",
+  "core_coverage": {
+    "rain_7d": 1.0,
+    "q24": 1.0,
+    "q48": 1.0,
+    "q72": 1.0
+  },
+  "nasa_files": [
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/work/nasa/nasa_2018.csv",
+      "sha256": "94cfa2c180e495968ca20fea35f2cfc548c89a9324abf9d8d14da4d004e3928d"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/work/nasa/nasa_2019.csv",
+      "sha256": "06e0799c2b76878b7c224a67863961d42d31b4cbd10ada33a5e7192e8af96135"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/work/nasa/nasa_2020.csv",
+      "sha256": "76b114f1465b38241fc5e66acfc2a4b2f1cab8c6f77ab318335d1c59dcdf0bd8"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/work/nasa/nasa_2021.csv",
+      "sha256": "5ea7d1625adb8660326aee31c1031aac0c881c38ce750cb4f1e28d3be42efc73"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/work/nasa/nasa_2022.csv",
+      "sha256": "41477cd14442b847d2339ecd86b9db586c476f370d45f9d2cde5390999d93728"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/work/nasa/nasa_2023.csv",
+      "sha256": "8e12c17de6d3b5aaf074185666caada7e1f4ad93610a853b63747b0e1fb5d099"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/work/nasa/nasa_2024.csv",
+      "sha256": "cbcf2996351edebd1a340b5f9089a57f80c796351336c31d6426c8e102e6f46a"
+    }
+  ],
+  "glofas_files": [
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2021_m05.csv",
+      "sha256": "5dae63adb82ed5a45c8bf296e2c2c410b5cb273373fb5623d8cb5adc02273c64"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2021_m06.csv",
+      "sha256": "c451231d5486e2049aa08a4299126b6cda3822c7d59e2e3231d255be89fc1b30"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2021_m07.csv",
+      "sha256": "740fba847609639f606ae94dbe5956ee6185c45e589f2d5ff2aff23f0792d16b"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2021_m08.csv",
+      "sha256": "b8447336bfbb7a58a48ff5e0053dd10405d8006a1603741b0545d4469267b8cd"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2021_m09.csv",
+      "sha256": "52316af730d11edb6a4ab7061af0cdca9f4de052d0de4f7e85112df2d8b61fc6"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2021_m10.csv",
+      "sha256": "1cf1d38260c85887d0aba2a23538503c72c723f573a085b71a9e53df06392c19"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2021_m11.csv",
+      "sha256": "4863f9ab77a0f398d0d03dbcae904392fdd234a450b97dcb3518a44f3828375a"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2021_m12.csv",
+      "sha256": "87052c30868550c14e4b33ec93f87cdb40844711f5d61eafb5bd82c275be924c"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m01.csv",
+      "sha256": "5b68e5d05368c0990a1983b470ac8641cf2cb7371a83fb07070b75bb594dbdc7"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m02.csv",
+      "sha256": "a982ead4e0756b52fa4941ceb2c1cb3a3932364e0c43c1e4b56282487e1b6d6a"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m03.csv",
+      "sha256": "d2878b0d80921f3f8e414b4450620440b9896419012f231d4191f74b7f68de3e"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m04.csv",
+      "sha256": "446e1047a61ef8d3a17f527dd6746be16b697005ab46deab4f6c7ea2e187ca2b"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m05.csv",
+      "sha256": "169278922ea546c3a808768bf43b55a4a3a8e38487c0c564cef1b8d59e7f4942"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m06.csv",
+      "sha256": "13ea8b1126196b2e7e347e9128b7f734c5ccfc9f5fdaf8f39bc424c0a32ca274"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m07.csv",
+      "sha256": "8e5ea8a8b8e37c2f6539fb208109c5e60b51d2f747166c5eba263c1bcb864fa9"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m08.csv",
+      "sha256": "f94c51674d39975391cde3db4b2b670722e4da2965190956ef0d7372475787a4"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m09.csv",
+      "sha256": "175051b2ea80b43f68d7b5746428a053d8eb5e50f7700dc5080c2264fb477aeb"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m10.csv",
+      "sha256": "d48cc7bea0481af4c58e1349fd19b7b16f53480c67cf2a695618c36e128bafde"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m11.csv",
+      "sha256": "788b0e8748a52aaccb1086c7230e6d8d4aa21ec495a74d31cbc9becc595120aa"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2022_m12.csv",
+      "sha256": "053fd81ff9bc52f0240b6218b13d4b1d56f9ff9e3c7eb5df31462d27ac0856c5"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m01.csv",
+      "sha256": "bfe6d9d19482103e46181f1e7ce6b04ab75c6bf1ae088d53183afe211eb058c0"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m02.csv",
+      "sha256": "7236ef2d58c41fb894b65e80e703e9064367071a15987cfd3de0764453a92d18"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m03.csv",
+      "sha256": "813efd0df27769fbda49d3f99523235cda194a7b27f23248138a534e2722f83e"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m04.csv",
+      "sha256": "023a93107fa244bd0ca9af224937be5f90f7f10536e887defb7c917debafa3e5"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m05.csv",
+      "sha256": "c73b6a2e16e514a7ea49485fb32d6c1e08842744b2c272ca0cd227af4db5ae14"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m06.csv",
+      "sha256": "198b3a88473eb0767e95d70ab4abd4288634f3f92765700bb65ff033b2447749"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m07.csv",
+      "sha256": "0b545c481f98ab9f96fdd8b7ecc88f61d719e132ad9d85cce40b6404aeda69a9"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m08.csv",
+      "sha256": "e9963b71c3761b125080e843d9e4bbf198d9bfc8e151c408ee69156c7dbe606b"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m09.csv",
+      "sha256": "be1302d2d071d5ce6f9a8aacb07aeba1e5b290f9325ff14d1430d6cb79391e3c"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m10.csv",
+      "sha256": "db9d06b8aa736c0bd1a52b8a9b7527247645d3b1c3ffe3dd4de38e48a7fbad23"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m11.csv",
+      "sha256": "1765d33c0a9245bda7a0c532967be4cb83c608db639b20b0eb3758bd1702eb7b"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2023_m12.csv",
+      "sha256": "44749b958a72a4c557b74ab60d6e2cee7ab0c2a02c260d27151b44c363988542"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m01.csv",
+      "sha256": "e9fac1aa38a42004681ec1da4bbbe5074c35b7f2f7edaea9e565016f9944e915"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m02.csv",
+      "sha256": "94941b743e7cdc847edc80070522ce95a37dd5b2d6dd052dd6ce5e5db36c05e5"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m03.csv",
+      "sha256": "1c89ad0125464b1df79412317d28457b91e524e3fae075a665a4873768eee8ba"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m04.csv",
+      "sha256": "140655bfeff4d7d34c55dd3131d8d137a8fc8960f3a1b87f7dab17416043bcbd"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m05.csv",
+      "sha256": "6023d2fae458d28614530582c7c94f232dc9ab7ecf2bf6bb3b665583bf266bec"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m06.csv",
+      "sha256": "8a19c533790919a7d2f3172fd08de1eacbd891572967e440a5cc4624274b12b2"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m07.csv",
+      "sha256": "dafcb33efbe283ee03ef939ef5c99002b9a53af13166e1d4214c445189b6dde6"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m08.csv",
+      "sha256": "4cef7ed04392c0dc9787568dae3c09eb01f06756587982f1bb1c32aa720cd482"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m09.csv",
+      "sha256": "22cb337f6cd4cbba1a027c02e5de22f138d0d3221d5adf70fa4773b94486d4ef"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m10.csv",
+      "sha256": "a8d07307efd25ae8770178a8135ac08ffca0238f948900a1fcb9316e70b568ac"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m11.csv",
+      "sha256": "c352d1f5c615b42ed6044adfbd5048a1a899e2cf1834102dde837bcc6475e5cc"
+    },
+    {
+      "path": "/home/runner/work/naijaclimaguard/naijaclimaguard/validation/model_v5/operational_archive_months/glofas_2024_m12.csv",
+      "sha256": "a714a4e58296c1e4766a3bbbe8854825882893f0ee9584745212422610a0e670"
+    }
+  ],
+  "events_path": "validation/model_v4_event_registry.csv",
+  "events_sha256": "107a761e693932ba27057cb3281b9b5e05493d5d3de3ded89982c7bd4ca7e5b0",
+  "output_sha256": "2d7ab7ba51e0004224a149ccfb22ba924ad0f72bd95fc0e0aa79413a125d0c14"
+}

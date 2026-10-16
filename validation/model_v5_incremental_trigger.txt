@@ -1,0 +1,3 @@
+Launch durable incremental Model v5 closure.
+Protocol unchanged: archived operational GloFAS control forecasts from 2021-05-26, NASA IMERG Early, 2022-2024 walk-forward scoring, frozen 35-event registry, LR/RF/XGBoost, NASA-only/GloFAS-only/combined ablations, and unchanged threshold/freeze gates.
+Each quarter that passes >=90% coverage is committed permanently as extracted source data plus source manifest. Failed later quarters cannot erase completed progress. Final scoring runs only after all 15 preregistered quarter packs are present and valid.
