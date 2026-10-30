@@ -1,0 +1,35 @@
+{
+  "glofas_attempts": [
+    {
+      "elapsed_seconds": 159.489,
+      "issue_date": "2026-10-30",
+      "ok": true,
+      "returncode": 0,
+      "source_age_days": 0,
+      "stderr_tail": "sues)\nbefore downloading the dataset.\n2026-10-30 18:01:52,864 INFO Request ID is ba9afa27-5f4f-4bb8-a2af-2ea7dfd10df9\n2026-10-30 18:01:53,017 INFO status has been updated to accepted\n2026-10-30 18:02:14,750 INFO status has been updated to running\n2026-10-30 18:03:09,309 INFO status has been updated to successful\n\n96fbb86bb30bfb8661639bc30cb915cd.nc:   0%|          | 0.00/28.6k [00:00<?, ?B/s]\n96fbb86bb30bfb8661639bc30cb915cd.nc: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 28.6k/28.6k [00:01<00:00, 28.9kB/s]\n                                                                                         \n2026-10-30 18:03:11,906 INFO [2024-02-01T00:00:00] Please note that accessing this dataset via CDS for time-critical operation is not advised or supported\n2026-10-30 18:03:11,906 INFO [2024-02-01T00:00:00] Please note we suggest checking the list of known issues on the GloFAS wiki\n[here](https://confluence.ecmwf.int/display/CEMS/GloFAS+-+Known+Issues)\nbefore downloading the dataset.\n2026-10-30 18:03:11,906 INFO Request ID is d342bf25-b5b4-4d2e-a329-c4c9b82cc100\n2026-10-30 18:03:12,053 INFO status has been updated to accepted\n2026-10-30 18:03:45,278 INFO status has been updated to running\n2026-10-30 18:04:28,644 INFO status has been updated to successful\n\n6b11f36e59bd7c9f0efff2ceadeab5ac.nc:   0%|          | 0.00/28.6k [00:00<?, ?B/s]\n6b11f36e59bd7c9f0efff2ceadeab5ac.nc: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 28.6k/28.6k [00:00<00:00, 42.8kB/s]\n                                                                                         \n",
+      "stdout_tail": "Wrote 6 Riverine Watch GloFAS rows for issue 2026-10-30 to validation/prospective/riverine_watch_v1/work/2026-10-30T180150Z/glofas_2026-10-30/glofas.csv\n",
+      "timed_out": false
+    }
+  ],
+  "max_live_emit_age_days": 1,
+  "max_source_age_days": 2,
+  "model_id": "riverine-watch-v1",
+  "nasa_attempt": {
+    "elapsed_seconds": 32.872,
+    "ok": false,
+    "returncode": 1,
+    "stderr_tail": "tedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/earthaccess/search.py\", line 460, in hits\n    response.raise_for_status()\n  File \"/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/requests/models.py\", line 1026, in raise_for_status\n    raise HTTPError(http_error_msg, response=self)\nrequests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: https://cmr.earthdata.nasa.gov/search/granules.umm_json?short_name=GPM_3IMERGDE&version=07&bounding_box=3.0,3.0,12.0,14.0&temporal%5B%5D=2026-10-29T00:00:00Z,2026-10-29T23:59:59Z&page_size=0\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/home/runner/work/naijaclimaguard/naijaclimaguard/validation/fetch_nasa_imerg_early_current.py\", line 192, in <module>\n    main()\n  File \"/home/runner/work/naijaclimaguard/naijaclimaguard/validation/fetch_nasa_imerg_early_current.py\", line 161, in main\n    results = earthaccess.search_data(\n              ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/earthaccess/api.py\", line 280, in search_data\n    granules_found = query.hits()\n                     ^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/earthaccess/search.py\", line 463, in hits\n    raise RuntimeError(ex.response.text) from ex\nRuntimeError: {\"errors\":[\"Token [Bearer eyJXXX-Rb6A] has expired. Note the token value has been partially redacted.\"]}\n",
+    "stdout_tail": "ilable for 2026-10-07\nexact-date IMERG retry unavailable for 2026-10-08\nexact-date IMERG retry unavailable for 2026-10-09\nexact-date IMERG retry unavailable for 2026-10-10\nexact-date IMERG retry unavailable for 2026-10-11\nexact-date IMERG retry unavailable for 2026-10-12\nexact-date IMERG retry unavailable for 2026-10-13\nexact-date IMERG retry unavailable for 2026-10-14\nexact-date IMERG retry unavailable for 2026-10-15\nexact-date IMERG retry unavailable for 2026-10-16\nexact-date IMERG retry unavailable for 2026-10-17\nexact-date IMERG retry unavailable for 2026-10-18\nexact-date IMERG retry unavailable for 2026-10-19\nexact-date IMERG retry unavailable for 2026-10-20\nexact-date IMERG retry unavailable for 2026-10-21\nexact-date IMERG retry unavailable for 2026-10-22\nexact-date IMERG retry unavailable for 2026-10-23\nexact-date IMERG retry unavailable for 2026-10-24\nexact-date IMERG retry unavailable for 2026-10-25\nexact-date IMERG retry unavailable for 2026-10-26\nexact-date IMERG retry unavailable for 2026-10-27\nexact-date IMERG retry unavailable for 2026-10-28\nexact-date IMERG retry unavailable for 2026-10-29\nIMERG exact-date recovery incomplete; remaining=2026-09-30,2026-10-01,2026-10-02,2026-10-03,2026-10-04,2026-10-05,2026-10-06,2026-10-07,2026-10-08,2026-10-09,2026-10-10,2026-10-11,2026-10-12,2026-10-13,2026-10-14,2026-10-15,2026-10-16,2026-10-17,2026-10-18,2026-10-19,2026-10-20,2026-10-21,2026-10-22,2026-10-23,2026-10-24,2026-10-25,2026-10-26,2026-10-27,2026-10-28,2026-10-29\n",
+    "timed_out": false
+  },
+  "operational_run_date": "2026-10-30",
+  "public_action_authorized": false,
+  "recorded_at_utc": "2026-10-30T18:01:50.768964+00:00",
+  "selected_glofas_issue_date": "2026-10-30",
+  "selected_glofas_source_age_days": 0,
+  "status": "nasa_source_failure_no_model_issue",
+  "supported_locations": [
+    "Lokoja",
+    "Makurdi"
+  ]
+}
